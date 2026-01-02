@@ -14,12 +14,17 @@ public class Player extends GameObject {
     private static final float WALK_COOLDOWN = 0.2f; // 行走时每 0.2 秒移动一格
     private static final float RUN_COOLDOWN = 0.1f; // 跑步时每 0.1 秒移动一格
 
+    // 无敌时间 (受伤后短暂无敌，防止连续扣血)
+    private float invincibilityTimer;
+    private static final float INVINCIBILITY_DURATION = 1.0f; // 受伤后无敌 1 秒
+
     public Player(float x, float y) {
         super(x, y);
         this.lives = 3; // 初始3条命
         this.hasKey = false;
         this.isRunning = false;
         this.moveCooldown = 0;
+        this.invincibilityTimer = 0;
     }
 
     /**
@@ -31,6 +36,10 @@ public class Player extends GameObject {
         // 减少移动冷却计时器
         if (moveCooldown > 0) {
             moveCooldown -= delta;
+        }
+        // 减少无敌计时器
+        if (invincibilityTimer > 0) {
+            invincibilityTimer -= delta;
         }
     }
 
@@ -59,14 +68,33 @@ public class Player extends GameObject {
 
     /**
      * 减少玩家指定数量的生命值。
+     * 只有在非无敌状态下才会受伤。
      * 
      * @param amount 要移除的生命值数量。
+     * @return 如果实际受伤则返回 true，如果处于无敌状态则返回 false
      */
-    public void damage(int amount) {
+    public boolean damage(int amount) {
+        if (invincibilityTimer > 0) {
+            return false; // 无敌中，不受伤
+        }
+
         this.lives -= amount;
         if (this.lives < 0) {
             this.lives = 0;
         }
+
+        // 触发无敌时间
+        this.invincibilityTimer = INVINCIBILITY_DURATION;
+        return true;
+    }
+
+    /**
+     * 检查玩家是否处于无敌状态。
+     * 
+     * @return 如果无敌则返回 true
+     */
+    public boolean isInvincible() {
+        return invincibilityTimer > 0;
     }
 
     /**

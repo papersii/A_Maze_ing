@@ -12,11 +12,17 @@ import com.badlogic.gdx.math.MathUtils;
 import de.tum.cit.fop.maze.MazeRunnerGame;
 import de.tum.cit.fop.maze.model.GameMap;
 import de.tum.cit.fop.maze.model.GameObject;
+import de.tum.cit.fop.maze.model.Player;
+import de.tum.cit.fop.maze.model.Enemy;
+import de.tum.cit.fop.maze.model.CollisionManager;
 import de.tum.cit.fop.maze.utils.MapLoader;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * The GameScreen class is responsible for rendering the gameplay screen.
- * It handles the game logic and rendering of the game elements.
+ * GameScreen 类负责渲染游戏画面。
+ * 它处理游戏逻辑和游戏元素的渲染。
  */
 public class GameScreen implements Screen {
 
@@ -34,16 +40,19 @@ public class GameScreen implements Screen {
     private Texture enemyTexture;
     private Texture keyTexture;
 
-    // 玩家位置
-    private float playerX;
-    private float playerY;
+    // 玩家与物理系统
+    private Player player;
+    private CollisionManager collisionManager;
+
+    // 敌人列表 (从 GameMap 中提取)
+    private List<Enemy> enemies;
 
     // 单元格大小 (16像素)
     private static final float UNIT_SCALE = 16f;
 
     // 相机跟随的平滑速度：数值越小惯性越大(越滑)，数值越大跟得越紧
     // 推荐范围: 2.0f (很滑) ~ 10.0f (很紧)
-    private static final float CAMERA_LERP_SPEED = 3.0f;
+    private static final float CAMERA_LERP_SPEED = 5.0f;
 
     public GameScreen(MazeRunnerGame game) {
         this.game = game;
@@ -51,11 +60,19 @@ public class GameScreen implements Screen {
         // 1. 加载地图
         gameMap = MapLoader.loadMap("maps/level-1.properties");
 
-        // 2. 初始化玩家位置
-        playerX = gameMap.getPlayerStartX();
-        playerY = gameMap.getPlayerStartY();
+        // 2. 初始化玩家与物理
+        player = new Player(gameMap.getPlayerStartX(), gameMap.getPlayerStartY());
+        collisionManager = new CollisionManager(gameMap);
 
-        // 3. 创建临时素材 (后续可用 new Texture("wall.png") 替换)
+        // 3. 从 GameMap 中提取敌人引用
+        enemies = new ArrayList<>();
+        for (GameObject obj : gameMap.getGameObjects()) {
+            if (obj instanceof Enemy) {
+                enemies.add((Enemy) obj);
+            }
+        }
+
+        // 4. 创建临时素材 (后续可用 new Texture("wall.png") 替换)
         wallTexture = createColorTexture(Color.GRAY);
         playerTexture = createColorTexture(Color.BLUE);
         exitTexture = createColorTexture(Color.GREEN);
@@ -63,7 +80,7 @@ public class GameScreen implements Screen {
         enemyTexture = createColorTexture(Color.ORANGE);
         keyTexture = createColorTexture(Color.YELLOW);
 
-        // 4. 设置相机
+        // 5. 设置相机
         camera = new OrthographicCamera();
         camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.zoom = 0.5f;
@@ -86,39 +103,103 @@ public class GameScreen implements Screen {
             game.goToMenu();
         }
 
-        // 临时移动控制 (用于测试相机，实际项目中会被 Player 类替代)
-        float speed = 5.0f * delta;
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) playerX -= speed;
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) playerX += speed;
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) playerY += speed;
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) playerY -= speed;
+        // 更新玩家状态 (冷却计时器)
+        player.update(delta);
 
-        // --- 2. 逻辑更新 ---
+        // 跑步状态
+        boolean isRunning = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)
+                || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+        player.setRunning(isRunning);
+
+        // 基于网格的移动 - 只有冷却完成才能移动
+        if (player.canMove()) {
+            int deltaX = 0;
+            int deltaY = 0;
+
+            // 使用 isKeyJustPressed 确保每次按键只移动一格
+            // 如果想按住连续移动，使用 isKeyPressed 配合冷却
+            if (Gdx.input.isKeyPressed(Input.Keys.LEFT))
+                deltaX = -1;
+            else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT))
+                deltaX = 1;
+            else if (Gdx.input.isKeyPressed(Input.Keys.UP))
+                deltaY = 1;
+            else if (Gdx.input.isKeyPressed(Input.Keys.DOWN))
+                deltaY = -1;
+
+            // 尝试移动
+            if (deltaX != 0 || deltaY != 0) {
+                int nextX = (int) player.getX() + deltaX;
+                int nextY = (int) player.getY() + deltaY;
+
+                if (collisionManager.isWalkable(nextX, nextY)) {
+                    player.moveGrid(deltaX, deltaY);
+                }
+            }
+        }
+
+        // --- 2. 更新敌人 ---
+        for (Enemy enemy : enemies) {
+            enemy.update(delta, player, collisionManager);
+        }
+
+        // --- 2.5 检测玩家与敌人的碰撞 ---
+        int playerGridX = Math.round(player.getX());
+        int playerGridY = Math.round(player.getY());
+
+        for (Enemy enemy : enemies) {
+            int enemyGridX = Math.round(enemy.getX());
+            int enemyGridY = Math.round(enemy.getY());
+
+            // 如果玩家和敌人在同一格
+            if (playerGridX == enemyGridX && playerGridY == enemyGridY) {
+                if (player.damage(1)) {
+                    // 玩家受伤了，可以在这里添加音效/特效
+                    System.out.println("玩家受伤! 剩余生命: " + player.getLives());
+                }
+                break; // 每帧只受一次伤
+            }
+        }
+
+        // --- 3. 逻辑更新 ---
         updateCamera(delta);
 
-        // --- 3. 渲染绘制 ---
+        // --- 4. 渲染绘制 ---
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         game.getSpriteBatch().setProjectionMatrix(camera.combined);
         game.getSpriteBatch().begin();
 
-        // A. 绘制地图物体
+        // A. 绘制地图物体 (不包括敌人，因为敌人位置会动态变化)
         for (GameObject obj : gameMap.getGameObjects()) {
             Texture textureToDraw = wallTexture;
 
             String type = obj.getClass().getSimpleName();
             switch (type) {
-                case "Exit": textureToDraw = exitTexture; break;
-                case "Trap": textureToDraw = trapTexture; break;
-                case "Enemy": textureToDraw = enemyTexture; break;
-                case "Key": textureToDraw = keyTexture; break;
+                case "Exit":
+                    textureToDraw = exitTexture;
+                    break;
+                case "Trap":
+                    textureToDraw = trapTexture;
+                    break;
+                case "Enemy":
+                    // 敌人单独绘制，跳过这里
+                    continue;
+                case "Key":
+                    textureToDraw = keyTexture;
+                    break;
             }
             game.getSpriteBatch().draw(textureToDraw, obj.getX() * UNIT_SCALE, obj.getY() * UNIT_SCALE);
         }
 
-        // B. 绘制玩家
-        game.getSpriteBatch().draw(playerTexture, playerX * UNIT_SCALE, playerY * UNIT_SCALE);
+        // B. 绘制敌人 (使用动态位置)
+        for (Enemy enemy : enemies) {
+            game.getSpriteBatch().draw(enemyTexture, enemy.getX() * UNIT_SCALE, enemy.getY() * UNIT_SCALE);
+        }
+
+        // C. 绘制玩家
+        game.getSpriteBatch().draw(playerTexture, player.getX() * UNIT_SCALE, player.getY() * UNIT_SCALE);
 
         game.getSpriteBatch().end();
     }
@@ -129,8 +210,8 @@ public class GameScreen implements Screen {
      */
     private void updateCamera(float delta) {
         // 1. 获取玩家当前的中心点坐标 (像素单位)
-        float targetX = playerX * UNIT_SCALE + UNIT_SCALE / 2;
-        float targetY = playerY * UNIT_SCALE + UNIT_SCALE / 2;
+        float targetX = player.getX() * UNIT_SCALE + UNIT_SCALE / 2;
+        float targetY = player.getY() * UNIT_SCALE + UNIT_SCALE / 2;
 
         // 2. 使用 Lerp 实现惯性移动
         // 公式：当前位置 += (目标位置 - 当前位置) * 速度 * 时间增量
@@ -154,8 +235,10 @@ public class GameScreen implements Screen {
         }
 
         // 4. 缩放控制
-        if (Gdx.input.isKeyPressed(Input.Keys.Z)) camera.zoom -= 0.02f;
-        if (Gdx.input.isKeyPressed(Input.Keys.X)) camera.zoom += 0.02f;
+        if (Gdx.input.isKeyPressed(Input.Keys.Z))
+            camera.zoom -= 0.02f;
+        if (Gdx.input.isKeyPressed(Input.Keys.X))
+            camera.zoom += 0.02f;
         camera.zoom = MathUtils.clamp(camera.zoom, 0.2f, 2.0f);
 
         camera.update();
@@ -169,16 +252,20 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void pause() {}
+    public void pause() {
+    }
 
     @Override
-    public void resume() {}
+    public void resume() {
+    }
 
     @Override
-    public void show() {}
+    public void show() {
+    }
 
     @Override
-    public void hide() {}
+    public void hide() {
+    }
 
     @Override
     public void dispose() {

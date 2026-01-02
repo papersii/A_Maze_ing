@@ -67,5 +67,19 @@ project(":core") {
         api "com.badlogicgames.gdx:gdx:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         implementation "games.spooky.gdx:gdx-nativefilechooser:$gdxNativefilechooserVersion"
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDirs = ['src']
+            }
+        }
+        test {
+            java {
+                srcDirs = ['test']
+            }
+        }
     }
 }
