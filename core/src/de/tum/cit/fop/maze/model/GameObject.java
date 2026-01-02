@@ -1,4 +1,4 @@
-package de.tum.cit.fop.maze;
+package de.tum.cit.fop.maze.model;
 
 /**
  * 所有游戏实体的基类

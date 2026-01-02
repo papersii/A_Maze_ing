@@ -1,7 +1,8 @@
-package de.tum.cit.fop.maze;
+package de.tum.cit.fop.maze.utils;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import de.tum.cit.fop.maze.model.*;
 
 import java.io.IOException;
 import java.io.InputStream;

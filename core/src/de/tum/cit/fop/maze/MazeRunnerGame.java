@@ -9,6 +9,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
+import de.tum.cit.fop.maze.screens.GameScreen;
+import de.tum.cit.fop.maze.screens.MenuScreen;
 import games.spooky.gdx.nativefilechooser.NativeFileChooser;
 
 /**

@@ -1,4 +1,4 @@
-package de.tum.cit.fop.maze;
+package de.tum.cit.fop.maze.model;
 
 import java.util.ArrayList;
 import java.util.List;
