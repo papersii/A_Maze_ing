@@ -118,13 +118,12 @@ public class GameScreen implements Screen {
                 || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
         player.setRunning(isRunning);
 
-        // 基于网格的移动 - 只有冷却完成才能移动
-        if (player.canMove()) {
+        // 基于网格的移动 - 只有冷却完成才能接受新输入
+        if (player.canAcceptInput()) {
             int deltaX = 0;
             int deltaY = 0;
 
-            // 使用 isKeyJustPressed 确保每次按键只移动一格
-            // 如果想按住连续移动，使用 isKeyPressed 配合冷却
+            // 按住方向键连续移动
             if (Gdx.input.isKeyPressed(Input.Keys.LEFT))
                 deltaX = -1;
             else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT))
@@ -134,10 +133,10 @@ public class GameScreen implements Screen {
             else if (Gdx.input.isKeyPressed(Input.Keys.DOWN))
                 deltaY = -1;
 
-            // 尝试移动
+            // 尝试移动 (使用目标位置进行碰撞检测)
             if (deltaX != 0 || deltaY != 0) {
-                int nextX = (int) player.getX() + deltaX;
-                int nextY = (int) player.getY() + deltaY;
+                int nextX = player.getTargetX() + deltaX;
+                int nextY = player.getTargetY() + deltaY;
 
                 if (collisionManager.isWalkable(nextX, nextY)) {
                     player.moveGrid(deltaX, deltaY);
@@ -150,21 +149,20 @@ public class GameScreen implements Screen {
             enemy.update(delta, player, collisionManager);
         }
 
-        // --- 2.5 检测玩家与敌人的碰撞 ---
-        int playerGridX = Math.round(player.getX());
-        int playerGridY = Math.round(player.getY());
+        // --- 2.5 检测玩家与敌人的碰撞 (使用目标位置) ---
+        int playerGridX = player.getTargetX();
+        int playerGridY = player.getTargetY();
 
         for (Enemy enemy : enemies) {
-            int enemyGridX = Math.round(enemy.getX());
-            int enemyGridY = Math.round(enemy.getY());
+            int enemyGridX = enemy.getTargetX();
+            int enemyGridY = enemy.getTargetY();
 
             // 如果玩家和敌人在同一格
             if (playerGridX == enemyGridX && playerGridY == enemyGridY) {
                 if (player.damage(1)) {
-                    // 玩家受伤了，可以在这里添加音效/特效
                     System.out.println("玩家受伤! 剩余生命: " + player.getLives());
                 }
-                break; // 每帧只受一次伤
+                break;
             }
         }
 

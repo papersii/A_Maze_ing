@@ -4,61 +4,93 @@ import java.util.Random;
 
 /**
  * 代表一个可以巡逻和追逐玩家的敌人。
- * 使用基于网格的移动来与碰撞系统配合。
+ * 使用平滑移动：视觉位置(x,y)插值到目标网格位置(targetX,targetY)。
  */
 public class Enemy extends GameObject {
     public enum EnemyState {
         PATROL,
         CHASE
     }
-    // 状态
 
     private EnemyState state;
     private Random random;
 
-    // 移动冷却计时器
-    private float moveCooldown;
-    private static final float PATROL_COOLDOWN = 0.5f; // 巡逻时每 0.5 秒移动一格
-    private static final float CHASE_COOLDOWN = 0.3f; // 追逐时每 0.3 秒移动一格
+    // 目标网格位置
+    private int targetX;
+    private int targetY;
 
-    // 当前移动方向
-    private int moveDirectionX;
-    private int moveDirectionY;
+    // 移动速度 (每秒移动的格数)
+    private static final float PATROL_SPEED = 3.0f;
+    private static final float CHASE_SPEED = 4.5f;
 
-    // 改变方向的计时器
+    // AI 决策冷却 (防止每帧都做决策)
+    private float decisionCooldown;
+    private static final float PATROL_DECISION_COOLDOWN = 0.3f;
+    private static final float CHASE_DECISION_COOLDOWN = 0.2f;
+
+    // 巡逻方向改变计时器
+    private int patrolDirX;
+    private int patrolDirY;
     private float changeDirTimer;
 
     public Enemy(float x, float y) {
         super(x, y);
+        this.targetX = Math.round(x);
+        this.targetY = Math.round(y);
         this.state = EnemyState.PATROL;
         this.random = new Random();
-        this.moveCooldown = 0;
+        this.decisionCooldown = 0;
         this.changeDirTimer = 0;
         pickRandomDirection();
     }
 
     /**
-     * 更新敌人行为：巡逻或追逐的逻辑。
-     * 
-     * @param delta            上一帧以来的时间
-     * @param player           可能追逐的玩家
-     * @param collisionManager 用于检查移动是否合法
+     * 更新敌人：平滑移动 + AI 决策。
      */
     public void update(float delta, Player player, CollisionManager collisionManager) {
-        // 减少冷却计时器
-        if (moveCooldown > 0) {
-            moveCooldown -= delta;
-            return; // 冷却中，不移动
+        // 1. 平滑移动视觉位置到目标位置
+        float speed = (state == EnemyState.CHASE ? CHASE_SPEED : PATROL_SPEED) * delta;
+
+        if (Math.abs(this.x - targetX) > 0.01f) {
+            if (this.x < targetX) {
+                this.x = Math.min(this.x + speed, targetX);
+            } else {
+                this.x = Math.max(this.x - speed, targetX);
+            }
+        } else {
+            this.x = targetX;
         }
 
-        // 基于距离的简单状态转换
+        if (Math.abs(this.y - targetY) > 0.01f) {
+            if (this.y < targetY) {
+                this.y = Math.min(this.y + speed, targetY);
+            } else {
+                this.y = Math.max(this.y - speed, targetY);
+            }
+        } else {
+            this.y = targetY;
+        }
+
+        // 2. 减少决策冷却
+        if (decisionCooldown > 0) {
+            decisionCooldown -= delta;
+            return; // 冷却中不做新决策
+        }
+
+        // 3. 只有到达目标格后才做新决策
+        if (isMoving()) {
+            return;
+        }
+
+        // 4. 状态转换
         float dist = distanceTo(player);
-        if (dist < 5.0f) { // 检测半径
+        if (dist < 5.0f) {
             state = EnemyState.CHASE;
         } else {
             state = EnemyState.PATROL;
         }
 
+        // 5. 执行行为
         switch (state) {
             case PATROL:
                 handlePatrol(delta, collisionManager);
@@ -69,89 +101,91 @@ public class Enemy extends GameObject {
         }
     }
 
+    private boolean isMoving() {
+        return Math.abs(this.x - targetX) > 0.01f || Math.abs(this.y - targetY) > 0.01f;
+    }
+
     private void handlePatrol(float delta, CollisionManager collisionManager) {
         changeDirTimer -= delta;
         if (changeDirTimer <= 0) {
             pickRandomDirection();
-            changeDirTimer = 2.0f + random.nextFloat() * 2.0f; // 每 2-4 秒改变一次方向
+            changeDirTimer = 2.0f + random.nextFloat() * 2.0f;
         }
 
-        // 尝试朝当前方向移动一格
-        int currentX = Math.round(this.x);
-        int currentY = Math.round(this.y);
-        int nextX = currentX + moveDirectionX;
-        int nextY = currentY + moveDirectionY;
+        int nextX = targetX + patrolDirX;
+        int nextY = targetY + patrolDirY;
 
         if (collisionManager.isWalkable(nextX, nextY)) {
-            this.x = nextX;
-            this.y = nextY;
+            targetX = nextX;
+            targetY = nextY;
         } else {
-            // 撞墙了，换个方向
             pickRandomDirection();
         }
 
-        moveCooldown = PATROL_COOLDOWN;
+        decisionCooldown = PATROL_DECISION_COOLDOWN;
     }
 
     private void handleChase(Player player, CollisionManager collisionManager) {
-        // 计算朝向玩家的方向
-        int playerX = Math.round(player.getX());
-        int playerY = Math.round(player.getY());
-        int enemyX = Math.round(this.x);
-        int enemyY = Math.round(this.y);
+        int playerX = player.getTargetX();
+        int playerY = player.getTargetY();
 
-        int dx = Integer.compare(playerX, enemyX);
-        int dy = Integer.compare(playerY, enemyY);
+        int dx = Integer.compare(playerX, targetX);
+        int dy = Integer.compare(playerY, targetY);
 
-        // 优先尝试 X 方向，如果不行再尝试 Y 方向
         boolean moved = false;
 
         if (dx != 0) {
-            int nextX = enemyX + dx;
-            if (collisionManager.isWalkable(nextX, enemyY)) {
-                this.x = nextX;
+            int nextX = targetX + dx;
+            if (collisionManager.isWalkable(nextX, targetY)) {
+                targetX = nextX;
                 moved = true;
             }
         }
 
         if (!moved && dy != 0) {
-            int nextY = enemyY + dy;
-            if (collisionManager.isWalkable(enemyX, nextY)) {
-                this.y = nextY;
-                moved = true;
+            int nextY = targetY + dy;
+            if (collisionManager.isWalkable(targetX, nextY)) {
+                targetY = nextY;
             }
         }
 
-        moveCooldown = CHASE_COOLDOWN;
+        decisionCooldown = CHASE_DECISION_COOLDOWN;
     }
 
     private void pickRandomDirection() {
-        // 随机选择四个方向之一
         int direction = random.nextInt(4);
         switch (direction) {
             case 0:
-                moveDirectionX = 1;
-                moveDirectionY = 0;
-                break; // 右
+                patrolDirX = 1;
+                patrolDirY = 0;
+                break;
             case 1:
-                moveDirectionX = -1;
-                moveDirectionY = 0;
-                break; // 左
+                patrolDirX = -1;
+                patrolDirY = 0;
+                break;
             case 2:
-                moveDirectionX = 0;
-                moveDirectionY = 1;
-                break; // 上
+                patrolDirX = 0;
+                patrolDirY = 1;
+                break;
             case 3:
-                moveDirectionX = 0;
-                moveDirectionY = -1;
-                break; // 下
+                patrolDirX = 0;
+                patrolDirY = -1;
+                break;
         }
     }
 
     private float distanceTo(GameObject other) {
-        float dx = this.x - other.getX();
-        float dy = this.y - other.getY();
+        float dx = this.targetX - other.getX();
+        float dy = this.targetY - other.getY();
         return (float) Math.sqrt(dx * dx + dy * dy);
+    }
+
+    public int getTargetX() {
+        return targetX;
+    }
+
+    public int getTargetY() {
+        return targetY;
     }
 
     public EnemyState getState() {

@@ -2,80 +2,118 @@ package de.tum.cit.fop.maze.model;
 
 /**
  * 代表游戏中的玩家角色。
- * 处理基于网格的移动、生命值计数和钥匙清单。
+ * 使用平滑移动：视觉位置(x,y)插值到目标网格位置(targetX,targetY)。
  */
 public class Player extends GameObject {
     private int lives;
     private boolean hasKey;
     private boolean isRunning;
 
-    // 移动冷却计时器 (防止按住键时移动过快)
-    private float moveCooldown;
-    private static final float WALK_COOLDOWN = 0.2f; // 行走时每 0.2 秒移动一格
-    private static final float RUN_COOLDOWN = 0.1f; // 跑步时每 0.1 秒移动一格
+    // 目标网格位置 (用于碰撞检测)
+    private int targetX;
+    private int targetY;
+
+    // 移动速度 (每秒移动的格数)
+    private static final float WALK_SPEED = 5.0f; // 行走速度
+    private static final float RUN_SPEED = 8.0f; // 跑步速度
+
+    // 输入冷却 (防止按住键时立即连续移动)
+    private float inputCooldown;
+    private static final float WALK_INPUT_COOLDOWN = 0.15f;
+    private static final float RUN_INPUT_COOLDOWN = 0.08f;
 
     // 无敌时间 (受伤后短暂无敌，防止连续扣血)
     private float invincibilityTimer;
-    private static final float INVINCIBILITY_DURATION = 1.0f; // 受伤后无敌 1 秒
+    private static final float INVINCIBILITY_DURATION = 1.0f;
 
     public Player(float x, float y) {
         super(x, y);
-        this.lives = 3; // 初始3条命
+        this.targetX = Math.round(x);
+        this.targetY = Math.round(y);
+        this.lives = 3;
         this.hasKey = false;
         this.isRunning = false;
-        this.moveCooldown = 0;
+        this.inputCooldown = 0;
         this.invincibilityTimer = 0;
     }
 
     /**
-     * 更新玩家状态。
+     * 更新玩家状态：平滑移动视觉位置到目标位置。
      * 
      * @param delta 上一帧以来的时间
      */
     public void update(float delta) {
-        // 减少移动冷却计时器
-        if (moveCooldown > 0) {
-            moveCooldown -= delta;
+        // 减少输入冷却计时器
+        if (inputCooldown > 0) {
+            inputCooldown -= delta;
         }
+
         // 减少无敌计时器
         if (invincibilityTimer > 0) {
             invincibilityTimer -= delta;
         }
+
+        // 平滑移动视觉位置到目标位置
+        float speed = (isRunning ? RUN_SPEED : WALK_SPEED) * delta;
+
+        // X 轴插值
+        if (Math.abs(this.x - targetX) > 0.01f) {
+            if (this.x < targetX) {
+                this.x = Math.min(this.x + speed, targetX);
+            } else {
+                this.x = Math.max(this.x - speed, targetX);
+            }
+        } else {
+            this.x = targetX; // 对齐到整数
+        }
+
+        // Y 轴插值
+        if (Math.abs(this.y - targetY) > 0.01f) {
+            if (this.y < targetY) {
+                this.y = Math.min(this.y + speed, targetY);
+            } else {
+                this.y = Math.max(this.y - speed, targetY);
+            }
+        } else {
+            this.y = targetY; // 对齐到整数
+        }
     }
 
     /**
-     * 检查玩家是否可以移动 (冷却完成)。
-     * 
-     * @return 如果可以移动则返回 true
+     * 检查是否可以接受新的移动输入。
      */
-    public boolean canMove() {
-        return moveCooldown <= 0;
+    public boolean canAcceptInput() {
+        return inputCooldown <= 0;
     }
 
     /**
-     * 在网格上移动一格 (整数移动)。
-     * 此方法不检查 collisions；调用此方法前必须检查 collision。
+     * 检查玩家是否正在移动中 (视觉位置未到达目标)。
+     */
+    public boolean isMoving() {
+        return Math.abs(this.x - targetX) > 0.01f || Math.abs(this.y - targetY) > 0.01f;
+    }
+
+    /**
+     * 设置新的目标网格位置 (不直接改变视觉位置)。
+     * 调用此方法前必须检查 collision。
      * 
      * @param deltaX X 轴移动方向 (-1, 0, 或 1)
      * @param deltaY Y 轴移动方向 (-1, 0, 或 1)
      */
     public void moveGrid(int deltaX, int deltaY) {
-        this.x += deltaX;
-        this.y += deltaY;
-        // 重置冷却
-        this.moveCooldown = isRunning ? RUN_COOLDOWN : WALK_COOLDOWN;
+        this.targetX += deltaX;
+        this.targetY += deltaY;
+        // 重置输入冷却
+        this.inputCooldown = isRunning ? RUN_INPUT_COOLDOWN : WALK_INPUT_COOLDOWN;
     }
 
     /**
      * 减少玩家指定数量的生命值。
      * 只有在非无敌状态下才会受伤。
-     * 
-     * @param amount 要移除的生命值数量。
-     * @return 如果实际受伤则返回 true，如果处于无敌状态则返回 false
      */
     public boolean damage(int amount) {
         if (invincibilityTimer > 0) {
-            return false; // 无敌中，不受伤
+            return false;
         }
 
         this.lives -= amount;
@@ -83,30 +121,27 @@ public class Player extends GameObject {
             this.lives = 0;
         }
 
-        // 触发无敌时间
         this.invincibilityTimer = INVINCIBILITY_DURATION;
         return true;
     }
 
-    /**
-     * 检查玩家是否处于无敌状态。
-     * 
-     * @return 如果无敌则返回 true
-     */
     public boolean isInvincible() {
         return invincibilityTimer > 0;
     }
 
-    /**
-     * 设置玩家是否正在跑步（按住 Shift 键）。
-     * 
-     * @param running 如果正在跑步则为 true，否则为 false。
-     */
     public void setRunning(boolean running) {
         this.isRunning = running;
     }
 
-    // --- Getters 和 Setters ---
+    // --- Getters ---
+
+    public int getTargetX() {
+        return targetX;
+    }
+
+    public int getTargetY() {
+        return targetY;
+    }
 
     public boolean isRunning() {
         return isRunning;
@@ -126,12 +161,5 @@ public class Player extends GameObject {
 
     public void setHasKey(boolean hasKey) {
         this.hasKey = hasKey;
-    }
-
-    /**
-     * 获取当前移动冷却时间。
-     */
-    public float getMoveCooldown() {
-        return moveCooldown;
     }
 }
