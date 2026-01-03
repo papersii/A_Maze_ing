@@ -28,12 +28,14 @@ public class GameSettings {
     private static final int DEFAULT_PLAYER_MAX_LIVES = 3;
     private static final float DEFAULT_PLAYER_INVINCIBILITY_DURATION = 1.0f;
 
-    private static final float DEFAULT_ENEMY_PATROL_SPEED = 2.0f;
-    private static final float DEFAULT_ENEMY_CHASE_SPEED = 4.0f;
+    private static final float DEFAULT_ENEMY_PATROL_SPEED = 1.5f;
+    private static final float DEFAULT_ENEMY_CHASE_SPEED = 2.5f;
     private static final float DEFAULT_ENEMY_DETECT_RANGE = 5.0f;
 
-    private static final float DEFAULT_HIT_DISTANCE = 0.7f;
-    private static final float DEFAULT_CAMERA_ZOOM = 1.0f;
+    private static final float DEFAULT_HIT_DISTANCE = 0.6f;
+    private static final float DEFAULT_CAMERA_ZOOM = 0.5f; // Smaller zoom = closer/zoomed-in view
+                                                           // player)
+                                                           // height)
 
     // ==================== 用户自定义默认值 (从文件加载/保存) ====================
 
@@ -66,7 +68,9 @@ public class GameSettings {
     public static int KEY_DOWN;
     public static int KEY_LEFT;
     public static int KEY_RIGHT;
+
     public static int KEY_ATTACK;
+    public static int KEY_SWITCH_WEAPON;
 
     // ==================== 保存/加载用户默认值 ====================
 
@@ -93,7 +97,9 @@ public class GameSettings {
         KEY_DOWN = prefs.getInteger("key_down", com.badlogic.gdx.Input.Keys.DOWN);
         KEY_LEFT = prefs.getInteger("key_left", com.badlogic.gdx.Input.Keys.LEFT);
         KEY_RIGHT = prefs.getInteger("key_right", com.badlogic.gdx.Input.Keys.RIGHT);
+
         KEY_ATTACK = prefs.getInteger("key_attack", com.badlogic.gdx.Input.Keys.SPACE);
+        KEY_SWITCH_WEAPON = prefs.getInteger("key_switch_weapon", com.badlogic.gdx.Input.Keys.TAB);
 
         // 同时设置当前值
         resetToUserDefaults();
@@ -139,7 +145,9 @@ public class GameSettings {
         prefs.putInteger("key_down", KEY_DOWN);
         prefs.putInteger("key_left", KEY_LEFT);
         prefs.putInteger("key_right", KEY_RIGHT);
+
         prefs.putInteger("key_attack", KEY_ATTACK);
+        prefs.putInteger("key_switch_weapon", KEY_SWITCH_WEAPON);
         prefs.flush();
     }
 
@@ -156,7 +164,7 @@ public class GameSettings {
         enemyChaseSpeed = userEnemyChaseSpeed;
         enemyDetectRange = userEnemyDetectRange;
         hitDistance = userHitDistance;
-        cameraZoom = userCameraZoom;
+        cameraZoom = DEFAULT_CAMERA_ZOOM; // Force new default zoom (0.67 for 15x15 view)
     }
 
     /**

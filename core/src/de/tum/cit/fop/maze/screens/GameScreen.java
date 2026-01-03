@@ -6,6 +6,7 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -21,13 +22,17 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import de.tum.cit.fop.maze.MazeRunnerGame;
 
 import de.tum.cit.fop.maze.config.GameSettings;
 import de.tum.cit.fop.maze.model.*;
+import de.tum.cit.fop.maze.model.items.Potion;
+import de.tum.cit.fop.maze.model.weapons.*;
 import de.tum.cit.fop.maze.ui.GameHUD;
 import de.tum.cit.fop.maze.utils.MapLoader;
 import de.tum.cit.fop.maze.utils.SaveManager;
+import de.tum.cit.fop.maze.effects.FloatingText;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -79,7 +84,9 @@ public class GameScreen implements Screen {
     private java.util.List<MobileTrap> mobileTraps;
     private GameHUD hud;
     private boolean[][] safeGrid;
+
     private int killCount = 0;
+    private java.util.List<FloatingText> floatingTexts;
 
     // --- Rendering ---
     private de.tum.cit.fop.maze.utils.TextureManager textureManager;
@@ -89,7 +96,7 @@ public class GameScreen implements Screen {
     private int playerDirection = 0; // 0=Down, 1=Up, 2=Left, 3=Right
 
     private static final float UNIT_SCALE = 16f;
-    private static final float CAMERA_LERP_SPEED = 5.0f;
+    private static final float CAMERA_LERP_SPEED = 4.0f; // Slower for smooth, inertial camera with immersive tracking
 
     private boolean isPaused = false;
     private Table pauseTable;
@@ -134,6 +141,44 @@ public class GameScreen implements Screen {
         setupPauseMenu();
     }
 
+    /**
+     * Constructor for loading a new level with persistent stats from victory.
+     */
+    public GameScreen(MazeRunnerGame game, String mapPath, boolean loadPersistentStats) {
+        this.game = game;
+        this.currentLevelPath = mapPath;
+        this.camera = new OrthographicCamera();
+        this.gameViewport = new FitViewport(640, 360, camera); // Restored to 640x360 for correct zoom
+        this.uiStage = new Stage(new ScreenViewport(), game.getSpriteBatch());
+        this.floatingTexts = new ArrayList<>();
+
+        this.textureManager = new de.tum.cit.fop.maze.utils.TextureManager(game.getAtlas());
+        this.mazeRenderer = new de.tum.cit.fop.maze.utils.MazeRenderer(game.getSpriteBatch(), textureManager);
+
+        reloadMap(this.currentLevelPath);
+        initGameObjects();
+
+        if (loadPersistentStats) {
+            GameState state = de.tum.cit.fop.maze.utils.SaveManager.loadGame("auto_save_victory");
+            if (state != null) {
+                // Load only persistent data
+                player.setLives(state.getLives());
+                player.setHasKey(false); // Key does not persist
+                player.setSkillStats(state.getSkillPoints(),
+                        state.getMaxHealthBonus(),
+                        state.getDamageBonus(),
+                        state.getInvincibilityExtension(),
+                        state.getKnockbackMultiplier(),
+                        state.getCooldownReduction(),
+                        state.getSpeedBonus());
+                player.setInventoryFromTypes(state.getInventoryWeaponTypes());
+            }
+        }
+
+        GameSettings.resetToUserDefaults();
+        setupPauseMenu();
+    }
+
     private Color biomeColor = Color.WHITE;
 
     private void reloadMap(String path) {
@@ -161,8 +206,10 @@ public class GameScreen implements Screen {
 
         collisionManager = new CollisionManager(gameMap);
         player = new Player(gameMap.getPlayerStartX(), gameMap.getPlayerStartY());
-        enemies = new ArrayList<>();
-        mobileTraps = new ArrayList<>();
+        this.enemies = new ArrayList<>();
+        this.mobileTraps = new ArrayList<>();
+        this.floatingTexts = new ArrayList<>();
+
         for (GameObject obj : gameMap.getDynamicObjects()) {
             if (obj instanceof Enemy)
                 enemies.add((Enemy) obj);
@@ -171,7 +218,8 @@ public class GameScreen implements Screen {
         }
         if (hud != null)
             hud.dispose();
-        hud = new GameHUD(game.getSpriteBatch(), player, game.getSkin(), textureManager, () -> togglePause());
+        hud = new GameHUD(game.getSpriteBatch(), player, gameViewport, game.getSkin(), textureManager,
+                () -> togglePause());
 
         // Find Exit for HUD Arrow
         for (GameObject obj : gameMap.getDynamicObjects()) {
@@ -219,34 +267,98 @@ public class GameScreen implements Screen {
                 reg = textureManager.trapRegion;
             } else if (obj instanceof Key) {
                 reg = textureManager.keyRegion;
+            } else if (obj instanceof Potion) {
+                reg = textureManager.potionRegion;
+            } else if (obj instanceof Weapon) {
+                reg = textureManager.keyRegion; // Reuse key sprite
+                game.getSpriteBatch().setColor(Color.CYAN); // Tint for weapon
             }
 
             if (reg != null) {
                 game.getSpriteBatch().draw(reg, obj.getX() * UNIT_SCALE, obj.getY() * UNIT_SCALE);
             }
+            // Reset color if tinted
+            if (obj instanceof Weapon) {
+                game.getSpriteBatch().setColor(Color.WHITE);
+            }
         }
 
         // 3. Render Enemies
-        TextureRegion enemyFrame = textureManager.enemyWalk.getKeyFrame(stateTime, true);
-        for (Enemy enemy : enemies) {
-            game.getSpriteBatch().draw(enemyFrame, enemy.getX() * UNIT_SCALE, enemy.getY() * UNIT_SCALE);
+        TextureRegion animatedFrame = textureManager.enemyWalk.getKeyFrame(stateTime, true);
+        TextureRegion staticFrame = textureManager.enemyWalk.getKeyFrame(0);
+
+        for (Enemy e : enemies) {
+            TextureRegion currentFrame = animatedFrame;
+
+            // Visual Effects Logic
+            if (e.isDead()) {
+                currentFrame = staticFrame;
+                game.getSpriteBatch().setColor(Color.GRAY); // Dead body is gray
+            } else if (e.isHurt()) {
+                game.getSpriteBatch().setColor(1f, 0f, 0f, 1f); // Red flash (High priority)
+            } else if (e.getCurrentEffect() == de.tum.cit.fop.maze.model.weapons.WeaponEffect.FREEZE) {
+                game.getSpriteBatch().setColor(0.5f, 0.5f, 1f, 1f); // Blue tint
+            } else if (e.getCurrentEffect() == de.tum.cit.fop.maze.model.weapons.WeaponEffect.BURN) {
+                game.getSpriteBatch().setColor(1f, 0.5f, 0.5f, 1f); // Red tint
+            } else if (e.getCurrentEffect() == de.tum.cit.fop.maze.model.weapons.WeaponEffect.POISON) {
+                game.getSpriteBatch().setColor(0.5f, 1f, 0.5f, 1f); // Green tint
+            }
+
+            if (e.getHealth() > 0 || e.isDead()) {
+                game.getSpriteBatch().draw(currentFrame, e.getX() * UNIT_SCALE, e.getY() * UNIT_SCALE);
+            }
+
+            // Reset color
+            game.getSpriteBatch().setColor(Color.WHITE);
         }
 
         // 4. Render MobileTraps (Orange Tint)
-        game.getSpriteBatch().setColor(Color.ORANGE);
         for (MobileTrap trap : mobileTraps) {
-            game.getSpriteBatch().draw(enemyFrame, trap.getX() * UNIT_SCALE, trap.getY() * UNIT_SCALE);
+            game.getSpriteBatch().draw(animatedFrame, trap.getX() * UNIT_SCALE, trap.getY() * UNIT_SCALE);
         }
         game.getSpriteBatch().setColor(Color.WHITE);
 
-        // 5. Render Player
+        // 5. Render Floating Texts
+        com.badlogic.gdx.graphics.g2d.BitmapFont font = game.getSkin().getFont("font");
+        font.getData().setScale(0.5f);
+        for (FloatingText ft : floatingTexts) {
+            font.setColor(ft.color);
+            font.draw(game.getSpriteBatch(), ft.text, ft.x * UNIT_SCALE, ft.y * UNIT_SCALE + 16);
+        }
+        font.setColor(Color.WHITE);
+        font.getData().setScale(1f); // Reset scale
+
+        // 6. Render Player
         TextureRegion playerFrame;
-        boolean isMoving = Gdx.input.isKeyPressed(GameSettings.KEY_LEFT) ||
+        boolean isInputMoving = Gdx.input.isKeyPressed(GameSettings.KEY_LEFT) ||
                 Gdx.input.isKeyPressed(GameSettings.KEY_RIGHT) ||
                 Gdx.input.isKeyPressed(GameSettings.KEY_UP) ||
                 Gdx.input.isKeyPressed(GameSettings.KEY_DOWN);
 
-        if (isMoving) {
+        // Determine Frame based on Priority: Attack > Move > Idle
+        if (player.isAttacking()) {
+            float total = player.getAttackAnimTotalDuration();
+            if (total <= 0)
+                total = 0.2f;
+            float elapsed = total - player.getAttackAnimTimer();
+            float progress = (elapsed / total) * 0.2f;
+
+            switch (playerDirection) {
+                case 1:
+                    playerFrame = textureManager.playerAttackUp.getKeyFrame(progress, false);
+                    break;
+                case 2:
+                    playerFrame = textureManager.playerAttackLeft.getKeyFrame(progress, false);
+                    break;
+                case 3:
+                    playerFrame = textureManager.playerAttackRight.getKeyFrame(progress, false);
+                    break;
+                case 0:
+                default:
+                    playerFrame = textureManager.playerAttackDown.getKeyFrame(progress, false);
+                    break;
+            }
+        } else if (isInputMoving) {
             switch (playerDirection) {
                 case 1:
                     playerFrame = textureManager.playerUp.getKeyFrame(stateTime, true);
@@ -263,17 +375,57 @@ public class GameScreen implements Screen {
                     break;
             }
         } else {
-            // User request: Always face front (Down) when stopped
-            playerFrame = textureManager.playerDownStand;
+            // Idle
+            switch (playerDirection) {
+                case 1:
+                    playerFrame = textureManager.playerUpStand;
+                    break;
+                case 2:
+                    playerFrame = textureManager.playerLeftStand;
+                    break;
+                case 3:
+                    playerFrame = textureManager.playerRightStand;
+                    break;
+                case 0:
+                default:
+                    playerFrame = textureManager.playerDownStand;
+                    break;
+            }
         }
 
-        // VFX: Red tint if hurt
-        if (player.isHurt()) {
-            game.getSpriteBatch().setColor(Color.RED);
-        }
-        game.getSpriteBatch().draw(playerFrame, player.getX() * UNIT_SCALE, player.getY() * UNIT_SCALE);
-        game.getSpriteBatch().setColor(Color.WHITE);
+        Color playerOriginalColor = game.getSpriteBatch().getColor();
 
+        // Death Animation: Gray color and rotation
+        if (player.isDead()) {
+            game.getSpriteBatch().setColor(0.5f, 0.5f, 0.5f, 1f); // Gray tint
+        }
+        // Yellow attack tint removed per user request
+        else if (player.isHurt()) {
+            game.getSpriteBatch().setColor(1f, 0f, 0f, 1f); // Red tint
+        }
+
+        float drawX = player.getX() * UNIT_SCALE;
+        float drawY = player.getY() * UNIT_SCALE;
+        if (playerFrame.getRegionWidth() > 16) {
+            drawX -= (playerFrame.getRegionWidth() - 16) / 2f;
+        }
+
+        // Apply rotation if dead (falling over animation)
+        if (player.isDead()) {
+            float rotation = player.getDeathProgress() * 90f; // Rotate 0 to 90 degrees
+
+            game.getSpriteBatch().draw(playerFrame,
+                    drawX, drawY, // position
+                    playerFrame.getRegionWidth() / 2f, playerFrame.getRegionHeight() / 2f, // origin (center)
+                    playerFrame.getRegionWidth(), playerFrame.getRegionHeight(), // width/height
+                    1f, 1f, // scale
+                    rotation, // rotation angle
+                    false); // flip
+        } else {
+            game.getSpriteBatch().draw(playerFrame, drawX, drawY);
+        }
+
+        game.getSpriteBatch().setColor(playerOriginalColor);
         game.getSpriteBatch().end();
 
         hud.getStage().getViewport().apply();
@@ -288,42 +440,34 @@ public class GameScreen implements Screen {
     }
 
     private void updateGameLogic(float delta) {
-        player.update(delta);
-        boolean isRunning = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)
-                || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
-        player.setRunning(isRunning);
+        player.update(delta, collisionManager);
 
-        // Attack Logic
-        if (Gdx.input.isKeyJustPressed(GameSettings.KEY_ATTACK)) {
-            if (player.canAttack()) {
-                player.resetAttackCooldown();
-                de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("attack");
-                System.out.println("Player attacks!");
-
-                Iterator<Enemy> iter = enemies.iterator();
-                while (iter.hasNext()) {
-                    Enemy e = iter.next();
-                    if (Vector2.dst(player.getX(), player.getY(), e.getX(), e.getY()) < 2.2f) {
-                        if (e.takeDamage(1)) {
-                            System.out.println("Enemy defeated!");
-                            de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("kill");
-                            killCount++;
-                            iter.remove();
-                            // Sync with GameMap
-                            gameMap.getDynamicObjects().remove(e);
-                        } else {
-                            System.out.println("Enemy hit! HP: " + e.getHealth());
-                            de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("hit");
-                            e.knockback(player.getX(), player.getY(), collisionManager);
-                        }
-                    }
-                }
-            }
+        // Check if death animation is complete
+        if (player.isDead() && player.getDeathTimer() <= 0) {
+            System.out.println("Death animation complete! Transitioning to GameOver.");
+            game.setScreen(new GameOverScreen(game, killCount));
+            return;
         }
 
+        // If player is dead (but animation not complete), skip all game logic
+        if (player.isDead()) {
+            System.out.println("Player dead, death timer: " + player.getDeathTimer());
+            return; // Don't update enemies, traps, etc during death animation
+        }
+
+        // Weapon Switch
+        if (Gdx.input.isKeyJustPressed(GameSettings.KEY_SWITCH_WEAPON)) {
+            player.switchWeapon();
+            System.out.println("Switched weapon to: " + player.getCurrentWeapon().getName());
+            de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("select");
+        }
+
+        // Movement Input
         boolean isMoving = false;
         float currentSpeed = player.getSpeed() * delta;
 
+        // Reset direction only if moving? No, existing logic sets direction on key
+        // press.
         if (Gdx.input.isKeyPressed(GameSettings.KEY_LEFT)) {
             movePlayer(-currentSpeed, 0);
             isMoving = true;
@@ -345,43 +489,163 @@ public class GameScreen implements Screen {
             playerDirection = 0; // Down
         }
 
+        player.setRunning(
+                Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT));
+
         if (!isMoving) {
             snapToGrid(delta);
         }
 
+        // Apply Player Knockback Physics
+        // No longer needed here as Player.update handles velocity application
+        // if (Math.abs(player.getKnockbackVx()) > 0.01f ||
+        // Math.abs(player.getKnockbackVy()) > 0.01f) {
+        // movePlayer(player.getKnockbackVx() * delta, player.getKnockbackVy() * delta);
+        // }
+
+        // Attack Logic
+        // Attack Logic
+        if (Gdx.input.isKeyJustPressed(GameSettings.KEY_ATTACK)) {
+            if (player.canAttack()) {
+                player.attack();
+                // Removed manual sound/cooldown here as player.attack() handles it
+
+                Iterator<Enemy> iter = enemies.iterator();
+                while (iter.hasNext()) {
+                    Enemy e = iter.next();
+                    if (e.isDead())
+                        continue;
+
+                    de.tum.cit.fop.maze.model.weapons.Weapon currentWeapon = player.getCurrentWeapon();
+                    float attackRange = currentWeapon.getRange();
+
+                    float dx = e.getX() - player.getX();
+                    float dy = e.getY() - player.getY();
+                    float dist = (float) Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < attackRange) {
+                        float angle = MathUtils.atan2(dy, dx) * MathUtils.radDeg;
+                        if (angle < 0)
+                            angle += 360;
+
+                        float playerAngle = 0;
+                        switch (playerDirection) {
+                            case 0:
+                                playerAngle = 270;
+                                break; // Down
+                            case 1:
+                                playerAngle = 90;
+                                break; // Up
+                            case 2:
+                                playerAngle = 180;
+                                break; // Left
+                            case 3:
+                                playerAngle = 0;
+                                break; // Right
+                        }
+
+                        float angleDiff = angle - playerAngle;
+                        while (angleDiff > 180)
+                            angleDiff -= 360;
+                        while (angleDiff < -180)
+                            angleDiff += 360;
+
+                        // Check "Run & Gun" state - STRICTLY RUNNING (SHIFT)
+                        boolean isRunningGun = player.isRunning();
+
+                        if (Math.abs(angleDiff) <= 90 || dist < 0.5f) {
+                            // Damage formula: Weapon Base + Player Bonus
+                            int totalDamage = currentWeapon.getDamage() + player.getDamageBonus();
+
+                            e.takeDamage(totalDamage);
+                            if (e.getHealth() > 0) {
+                                e.applyEffect(currentWeapon.getEffect());
+                            }
+
+                            floatingTexts.add(
+                                    new FloatingText(e.getX(), e.getY(), "-" + totalDamage, Color.RED));
+                            de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("hit");
+
+                            float kbMult = 1.0f + (1.0f - (dist / Math.max(0.1f, attackRange)));
+                            if (isRunningGun) {
+                                kbMult *= 2.0f;
+                            }
+                            kbMult = MathUtils.clamp(kbMult, 1.0f, 4.0f);
+
+                            e.knockback(player.getX(), player.getY(), kbMult * player.getKnockbackMultiplier(),
+                                    collisionManager);
+
+                            if (e.isDead() && !e.isRemovable()) { // Just died
+                                System.out.println("Enemy defeated by " + currentWeapon.getName() + "!");
+                                de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("kill");
+                                killCount++;
+
+                                // Skill Point Reward
+                                int sp = e.getSkillPointReward();
+                                player.gainSkillPoints(sp);
+                                floatingTexts.add(new FloatingText(e.getX(), e.getY() + 0.5f, "+" + sp, Color.GOLD));
+
+                                // Loot Drop
+                                if (Math.random() < 0.2f) { // 20% Potion
+                                    gameMap.addGameObject(new Potion(e.getX(), e.getY()));
+                                } else if (Math.random() < 0.25f) { // 5% Weapon
+                                    int weaponType = MathUtils.random(2);
+                                    GameObject drops;
+                                    if (weaponType == 0)
+                                        drops = new Sword(e.getX(), e.getY());
+                                    else if (weaponType == 1)
+                                        drops = new de.tum.cit.fop.maze.model.weapons.Bow(e.getX(), e.getY());
+                                    else
+                                        drops = new de.tum.cit.fop.maze.model.weapons.MagicStaff(e.getX(), e.getY());
+
+                                    gameMap.addGameObject(drops);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Enemy Update
         for (Enemy enemy : enemies) {
             float dst2 = Vector2.dst2(player.getX(), player.getY(), enemy.getX(), enemy.getY());
-            if (dst2 > 1600) {
+            if (dst2 > 1600)
                 continue;
-            }
             enemy.update(delta, player, collisionManager, safeGrid);
         }
+        enemies.removeIf(e -> e.isRemovable());
 
-        // Update Mobile Traps
+        // Mobile Traps Update
         for (MobileTrap trap : mobileTraps) {
             trap.update(delta, collisionManager);
-            // Collision with Player
             if (Vector2.dst(player.getX(), player.getY(), trap.getX(), trap.getY()) < 0.8f) {
                 if (player.damage(1)) {
-                    System.out.println("Hit by Mobile Trap!");
-                    if (player.getLives() <= 0) {
-                        game.setScreen(new GameOverScreen(game, killCount));
-                    }
+                    System.out
+                            .println("Hit by Mobile Trap! Lives: " + player.getLives() + " isDead: " + player.isDead());
+                    player.knockback(trap.getX(), trap.getY(), 0.5f);
+                    // Don't immediately transition to GameOver, let death animation play
                 }
             }
         }
 
+        // Player Collision with Enemies
         for (Enemy enemy : enemies) {
             if (Vector2.dst(player.getX(), player.getY(), enemy.getX(), enemy.getY()) < GameSettings.hitDistance) {
+                if (enemy.isDead())
+                    continue;
+
+                // Only apply damage and knockback if not invincible
                 if (player.damage(1)) {
                     System.out.println("Ouch! Player hit by enemy.");
-                    if (player.getLives() <= 0) {
-                        game.setScreen(new GameOverScreen(game, killCount));
-                    }
+                    player.knockback(enemy.getX(), enemy.getY(), 2.0f); // 2x multiplier for ~2 tile knockback
+                    de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("hit");
+                    // Don't immediately transition to GameOver, let death animation play
                 }
             }
         }
 
+        // Dynamic Objects Interaction
         Iterator<GameObject> iter = gameMap.getDynamicObjects().iterator();
         while (iter.hasNext()) {
             GameObject obj = iter.next();
@@ -390,27 +654,56 @@ public class GameScreen implements Screen {
                     player.setHasKey(true);
                     iter.remove();
                     de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("collect");
-                    System.out.println("Key collected!");
                 } else if (obj instanceof Exit) {
                     if (player.hasKey()) {
                         de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("victory");
+
+                        // Auto-save state for Skill Screen usage
+                        GameState state = new GameState(player.getX(), player.getY(), currentLevelPath,
+                                player.getLives(), player.hasKey());
+                        state.setSkillPoints(player.getSkillPoints());
+                        state.setMaxHealthBonus(player.getMaxHealthBonus());
+                        state.setDamageBonus(player.getDamageBonus());
+                        state.setInvincibilityExtension(player.getInvincibilityExtension());
+                        state.setKnockbackMultiplier(player.getKnockbackMultiplier());
+                        state.setCooldownReduction(player.getCooldownReduction());
+                        state.setSpeedBonus(player.getSpeedBonus());
+                        state.setInventoryWeaponTypes(player.getInventoryWeaponTypes()); // Save inventory too
+                        SaveManager.saveGame(state, "auto_save_victory");
+
                         game.setScreen(new VictoryScreen(game, currentLevelPath));
                     }
                 } else if (obj instanceof Trap) {
                     if (player.damage(1)) {
-                        System.out.println("Ouch! Trap damage.");
                         de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("hit");
-                        if (player.getLives() <= 0) {
-                            de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("gameover");
-                            game.setScreen(new GameOverScreen(game, killCount));
-                        }
+                        player.knockback(obj.getX(), obj.getY(), 0.5f);
+                        // Don't immediately transition to GameOver, let death animation play
+                    }
+                } else if (obj instanceof Potion) {
+                    player.restoreHealth(1);
+                    iter.remove();
+                    de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("collect");
+                } else if (obj instanceof Weapon) {
+                    if (player.pickupWeapon((Weapon) obj)) {
+                        iter.remove();
+                        de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("collect");
                     }
                 }
             }
         }
 
+        // Update Floating Texts
+        Iterator<FloatingText> dtIter = floatingTexts.iterator();
+        while (dtIter.hasNext()) {
+            FloatingText dt = dtIter.next();
+            dt.update(delta);
+            if (dt.isExpired()) {
+                dtIter.remove();
+            }
+        }
+
         updateCamera(delta);
-    }
+    } // End updateGameLogic
 
     private void snapToGrid(float delta) {
         float snapSpeed = 10.0f * delta;
@@ -513,7 +806,6 @@ public class GameScreen implements Screen {
                 int cx = curr % w;
                 int cy = curr / w;
                 safeGrid[cx][cy] = true;
-
                 if (curr == startIndex)
                     break;
                 curr = parentMap.get(curr);
@@ -534,17 +826,16 @@ public class GameScreen implements Screen {
         float viewW = camera.viewportWidth * camera.zoom;
         float viewH = camera.viewportHeight * camera.zoom;
 
+        // Only clamp if map is larger than viewport
         if (mapW > viewW) {
             camera.position.x = MathUtils.clamp(camera.position.x, viewW / 2, mapW - viewW / 2);
-        } else {
-            camera.position.x = mapW / 2;
         }
+        // If map is smaller, camera stays centered on player (no clamping)
 
         if (mapH > viewH) {
             camera.position.y = MathUtils.clamp(camera.position.y, viewH / 2, mapH - viewH / 2);
-        } else {
-            camera.position.y = mapH / 2;
         }
+        // If map is smaller, camera stays centered on player (no clamping)
 
         if (Gdx.input.isKeyPressed(Input.Keys.Z))
             GameSettings.cameraZoom -= 0.02f;
@@ -561,9 +852,22 @@ public class GameScreen implements Screen {
         initGameObjects();
         player.setPosition(state.getPlayerX(), state.getPlayerY());
         player.setLives(state.getLives());
+        player.setHasKey(state.isHasKey());
+
+        // Load Skill Data
+        // Load Skill Data
+        player.setSkillStats(state.getSkillPoints(),
+                state.getMaxHealthBonus(),
+                state.getDamageBonus(),
+                state.getInvincibilityExtension(),
+                state.getKnockbackMultiplier(),
+                state.getCooldownReduction(),
+                state.getSpeedBonus());
+        player.setInventoryFromTypes(state.getInventoryWeaponTypes());
     }
 
     private void setupPauseMenu() {
+        // ... (existing code, irrelevant to update here)
         pauseTable = new Table();
         pauseTable.setFillParent(true);
 
@@ -673,19 +977,16 @@ public class GameScreen implements Screen {
 
         TextButton closeBtn = new TextButton("Close", game.getSkin());
         closeBtn.addListener(new ChangeListener() {
-
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 win.remove();
                 pauseTable.setVisible(true);
             }
-
         });
         win.add(closeBtn).padBottom(10);
 
         win.setSize(dialogW, dialogH);
         win.setPosition(screenW / 2 - dialogW / 2, screenH / 2 - dialogH / 2);
-
         uiStage.addActor(win);
     }
 
@@ -716,8 +1017,15 @@ public class GameScreen implements Screen {
                 String name = nameField.getText();
                 if (name.isEmpty())
                     name = "unnamed";
+
                 GameState state = new GameState(player.getX(), player.getY(), currentLevelPath, player.getLives(),
-                        false);
+                        player.hasKey());
+                state.setSkillPoints(player.getSkillPoints());
+                state.setMaxHealthBonus(player.getMaxHealthBonus());
+                state.setDamageBonus(player.getDamageBonus());
+                state.setInvincibilityExtension(player.getInvincibilityExtension());
+                state.setInventoryWeaponTypes(player.getInventoryWeaponTypes());
+
                 SaveManager.saveGame(state, name);
                 win.remove();
                 pauseTable.setVisible(true);

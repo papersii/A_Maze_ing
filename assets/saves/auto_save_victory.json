@@ -1,0 +1,15 @@
+{
+"playerX": 8.916429,
+"playerY": 0.41694677,
+"currentLevel": "maps/level-1.properties",
+"lives": 5,
+"hasKey": true,
+"skillPoints": 5,
+"maxHealthBonus": 2,
+"damageBonus": 1,
+"inventoryWeaponTypes": [
+	"Sword",
+	"MagicStaff",
+	"Sword"
+]
+}

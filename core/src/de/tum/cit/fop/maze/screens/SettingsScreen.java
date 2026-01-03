@@ -24,7 +24,7 @@ public class SettingsScreen implements Screen {
 
     // UI Elements
     private Label statusLabel;
-    private TextButton btnUp, btnDown, btnLeft, btnRight, btnAttack;
+    private TextButton btnUp, btnDown, btnLeft, btnRight, btnAttack, btnSwitchWeapon;
     private Slider volumeSlider;
     private TextButton muteBtn;
 
@@ -122,6 +122,7 @@ public class SettingsScreen implements Screen {
         btnLeft = createKeyButton("Left", "LEFT", skin);
         btnRight = createKeyButton("Right", "RIGHT", skin);
         btnAttack = createKeyButton("Attack", "ATTACK", skin);
+        btnSwitchWeapon = createKeyButton("Switch Weapon", "SWITCH_WEAPON", skin);
 
         Table keyTable = new Table();
         addToKeyTable(keyTable, "Up:", btnUp);
@@ -129,6 +130,7 @@ public class SettingsScreen implements Screen {
         addToKeyTable(keyTable, "Left:", btnLeft);
         addToKeyTable(keyTable, "Right:", btnRight);
         addToKeyTable(keyTable, "Atk:", btnAttack);
+        addToKeyTable(keyTable, "Switch:", btnSwitchWeapon);
         root.add(keyTable).colspan(2).padBottom(20).row();
 
         // --- Navigation ---
@@ -204,6 +206,9 @@ public class SettingsScreen implements Screen {
             case "ATTACK":
                 code = GameSettings.KEY_ATTACK;
                 break;
+            case "SWITCH_WEAPON":
+                code = GameSettings.KEY_SWITCH_WEAPON;
+                break;
         }
         return Input.Keys.toString(code);
     }
@@ -237,6 +242,9 @@ public class SettingsScreen implements Screen {
             case "ATTACK":
                 GameSettings.KEY_ATTACK = keycode;
                 break;
+            case "SWITCH_WEAPON":
+                GameSettings.KEY_SWITCH_WEAPON = keycode;
+                break;
         }
         remappingKeyName = null;
         updateButtons();
@@ -249,6 +257,7 @@ public class SettingsScreen implements Screen {
         btnLeft.setText(getKeyName("LEFT"));
         btnRight.setText(getKeyName("RIGHT"));
         btnAttack.setText(getKeyName("ATTACK"));
+        btnSwitchWeapon.setText(getKeyName("SWITCH_WEAPON"));
     }
 
     @Override

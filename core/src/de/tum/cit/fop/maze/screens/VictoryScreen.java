@@ -63,10 +63,20 @@ public class VictoryScreen implements Screen {
                 if (!Gdx.files.internal(nextMapPath).exists() && !Gdx.files.local(nextMapPath).exists()) {
                     new de.tum.cit.fop.maze.utils.MapGenerator().generateAndSave(nextMapPath);
                 }
-                game.setScreen(new GameScreen(game, nextMapPath));
+                game.setScreen(new GameScreen(game, nextMapPath, true));
             }
         });
         table.add(nextBtn).width(300).height(60).padBottom(20).row();
+
+        TextButton skillBtn = new TextButton("Open Skill Tree", game.getSkin());
+        skillBtn.addListener(new ChangeListener() {
+
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                game.setScreen(new SkillScreen(game, lastMapPath));
+            }
+        });
+        table.add(skillBtn).width(300).height(60).padBottom(20).row();
 
         TextButton menuBtn = new TextButton("Back to Menu", game.getSkin());
         menuBtn.addListener(new ChangeListener() {

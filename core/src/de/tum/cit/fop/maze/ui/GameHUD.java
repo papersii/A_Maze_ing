@@ -5,6 +5,9 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -31,6 +34,7 @@ public class GameHUD implements Disposable {
     private final Stage stage;
     private final Player player;
     private final TextureManager textureManager;
+    private final Viewport gameViewport;
 
     // UI Elements
     private Table livesTable;
@@ -53,10 +57,19 @@ public class GameHUD implements Disposable {
     // FPS Counter
     private Label fpsLabel;
     private float fpsUpdateTimer = 0f;
+
     private int displayedFps = 0;
 
-    public GameHUD(SpriteBatch batch, Player player, Skin skin, TextureManager tm, Runnable onSettingsClicked) {
+    // Skill Points Display
+    private Label skillPointsLabel;
+
+    // Weapon Name Notification
+    private Label weaponLabel;
+
+    public GameHUD(SpriteBatch batch, Player player, Viewport gameViewport, Skin skin, TextureManager tm,
+            Runnable onSettingsClicked) {
         this.player = player;
+        this.gameViewport = gameViewport;
         this.textureManager = tm;
 
         Viewport viewport = new FitViewport(1920, 1080);
@@ -91,10 +104,14 @@ public class GameHUD implements Disposable {
         // Spacer
         topTable.add().growX();
 
+        // Skill Points Label (Right side)
+        Label.LabelStyle spStyle = new Label.LabelStyle(skin.getFont("font"), Color.GOLD);
+        skillPointsLabel = new Label("SP: 0", spStyle);
+        topTable.add(skillPointsLabel).right().padRight(20);
+
         // FPS Label (Right side, before Menu button)
-        // Skin has fonts "font", "bold", "title" - using "font"
         Label.LabelStyle fpsStyle = new Label.LabelStyle(skin.getFont("font"), Color.YELLOW);
-        fpsLabel = new Label("FPS: --", fpsStyle); // Will update immediately on first frame
+        fpsLabel = new Label("FPS: --", fpsStyle);
         fpsUpdateTimer = 1.0f; // Trigger immediate update
         topTable.add(fpsLabel).right().padRight(20);
 
@@ -110,6 +127,19 @@ public class GameHUD implements Disposable {
         topTable.add(settingsButton).right().width(150).height(70);
 
         // --- Bottom Area (Inventory) ---
+        rootTable.row();
+
+        // Weapon Switch Notification (Floating, added directly to stage)
+        weaponLabel = new Label("", new Label.LabelStyle(skin.getFont("font"), Color.WHITE)); // Use smaller 'font'
+                                                                                              // instead of 'title'
+        weaponLabel.setAlignment(Align.center);
+        weaponLabel.setVisible(false);
+        weaponLabel.setFontScale(0.5f); // Make it small (one tile size approx)
+        stage.addActor(weaponLabel); // Add to stage, not table
+
+        // Removed from rootTable
+        // rootTable.add(weaponLabel).center().padBottom(50);
+
         rootTable.row();
         rootTable.add().growY(); // Push inventory to bottom
         rootTable.row();
@@ -131,6 +161,9 @@ public class GameHUD implements Disposable {
             fpsLabel.setText("FPS: " + displayedFps);
             fpsUpdateTimer = 0f;
         }
+
+        // 0.5 Update Skill Points Display
+        skillPointsLabel.setText("SP: " + player.getSkillPoints());
 
         // 1. Update Lives (Hearts)
         int actualLives = player.getLives();
@@ -168,7 +201,7 @@ public class GameHUD implements Disposable {
             for (int i = 0; i < heartsToDraw; i++) {
                 Image heart = new Image(textureManager.heartRegion);
                 cachedHearts.add(heart);
-                livesTable.add(heart).size(50, 50).pad(5);
+                livesTable.add(heart).size(35, 35).pad(5);
             }
             lastRenderedLiveCount = heartsToDraw;
         }
@@ -208,6 +241,28 @@ public class GameHUD implements Disposable {
             // Target is Right (0 deg). Arrow needs -90 to point Right.
 
             arrowImage.setRotation(angleDeg - 90);
+        }
+
+        // 4. Update Weapon Label Position (Floating above player)
+        if (player.getJustSwitchedWeaponName() != null) {
+            weaponLabel.setText(player.getJustSwitchedWeaponName());
+            weaponLabel.setVisible(true);
+
+            // Calculate position
+            // Player pos in world -> Screen pos -> Stage pos
+            float worldX = player.getX() * 16f + 8f; // Center of player (16x16 tile)
+            float worldY = player.getY() * 16f + 24f; // Slightly above head
+
+            Vector3 screenPos = gameViewport.project(new Vector3(worldX, worldY, 0));
+            // Flip Y for screenToStageCoordinates (Top-Left origin expected)
+            screenPos.y = Gdx.graphics.getHeight() - screenPos.y;
+
+            Vector2 stagePos = stage.screenToStageCoordinates(new Vector2(screenPos.x, screenPos.y));
+
+            weaponLabel.setPosition(stagePos.x, stagePos.y, Align.center);
+
+        } else {
+            weaponLabel.setVisible(false);
         }
 
         stage.act(delta);

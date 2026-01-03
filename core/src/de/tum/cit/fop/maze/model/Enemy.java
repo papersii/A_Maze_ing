@@ -1,6 +1,7 @@
 package de.tum.cit.fop.maze.model;
 
 import de.tum.cit.fop.maze.config.GameSettings;
+import de.tum.cit.fop.maze.model.weapons.WeaponEffect;
 import java.util.Random;
 
 /*
@@ -33,7 +34,8 @@ import java.util.Random;
 public class Enemy extends GameObject {
     public enum EnemyState {
         PATROL,
-        CHASE
+        CHASE,
+        DEAD
     }
 
     private EnemyState state;
@@ -41,6 +43,19 @@ public class Enemy extends GameObject {
 
     // Stun logic
     private float stunTimer = 0f;
+    private float hurtTimer = 0f; // Red flash timer
+    private float deathTimer = 5.0f; // Dead body persists for 5s
+
+    // Knockback
+    private float knockbackVx = 0f;
+    private float knockbackVy = 0f;
+    private static final float KNOCKBACK_STRENGTH = 10.0f;
+    private static final float KNOCKBACK_FRICTION = 5.0f;
+
+    // Status Effects
+    private WeaponEffect currentEffect = WeaponEffect.NONE;
+    private float effectTimer = 0f;
+    private float dotTimer = 0f; // Damage Over Time timer
 
     // 巡逻逻辑
     private float patrolDirX;
@@ -69,30 +84,77 @@ public class Enemy extends GameObject {
     }
 
     public boolean takeDamage(int amount) {
+        if (state == EnemyState.DEAD)
+            return false;
         this.health -= amount;
-        return this.health <= 0;
+        this.hurtTimer = 0.2f; // Flash red for 0.2s
+        if (this.health <= 0) {
+            this.state = EnemyState.DEAD;
+            this.deathTimer = 5.0f;
+            // Clear status effects
+            this.currentEffect = WeaponEffect.NONE;
+        }
+        return false; // Never return true for immediate removal, GameScreen checks isRemovable()
+    }
+
+    public boolean isDead() {
+        return state == EnemyState.DEAD;
+    }
+
+    public boolean isRemovable() {
+        return state == EnemyState.DEAD && deathTimer <= 0;
+    }
+
+    public boolean isHurt() {
+        return hurtTimer > 0;
+    }
+
+    public void applyEffect(WeaponEffect effect) {
+        if (effect == WeaponEffect.NONE)
+            return;
+
+        this.currentEffect = effect;
+        switch (effect) {
+            case FREEZE:
+                this.effectTimer = 2.0f; // Freeze for 2 seconds
+                break;
+            case BURN:
+                this.effectTimer = 3.0f; // Burn for 3 seconds
+                break;
+            case POISON:
+                this.effectTimer = 5.0f; // Poison for 5 seconds
+                break;
+            default:
+                break;
+        }
+    }
+
+    public WeaponEffect getCurrentEffect() {
+        return currentEffect;
     }
 
     public int getHealth() {
         return health;
     }
 
-    public void knockback(float sourceX, float sourceY, CollisionManager cm) {
-        float dx = this.getX() - sourceX;
-        float dy = this.getY() - sourceY;
-        float len = (float) Math.sqrt(dx * dx + dy * dy);
+    public int getSkillPointReward() {
+        return 10; // Default reward
+    }
 
-        if (len > 0) {
-            dx /= len;
-            dy /= len;
-            // Stepwise push (3 steps of 0.5f) to avoid teleporting through walls
-            // Using tryMove ensures collision checks (including Walls and Exits)
-            for (int i = 0; i < 3; i++) {
-                if (!tryMove(dx * 0.5f, dy * 0.5f, cm)) {
-                    break; // Stop if hit wall
-                }
-            }
+    public void knockback(float sourceX, float sourceY, float strengthMultiplier, CollisionManager cm) {
+        float dx = this.x - sourceX;
+        float dy = this.y - sourceY;
+
+        // Normalize
+        float length = (float) Math.sqrt(dx * dx + dy * dy);
+        if (length != 0) {
+            dx /= length;
+            dy /= length;
         }
+
+        this.knockbackVx = dx * KNOCKBACK_STRENGTH * strengthMultiplier;
+        this.knockbackVy = dy * KNOCKBACK_STRENGTH * strengthMultiplier;
+
         this.stunTimer = 0.5f;
     }
 
@@ -102,9 +164,86 @@ public class Enemy extends GameObject {
      * @param safeGrid 安全路径网格 [x][y]
      */
     public void update(float delta, Player player, CollisionManager collisionManager, boolean[][] safeGrid) {
+        // 0. Update Physics (Knockback) - Always runs to allow "flying corpses"
+        if (Math.abs(knockbackVx) > 0.1f || Math.abs(knockbackVy) > 0.1f) {
+            float moveX = knockbackVx * delta;
+            float moveY = knockbackVy * delta;
+
+            // Split movement to handle bounces on axis independently
+            if (!tryMove(moveX, 0, collisionManager)) {
+                // X Axis Collision
+                if (Math.abs(knockbackVx) > 5.0f) {
+                    takeDamage(1); // Small impact damage
+                    // Visual/Audio could be added here
+                    System.out.println("Enemy hit wall hard! (X)");
+                }
+                knockbackVx = -knockbackVx * 0.5f; // Bounce X (0.5 elasticity)
+            }
+            if (!tryMove(0, moveY, collisionManager)) {
+                // Y Axis Collision
+                if (Math.abs(knockbackVy) > 5.0f) {
+                    takeDamage(1); // Small impact damage
+                    System.out.println("Enemy hit wall hard! (Y)");
+                }
+                knockbackVy = -knockbackVy * 0.5f; // Bounce Y (0.5 elasticity)
+            }
+
+            // Friction
+            knockbackVx -= knockbackVx * KNOCKBACK_FRICTION * delta;
+            knockbackVy -= knockbackVy * KNOCKBACK_FRICTION * delta;
+
+            if (Math.abs(knockbackVx) < 0.5f)
+                knockbackVx = 0;
+            if (Math.abs(knockbackVy) < 0.5f)
+                knockbackVy = 0;
+        }
+
+        if (state == EnemyState.DEAD) {
+            deathTimer -= delta;
+            return; // No AI updates if dead
+        }
+
         if (stunTimer > 0) {
             stunTimer -= delta;
+            // Don't run AI if stunned, but allow physics to continue above
             return;
+        }
+        if (hurtTimer > 0) {
+            hurtTimer -= delta;
+        }
+
+        // Handle Status Effects
+        if (currentEffect != WeaponEffect.NONE) {
+            effectTimer -= delta;
+
+            if (currentEffect == WeaponEffect.FREEZE) {
+                // Freeze: Stop movement entirely
+                if (effectTimer <= 0) {
+                    currentEffect = WeaponEffect.NONE;
+                }
+                return;
+            } else if (currentEffect == WeaponEffect.BURN || currentEffect == WeaponEffect.POISON) {
+                // DOT Logic
+                dotTimer += delta;
+                if (dotTimer >= 1.0f) { // Damage every 1 second
+                    takeDamage(1);
+                    dotTimer = 0f;
+                    System.out.println("Enemy takes DOT from " + currentEffect);
+                }
+            }
+
+            if (effectTimer <= 0) {
+                currentEffect = WeaponEffect.NONE;
+                dotTimer = 0f;
+            }
+
+            // Check death from DOT
+            if (this.health <= 0) {
+                // GameScreen handles removal based on health check usually,
+                // but we need to ensure it's removed if it dies during update.
+                // However, GameScreen usually checks enemies list in its update loop.
+                // We will let GameScreen handle removal for now.
+            }
         }
         // 1. 状态判断
         // Check distance to ENEMY itself, not Home (Chase on Sight vs Territorial)
@@ -131,6 +270,9 @@ public class Enemy extends GameObject {
                 break;
             case CHASE:
                 moved = handleChase(moveAmount, player, collisionManager);
+                break;
+            case DEAD:
+                // Do nothing
                 break;
         }
 

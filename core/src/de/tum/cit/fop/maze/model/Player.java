@@ -1,6 +1,10 @@
 package de.tum.cit.fop.maze.model;
 
 import de.tum.cit.fop.maze.config.GameSettings;
+import de.tum.cit.fop.maze.model.weapons.Weapon;
+import de.tum.cit.fop.maze.model.weapons.Sword;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
  * ╔═══════════════════════════════════════════════════════════════════════════╗
@@ -40,6 +44,39 @@ public class Player extends GameObject {
     private float attackTimer = 0f;
     private float hurtTimer = 0f;
 
+    // Knockback
+    private float knockbackVx = 0f;
+    private float knockbackVy = 0f;
+    private static final float KNOCKBACK_STRENGTH = 10.0f;
+    private static final float KNOCKBACK_FRICTION = 5.0f; // Match enemy knockback friction
+
+    // Animation State
+    private boolean isAttacking = false;
+    private float attackAnimTimer = 0f;
+    private float attackAnimTotalDuration = 0f;
+
+    // Death Animation
+    private boolean isDead = false;
+    private float deathTimer = 0f;
+    private static final float DEATH_ANIMATION_DURATION = 2.0f;
+
+    // Weapon Inventory
+    private List<Weapon> inventory;
+    private int currentWeaponIndex;
+    private String justSwitchedWeaponName = null;
+    private float switchNameTimer = 0f;
+
+    // Skill System Fields
+    private int skillPoints;
+    private int maxHealthBonus;
+    private int damageBonus;
+    private float invincibilityExtension; // Added to base invincibility duration
+
+    // New Skills (Phase 2)
+    private float knockbackMultiplier = 1.0f; // Multiplier for knockback strength
+    private float cooldownReduction = 0.0f; // Reduction in seconds (Max 0.5s)
+    private float speedBonus = 0.0f; // Flat speed addition (or multiplier)
+
     // 碰撞箱大小 (接近 1.0)
     private static final float SIZE = 0.99f;
 
@@ -48,10 +85,33 @@ public class Player extends GameObject {
         this.lives = GameSettings.playerMaxLives; // 使用配置的初始生命值
         this.hasKey = false;
         this.isRunning = false;
+
         this.invincibilityTimer = 0;
+
+        // Initialize Inventory with a default sword
+        this.inventory = new ArrayList<>();
+        this.inventory.add(new Sword(x, y)); // Default weapon
+        this.currentWeaponIndex = 0;
+
+        // Skill System Initialization
+        this.skillPoints = 0;
+        this.maxHealthBonus = 0;
+        this.damageBonus = 0;
+        this.invincibilityExtension = 0.0f;
+
+        // New Skills Defaults
+        this.knockbackMultiplier = 1.0f;
+        this.cooldownReduction = 0.0f;
+        this.speedBonus = 0.0f;
     }
 
-    public void update(float delta) {
+    public void update(float delta, CollisionManager cm) {
+        // Check if player died from any cause (not just damage())
+        if (!isDead && lives <= 0) {
+            isDead = true;
+            deathTimer = DEATH_ANIMATION_DURATION;
+        }
+
         if (invincibilityTimer > 0) {
             invincibilityTimer -= delta;
         }
@@ -61,14 +121,139 @@ public class Player extends GameObject {
         if (hurtTimer > 0) {
             hurtTimer -= delta;
         }
+        if (switchNameTimer > 0) {
+            switchNameTimer -= delta;
+            if (switchNameTimer <= 0) {
+                justSwitchedWeaponName = null;
+            }
+        }
+
+        // ... rest of update
+
+        // Update Physics (Knockback) with Wall Bouncing
+        if (Math.abs(knockbackVx) > 0.1f || Math.abs(knockbackVy) > 0.1f) {
+            float moveX = knockbackVx * delta;
+            float moveY = knockbackVy * delta;
+
+            // Try Move X
+            if (!tryMove(moveX, 0, cm)) {
+                knockbackVx = -knockbackVx * 0.5f; // Bounce X with energy loss
+            }
+            // Try Move Y
+            if (!tryMove(0, moveY, cm)) {
+                knockbackVy = -knockbackVy * 0.5f; // Bounce Y with energy loss
+            }
+
+            knockbackVx -= knockbackVx * KNOCKBACK_FRICTION * delta;
+            knockbackVy -= knockbackVy * KNOCKBACK_FRICTION * delta;
+
+            if (Math.abs(knockbackVx) < 0.5f)
+                knockbackVx = 0;
+            if (Math.abs(knockbackVy) < 0.5f)
+                knockbackVy = 0;
+        }
+
+        // Death Animation Timer
+        if (isDead && deathTimer > 0) {
+            float oldTimer = deathTimer;
+            deathTimer -= delta;
+            System.out.println("Death timer: " + oldTimer + " -> " + deathTimer + " (delta: " + delta + ")");
+        }
+
+        // Attack Animation Timer
+        if (isAttacking) {
+            attackAnimTimer -= delta;
+            if (attackAnimTimer <= 0) {
+                isAttacking = false;
+            }
+        }
+
+        // Final death check (catches deaths from traps, etc that happen after this
+        // update)
+        if (!isDead && lives <= 0) {
+            isDead = true;
+            deathTimer = DEATH_ANIMATION_DURATION;
+        }
+    }
+
+    // Death Animation Getters
+    public boolean isDead() {
+        return isDead;
+    }
+
+    public float getDeathTimer() {
+        return deathTimer;
+    }
+
+    public float getDeathProgress() {
+        return 1.0f - (deathTimer / DEATH_ANIMATION_DURATION); // 0.0 to 1.0
+    }
+
+    private boolean tryMove(float deltaX, float deltaY, CollisionManager cm) {
+        float newX = this.x + deltaX;
+        float newY = this.y + deltaY;
+        float padding = 0.1f;
+
+        boolean canMove = cm.isWalkableForPlayer((int) (newX + padding), (int) (newY + padding), hasKey) &&
+                cm.isWalkableForPlayer((int) (newX + SIZE - padding), (int) (newY + padding), hasKey) &&
+                cm.isWalkableForPlayer((int) (newX + SIZE - padding), (int) (newY + SIZE - padding), hasKey) &&
+                cm.isWalkableForPlayer((int) (newX + padding), (int) (newY + SIZE - padding), hasKey);
+
+        if (canMove) {
+            this.x = newX;
+            this.y = newY;
+            return true;
+        }
+        return false;
+    }
+
+    public void knockback(float sourceX, float sourceY, float strengthMultiplier) {
+        float dx = this.x - sourceX;
+        float dy = this.y - sourceY;
+
+        // Normalize
+        float length = (float) Math.sqrt(dx * dx + dy * dy);
+        if (length != 0) {
+            dx /= length;
+            dy /= length;
+        }
+
+        this.knockbackVx = dx * KNOCKBACK_STRENGTH * strengthMultiplier;
+        this.knockbackVy = dy * KNOCKBACK_STRENGTH * strengthMultiplier;
+    }
+
+    public float getKnockbackVx() {
+        return knockbackVx;
+    }
+
+    public float getKnockbackVy() {
+        return knockbackVy;
+    }
+
+    public void startAttackAnimation(float duration) {
+        this.isAttacking = true;
+        this.attackAnimTotalDuration = duration;
+        this.attackAnimTimer = duration;
+    }
+
+    public boolean isAttacking() {
+        return isAttacking;
+    }
+
+    public float getAttackAnimTimer() {
+        return attackAnimTimer;
+    }
+
+    public float getAttackAnimTotalDuration() {
+        return attackAnimTotalDuration;
     }
 
     public boolean canAttack() {
         return attackTimer <= 0;
     }
 
-    public void resetAttackCooldown() {
-        this.attackTimer = 0.5f; // 0.5 sec wait
+    public void resetAttackCooldown(float cooldown) {
+        this.attackTimer = cooldown;
     }
 
     /**
@@ -102,19 +287,53 @@ public class Player extends GameObject {
     }
 
     public boolean damage(int amount) {
-        if (invincibilityTimer > 0) {
+        if (invincibilityTimer > 0 || isDead) { // Can't damage if dead
             return false;
         }
         this.lives -= amount;
         if (this.lives < 0)
             this.lives = 0;
-        this.invincibilityTimer = GameSettings.playerInvincibilityDuration;
+
+        // Trigger death animation if lives reach 0
+        if (this.lives <= 0) {
+            isDead = true;
+            deathTimer = DEATH_ANIMATION_DURATION;
+            System.out.println("Death triggered in damage()! deathTimer set to: " + deathTimer);
+        }
+
+        this.invincibilityTimer = GameSettings.playerInvincibilityDuration + invincibilityExtension;
         this.hurtTimer = 0.5f; // Red flash for 0.5s
         return true;
     }
 
+    public void restoreHealth(int amount) {
+        this.lives += amount;
+        if (this.lives > getMaxHealth()) {
+            this.lives = getMaxHealth();
+        }
+    }
+
     public float getSpeed() {
-        return isRunning ? GameSettings.playerRunSpeed : GameSettings.playerWalkSpeed;
+        // Base Speed + Bonus
+        float base = isRunning ? GameSettings.playerRunSpeed : GameSettings.playerWalkSpeed;
+        return base + (base * speedBonus);
+    }
+
+    public void attack() {
+        if (attackTimer <= 0) {
+            Weapon currentWeapon = inventory.get(currentWeaponIndex);
+
+            // Calculate cooldown with reduction
+            float baseCooldown = currentWeapon.getCooldown();
+            float reducedDisplay = Math.max(0.2f, baseCooldown - cooldownReduction); // Cap at 0.2s minimum
+
+            attackTimer = reducedDisplay;
+            isAttacking = true;
+            attackAnimTimer = reducedDisplay; // Start animation timer at full duration
+            attackAnimTotalDuration = reducedDisplay; // Match animation duration to cooldown
+
+            de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("attack");
+        }
     }
 
     public boolean isInvincible() {
@@ -156,5 +375,139 @@ public class Player extends GameObject {
 
     public boolean isHurt() {
         return hurtTimer > 0;
+    }
+
+    // ==================== Weapon System ====================
+
+    public boolean pickupWeapon(Weapon weapon) {
+        if (inventory.size() < 3) {
+            inventory.add(weapon);
+            return true;
+        }
+        return false; // Inventory full
+    }
+
+    public void switchWeapon() {
+        if (inventory.isEmpty())
+            return;
+        currentWeaponIndex = (currentWeaponIndex + 1) % inventory.size();
+
+        // Trigger UI notification
+        justSwitchedWeaponName = getCurrentWeapon().getName();
+        switchNameTimer = 2.0f; // Show for 2 seconds
+    }
+
+    public Weapon getCurrentWeapon() {
+        if (inventory.isEmpty())
+            return null;
+        return inventory.get(currentWeaponIndex);
+    }
+
+    public String getJustSwitchedWeaponName() {
+        return justSwitchedWeaponName;
+    }
+
+    // ==================== Skill System ====================
+
+    public void gainSkillPoints(int amount) {
+        this.skillPoints += amount;
+    }
+
+    public boolean spendSkillPoints(int amount) {
+        if (this.skillPoints >= amount) {
+            this.skillPoints -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    public int getSkillPoints() {
+        return skillPoints;
+    }
+
+    public void upgradeMaxHealth(int amount) {
+        this.maxHealthBonus += amount;
+        this.lives += amount; // Heal/Increase current HP by the new bonus
+    }
+
+    public int getMaxHealth() {
+        return GameSettings.playerMaxLives + maxHealthBonus;
+    }
+
+    public void upgradeDamageBonus(int amount) {
+        this.damageBonus += amount;
+    }
+
+    public int getDamageBonus() {
+        return damageBonus;
+    }
+
+    public void upgradeInvincibilityExtension(float amount) {
+        this.invincibilityExtension += amount;
+    }
+
+    public float getInvincibilityExtension() {
+        return invincibilityExtension;
+    }
+
+    // Getters for persistence
+    public int getMaxHealthBonus() {
+        return maxHealthBonus;
+    }
+
+    public void setSkillStats(int sp, int hpBonus, int dmgBonus, float invincExt, float knockbackMult,
+            float cooldownRed, float speedBon) {
+        this.skillPoints = sp;
+        this.maxHealthBonus = hpBonus;
+        this.damageBonus = dmgBonus;
+        this.invincibilityExtension = invincExt;
+
+        this.knockbackMultiplier = knockbackMult;
+        this.cooldownReduction = cooldownRed;
+        this.speedBonus = speedBon;
+    }
+
+    public float getKnockbackMultiplier() {
+        return knockbackMultiplier;
+    }
+
+    public float getCooldownReduction() {
+        return cooldownReduction;
+    }
+
+    public float getSpeedBonus() {
+        return speedBonus;
+    }
+
+    public List<String> getInventoryWeaponTypes() {
+        List<String> types = new ArrayList<>();
+        for (Weapon w : inventory) {
+            types.add(w.getClass().getSimpleName()); // Stores "Sword", "Bow", "MagicStaff"
+        }
+        return types;
+    }
+
+    public void setInventoryFromTypes(List<String> types) {
+        if (types == null)
+            return;
+        inventory.clear();
+        for (String type : types) {
+            Weapon w = null;
+            if (type.equals("Sword"))
+                w = new Sword(x, y);
+            else if (type.equals("Bow"))
+                w = new de.tum.cit.fop.maze.model.weapons.Bow(x, y);
+            else if (type.equals("MagicStaff"))
+                w = new de.tum.cit.fop.maze.model.weapons.MagicStaff(x, y);
+            /* Legacy/Other types if any */
+
+            if (w != null)
+                inventory.add(w);
+        }
+        // Ensure at least one weapon
+        if (inventory.isEmpty()) {
+            inventory.add(new Sword(x, y));
+        }
+        currentWeaponIndex = 0;
     }
 }

@@ -2,7 +2,7 @@
 sprites.png
 size: 1024, 512
 format: RGBA8888
-filter: MipMapLinearLinear, Linear
+filter: Nearest, Nearest
 repeat: none
 basictiles
   rotate: false
