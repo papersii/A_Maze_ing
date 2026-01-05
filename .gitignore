@@ -208,3 +208,7 @@ docs/learning_notes/error_analysis_20260103_particle_crash.txt
 
 ### Game Saves
 saves/
+
+### AI Raw Assets
+raw_assets/**/*.png
+!raw_assets/**/README.txt

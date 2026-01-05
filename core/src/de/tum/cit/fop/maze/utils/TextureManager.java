@@ -23,7 +23,8 @@ public class TextureManager implements Disposable {
         public Animation<TextureRegion> batFly; // Bat (Optional)
 
         public TextureRegion wallRegion;
-        public TextureRegion floorRegion;
+        public TextureRegion floorRegion; // Default
+        public TextureRegion floorDungeon, floorDesert, floorForest, floorIce, floorLava, floorRain, floorSpace;
         public TextureRegion entryRegion;
         public TextureRegion exitRegion;
         public TextureRegion trapRegion;
@@ -290,6 +291,24 @@ public class TextureManager implements Disposable {
                                 // Keep default (which is playerWalk)
                         }
                 }
+                // 5. Load Optimized Floor Textures
+                floorDungeon = loadTextureSafe("images/floors/tile_dungeon_stone.png");
+                floorDesert = loadTextureSafe("images/floors/tile_desert_sand.png");
+                floorForest = loadTextureSafe("images/floors/tile_forest_grass.png");
+                floorIce = loadTextureSafe("images/floors/tile_ice_frozen.png");
+                floorLava = loadTextureSafe("images/floors/tile_lava_magma.png");
+                floorRain = loadTextureSafe("images/floors/tile_rain_puddle.png");
+                floorSpace = loadTextureSafe("images/floors/tile_space_metal.png");
+        }
+
+        private TextureRegion loadTextureSafe(String path) {
+                try {
+                        Texture t = new Texture(com.badlogic.gdx.Gdx.files.internal(path));
+                        return new TextureRegion(t);
+                } catch (Exception e) {
+                        System.err.println("Failed to load texture: " + path);
+                        return fallbackRegion;
+                }
         }
 
         @Override
@@ -302,6 +321,21 @@ public class TextureManager implements Disposable {
                 }
                 if (fallbackTexture != null) {
                         fallbackTexture.dispose();
+                }
+                // Dispose specific floor textures if they are backed by their own textures
+                // (which they are)
+                disposeRegionTexture(floorDungeon);
+                disposeRegionTexture(floorDesert);
+                disposeRegionTexture(floorForest);
+                disposeRegionTexture(floorIce);
+                disposeRegionTexture(floorLava);
+                disposeRegionTexture(floorRain);
+                disposeRegionTexture(floorSpace);
+        }
+
+        private void disposeRegionTexture(TextureRegion region) {
+                if (region != null && region.getTexture() != null && region != fallbackRegion) {
+                        region.getTexture().dispose();
                 }
         }
 }

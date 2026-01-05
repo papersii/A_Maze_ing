@@ -221,7 +221,19 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         game.getSpriteBatch().begin();
 
         // 1. Render Map
-        mazeRenderer.render(gameMap, camera, biomeColor);
+        TextureRegion currentFloor = textureManager.floorRegion; // Default
+        if (currentLevelPath.contains("level-1"))
+            currentFloor = textureManager.floorDungeon;
+        else if (currentLevelPath.contains("level-2"))
+            currentFloor = textureManager.floorDesert;
+        else if (currentLevelPath.contains("level-3"))
+            currentFloor = textureManager.floorIce; // Winter/Ice
+        else if (currentLevelPath.contains("level-4"))
+            currentFloor = textureManager.floorForest;
+        else if (currentLevelPath.contains("level-5"))
+            currentFloor = textureManager.floorSpace; // Space Ship
+
+        mazeRenderer.render(gameMap, camera, currentFloor);
 
         // 2. Render Static Dynamic Objects
         for (GameObject obj : gameMap.getDynamicObjects()) {
