@@ -210,5 +210,5 @@ docs/learning_notes/error_analysis_20260103_particle_crash.txt
 saves/
 
 ### AI Raw Assets
-raw_assets/**/*.png
+# raw_assets/**/*.png  <-- Commented out to share assets with team
 !raw_assets/**/README.txt
