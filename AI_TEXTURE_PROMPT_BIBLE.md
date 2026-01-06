@@ -125,4 +125,22 @@ When generating `v1`, `v2`, etc., **CHANGE THE ADJECTIVES**:
 
 ---
 
+---
+
+## 7. Creative Material Diversity (不再只是石头!)
+
+**CRITICAL**: Avoid repetitive materials. For every theme, explore **Sub-Materials** to tell a story.
+
+| Theme | Common Material | **Creative Alternatives (Use these!)** |
+|-------|-----------------|----------------------------------------|
+| **Desert** | Sandstone | Giant Bones, Petrified Wood, Dried Giant Cactus, Crystal Outcrops, Buried Ancient Statues, Salt Pillars. |
+| **Ice** | Ice Block | Frozen Machinery, Mammoth Fur Tents, Blue Fire Crystals, Obsidian Rock (User contrast). |
+| **Jungle**| Trees/Vines | Aztec Gold Idols, Giant Flowers, Carnivorous Plants, Crashed Plane Parts. |
+| **Dungeon**| Stone Brick | Iron Cages, Piles of Gold, Torture Devices, Magical Runes on Walls. |
+| **Space** | Metal | Alien Eggs, Holographic Barriers, Broken Robots, Glowing Server Racks. |
+
+**Rule**: When generating `v1` vs `v2`, try to change the **MATERIAL** entirely if possible, not just the shape.
+
+---
+
 *This document serves as the single source of truth for all AI generation tasks. Adhere to these prompts to maintain World-Class quality.*

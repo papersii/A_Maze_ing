@@ -15,6 +15,7 @@ You must strictly follow this pipeline when assisting the user with game assets.
 ### Content Rules
 - One entity per PNG image (一物一图).
 - ✅ **MANDATORY**: Use prompts from `AI_TEXTURE_PROMPT_BIBLE.md`.
+- ✅ **MANDATORY**: **Creative Variety**. Do NOT generate 10 variations of the exact same rock. Use the "Creative Alternatives" list.
 - ✅ ALWAYS ask for **"Solid White Background"**.
 
 ### Naming Convention (命名规范)
