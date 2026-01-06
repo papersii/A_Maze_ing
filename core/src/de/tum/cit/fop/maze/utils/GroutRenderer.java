@@ -87,39 +87,16 @@ public class GroutRenderer implements Disposable {
 
         // --- 1. Right Edge (East) ---
         // Check neighbor at (x+1, y)
-        if (x < gameMap.getWidth() - 1) { // Check map bounds (simplified) or logic
-            boolean isRightWall = gameMap.isOccupied(x + 1, y);
-
-            // Determine Strategy
-            if (isWall && isRightWall) {
-                // Strategy C: Wall-Wall
-                renderVerticalLine(batch, x, y, unitScale, GROUT_WIDTH_C, wallBoundaryColor, false);
-            } else if (isWall != isRightWall) {
-                // Strategy B: Floor-Wall -> Now uses Strategy A (Floor-Floor) logic per user
-                // request
-                renderVerticalLine(batch, x, y, unitScale, GROUT_WIDTH_A, baseColor, true);
-            } else {
-                // Strategy A: Floor-Floor
-                renderVerticalLine(batch, x, y, unitScale, GROUT_WIDTH_A, baseColor, true);
-            }
+        if (x < gameMap.getWidth() - 1) {
+            // Unified Strategy: Apply Floor-Floor style everywhere per user request
+            renderVerticalLine(batch, x, y, unitScale, GROUT_WIDTH_A, baseColor, true);
         }
 
         // --- 2. Top Edge (North) ---
         // Check neighbor at (x, y+1)
         if (y < gameMap.getHeight() - 1) {
-            boolean isTopWall = gameMap.isOccupied(x, y + 1);
-
-            if (isWall && isTopWall) {
-                // Strategy C
-                renderHorizontalLine(batch, x, y, unitScale, GROUT_WIDTH_C, wallBoundaryColor, false);
-            } else if (isWall != isTopWall) {
-                // Strategy B: Floor-Wall -> Now uses Strategy A (Floor-Floor) logic per user
-                // request
-                renderHorizontalLine(batch, x, y, unitScale, GROUT_WIDTH_A, baseColor, true);
-            } else {
-                // Strategy A
-                renderHorizontalLine(batch, x, y, unitScale, GROUT_WIDTH_A, baseColor, true);
-            }
+            // Unified Strategy: Apply Floor-Floor style everywhere per user request
+            renderHorizontalLine(batch, x, y, unitScale, GROUT_WIDTH_A, baseColor, true);
         }
     }
 
