@@ -112,7 +112,7 @@ public class GameHUD implements Disposable {
             arrowImage = new Image(tm.arrowRegion);
             arrowImage.setOrigin(Align.center);
             // Add to table, align left, pad from edge
-            topLeftGroup.add(arrowImage).size(64, 64).padTop(10).padLeft(40).left();
+            topLeftGroup.add(arrowImage).size(128, 128).padTop(10).padLeft(30).left();
         }
 
         // Spacer
@@ -240,7 +240,7 @@ public class GameHUD implements Disposable {
             for (int i = 0; i < heartsToDraw; i++) {
                 Image heart = new Image(textureManager.heartRegion);
                 cachedHearts.add(heart);
-                livesTable.add(heart).size(35, 35).pad(5);
+                livesTable.add(heart).size(70, 70).pad(6);
             }
             lastRenderedLiveCount = heartsToDraw;
         }
@@ -267,7 +267,7 @@ public class GameHUD implements Disposable {
 
         // 3. Update Arrow Rotation
         if (arrowImage != null) {
-            arrowImage.setOrigin(32, 32); // Ensure (64/2, 64/2)
+            arrowImage.setOrigin(64, 64); // Ensure (128/2, 128/2)
 
             float dx = targetX - player.getX();
             float dy = targetY - player.getY();
