@@ -123,6 +123,7 @@ When generating `v1`, `v2`, etc., **CHANGE THE ADJECTIVES**:
 - **v2 (Alternate)**: "Damaged, ancient, overgrown, or different brick pattern."
 - **Constraint**: Keep the **Color Palette** and **Art Style** identical. Only change the internal structure/texture.
 
+贴图的prompting，不仅要保证一张纹理贴图能加载套用到1*1的方格，还要确保能够套用到有5种类型的墙体（宽*高：2*2 大小的，2*3的，3*2的，2*4的，4*2的，3*3的，4*4的），注意非正方形的规格，需要对同一贴图提供横竖两种版本，从让AI生成设计之初就要考虑到这点，对于每一种规格的墙体，都要有两种不同的物体作为贴图，就比如说，3*2的横向墙体，在草原里，是倒塌的圆柱，另外一种3*2的横向墙体，在草原里则是其他的东西。墙体的贴图，要确保从游戏视角来看，拼接起来观感是正常的，不能不协调，比图说原始贴图的图案是斜着的墙。墙体部分贴图，并不是说一定得是墙，需要时5类不同适应主题风格（草原，荒漠，冰原，丛林，太空船）的物体，要有创意，有想象力。
 ---
 
 ---
@@ -140,6 +141,40 @@ When generating `v1`, `v2`, etc., **CHANGE THE ADJECTIVES**:
 | **Space** | Metal | Alien Eggs, Holographic Barriers, Broken Robots, Glowing Server Racks. |
 
 **Rule**: When generating `v1` vs `v2`, try to change the **MATERIAL** entirely if possible, not just the shape.
+
+---
+
+## 8. 🚫 Avoiding "Sticker Effect" (避免贴纸感 - CRITICAL LESSON)
+
+**Problem Diagnosis (问题诊断)**:
+When walls look like independent objects **pasted onto a grid tile**, they appear fake and break immersion. This happens when:
+- The object is **too "complete"** (e.g., a full gear mechanism, a standalone pillar).
+- The object **fills the entire tile** edge-to-edge with no breathing room.
+- There is no visual **integration with the ground** (no shadows, no base, no transition).
+
+**Solution - The "Modular Structure" Approach (解决方案 - 模块化结构)**:
+
+| ❌ BAD (Sticker Feel) | ✅ GOOD (Integrated Feel) |
+|-----------------------|---------------------------|
+| Complete standalone object | **Section/fragment** of a larger structure |
+| Object fills entire tile | **20% padding** around object |
+| No ground connection | **Base/debris/sand accumulation** at bottom |
+| Uniform lighting | **Clear Top (lighter) + Front (darker)** |
+| Perfect/intact condition | **Weathered, aged, partially damaged** |
+
+**Prompt Keywords to Enforce (强制使用的关键词)**:
+```
+✅ INCLUDE: "Modular block", "Section of", "Fragment of", "Interconnected", 
+            "Blends with environment", "Sand/grass/debris at base", 
+            "Clearly defined Top Face and Front Face", "20% padding"
+
+❌ AVOID:  "Isolated single object", "Complete [item]", "Full [structure]",
+           "Centered perfectly", "Floating"
+```
+
+**Example Fix (修正案例)**:
+- ❌ **Before**: "Ancient gear mechanism" → Looks like a steampunk sticker
+- ✅ **After**: "Cluster of collapsed adobe mud brick towers, interconnected by crumbling walls, sand drift at base"
 
 ---
 
