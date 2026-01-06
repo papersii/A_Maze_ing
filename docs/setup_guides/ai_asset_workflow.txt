@@ -1,0 +1,68 @@
+# AI Asset Pipeline Setup Guide
+# AI素材管线搭建指南
+
+## Overview (概述)
+This document outlines the workflow for creating, processing, and integrating AI-generated assets into the game. It is designed to ensure consistency across different developers and AI agents.
+本文档概述了创建、处理和将AI生成的素材集成到游戏中的工作流。旨在确保不同开发者和AI Agent之间的一致性。
+
+## Directory Structure (目录结构)
+
+project_root/
+├── raw_assets/
+│   ├── ai_generated_raw/           # Store original AI outputs here (原始AI产出)
+│   │   └── README.txt              # Instruction file (说明文件)
+│   └── ai_processed_transparent/   # Store background-removed individual assets here (去背后的独立素材)
+│       └── README.txt              # Instruction file (说明文件)
+└── assets/                         # Final game assets (最终游戏资源)
+    └── (Texture Atlases/Packed Images)
+
+## Naming Conventions (命名规范)
+The pipeline automatically detects size and animation based on filename patterns:
+**Format**: `[name]_[Width]x[Height]_[flags].png`
+
+- **Standard 1x1**: `wall_stone.png` (Defaults to 1x1, 64x64px)
+- **Multi-Tile Walls**:
+    - `wall_large_2x1.png` -> 2 tiles wide, 1 tile high (128x64px)
+    - `wall_tall_1x2.png` -> 1 tile wide, 2 tiles high (64x128px) 
+    - `wall_massive_3x3.png` -> 3 tiles wide, 3 tiles high (192x192px)
+- **Animations**:
+    - Add `_anim` to the filename.
+    - Input image should be a **horizontal strip** of 4 frames.
+    - Example: `wall_gate_2x2_anim.png` -> Input should be (128*4)x128 = 512x128px.
+    - **Note**: 2x2 and 3x3 Walls generally require 4-frame animations.
+
+## Workflow Steps (工作步骤)
+
+### 1. Generation (生成)
+- **Action**: Generate texture/asset using an AI tool.
+- **Reference**: **CRITICAL** - Follow `docs/setup_guides/AI_TEXTURE_PROMPT_BIBLE.md` for Prompts.
+- **Location**: Save to `raw_assets/ai_generated_raw/`.
+- **Constraint**: 
+    - For **static** assets: One image per file.
+    - For **animated** assets: A horizontal strip of 4 frames in one file.
+
+### 2. Processing (处理)
+- **Action**: Remove background using the automated script.
+- **Tool**: Run `python3 scripts/process_assets.py`.
+- **Location**: Script reads from `ai_generated_raw` and saves to `ai_processed_transparent`.
+
+### 3. Standardization (标准化)
+- **Action**: Resize and align assets to the game grid (Unit Size: 64px) based on filename tags.
+- **Tool**: Run `python3 scripts/standardize_assets.py`.
+- **Location**: Save to `raw_assets/ai_ready_optimized/`.
+- **Logic**: 
+    - Parses `_WxH` from filename to set target size (e.g. 2x1 -> 128x64).
+    - Detects `_anim` or 4:1 aspect ratio for animations.
+
+### 4. Integration (集成)
+- **Action**: Pack standardized PNGs into a texture atlas.
+- **Location**: `assets/textures/game_atlas.atlas`.
+
+## Note for AI Agents (给AI Agent的提示)
+When asked to creating assets:
+1. **Naming is Critical**: Use `_WxH` suffixes for non-standard sizes.
+2. **Animations**: If requesting an animated wall (especially 2x2, 3x3), generate a sprite sheet strip (4 frames side-by-side).
+3. **Verify**: Always check `raw_assets/ai_generated_raw/README.txt` for latest rules.
+
+## Automation Idea (自动化思路)
+Future improvements can include a script that watches `ai_generated_raw`, automatically removes backgrounds, puts them in `ai_processed_transparent`, and then triggers a texture packer to update the `assets` folder.

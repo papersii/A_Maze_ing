@@ -14,6 +14,7 @@ You must strictly follow this pipeline when assisting the user with game assets.
 
 ### Content Rules
 - One entity per PNG image (一物一图).
+- ✅ **MANDATORY**: Use prompts from `AI_TEXTURE_PROMPT_BIBLE.md`.
 - ✅ ALWAYS ask for **"Solid White Background"**.
 
 ### Naming Convention (命名规范)
@@ -57,7 +58,7 @@ Walls have visual height = **logical height + 0.5** (for isolated walls).
 
 When user says: **"我要去外部生成素材装填进 {THEME} 主题的纹理素材"**
 
-Agent provides prompt list, user generates externally, places in `raw_assets/ai_generated_raw/`, says "素材已放入".
+Agent provides prompt from `AI_TEXTURE_PROMPT_BIBLE.md`, user generates externally, places in `raw_assets/ai_generated_raw/`, says "素材已放入".
 
 ---
 
