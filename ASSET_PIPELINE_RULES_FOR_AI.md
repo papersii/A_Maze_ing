@@ -69,3 +69,21 @@ When replacing assets, delete from ALL directories:
 - `raw_assets/ai_processed_transparent/`
 - `raw_assets/ai_ready_optimized/`
 - `assets/images/walls/`
+
+---
+
+## 6. Interaction Protocol (交互协议)
+
+**CRITICAL**: When the user asks for asset generation, **NEVER** just give a chat response. You MUST generate a standalone Markdown file (or a clear Markdown artifact) containing a **Table**.
+
+### Format Requirement:
+| Filename | Visual Description | Exact AI Prompt (Copy-Paste Ready) |
+|----------|--------------------|------------------------------------|
+| `...v1.png` | ... | ... |
+| `...v2.png` | ... | ... |
+
+**Rules:**
+1. **Distinct Prompts**: `v1` and `v2` MUST have different prompts (e.g., different material wear, pattern, or structure) to ensure variety.
+2. **Clear Filenames**: Pre-fill the exact filenames the user should use.
+3. **One-Stop Shop**: The user should be able to just copy-paste from your table.
+

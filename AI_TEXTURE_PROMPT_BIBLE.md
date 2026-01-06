@@ -114,4 +114,15 @@ When using Midjourney/DALL-E/Stable Diffusion, apply these modifier weights:
 
 ---
 
+---
+
+## 6. Variant Strategy (变体生成策略)
+
+When generating `v1`, `v2`, etc., **CHANGE THE ADJECTIVES**:
+- **v1 (Standard)**: "Clean, regular, standard look."
+- **v2 (Alternate)**: "Damaged, ancient, overgrown, or different brick pattern."
+- **Constraint**: Keep the **Color Palette** and **Art Style** identical. Only change the internal structure/texture.
+
+---
+
 *This document serves as the single source of truth for all AI generation tasks. Adhere to these prompts to maintain World-Class quality.*
