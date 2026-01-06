@@ -364,8 +364,15 @@ public class Player extends GameObject {
 
             attackTimer = reducedDisplay;
             isAttacking = true;
-            attackAnimTimer = reducedDisplay; // Start animation timer at full duration
-            attackAnimTotalDuration = reducedDisplay; // Match animation duration to cooldown
+
+            // Fix: Decouple visual animation duration from weapon cooldown
+            // The attack animation is fast (0.2s). Stretching it over a long cooldown (e.g.
+            // 1.2s) causes "lag".
+            // We set the animation to play at its native speed (0.2s) regardless of
+            // cooldown.
+            attackAnimTotalDuration = 0.2f;
+
+            attackAnimTimer = attackAnimTotalDuration;
 
             de.tum.cit.fop.maze.utils.AudioManager.getInstance().playSound("attack");
         }
