@@ -19,7 +19,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import de.tum.cit.fop.maze.MazeRunnerGame;
 import de.tum.cit.fop.maze.config.GameSettings;
@@ -108,7 +107,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         this.currentLevelPath = mapPath;
         this.camera = new OrthographicCamera();
         this.gameViewport = new FitViewport(640, 360, camera);
-        this.uiStage = new Stage(new ScreenViewport(), game.getSpriteBatch());
+        this.uiStage = new Stage(new FitViewport(1920, 1080), game.getSpriteBatch());
 
         this.textureManager = new de.tum.cit.fop.maze.utils.TextureManager(game.getAtlas());
         this.mazeRenderer = new de.tum.cit.fop.maze.utils.MazeRenderer(game.getSpriteBatch(), textureManager);

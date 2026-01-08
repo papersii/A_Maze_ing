@@ -144,20 +144,32 @@ public class AchievementScreen implements Screen {
         Table tabsTable = new Table();
         tabsTable.pad(10);
 
+        // Calculate button width: 1600px total width / 7 buttons - padding
+        // Need to fit: ALL + 6 categories = 7 buttons
+        float buttonWidth = 180f; // Compact width for each button
+        float buttonHeight = 45f;
+
         // ALL tab
         TextButton allBtn = createCategoryButton("ALL", null);
-        tabsTable.add(allBtn).padRight(10);
+        tabsTable.add(allBtn).width(buttonWidth).height(buttonHeight).padRight(8);
 
-        // Category tabs
+        // Category tabs - use shorter labels to fit
         for (AchievementCategory cat : AchievementCategory.values()) {
-            String label = cat.getIcon() + " " + cat.getDisplayName().substring(0,
-                    Math.min(3, cat.getDisplayName().length())).toUpperCase();
+            // Use icon + abbreviated name (max 4 chars) for compact display
+            String abbrev = cat.getDisplayName().substring(0,
+                    Math.min(4, cat.getDisplayName().length()));
+            String label = cat.getIcon() + " " + abbrev;
             TextButton catBtn = createCategoryButton(label, cat);
-            tabsTable.add(catBtn).padRight(5);
+            tabsTable.add(catBtn).width(buttonWidth).height(buttonHeight).padRight(8);
         }
 
-        // Fix: Set width to match other elements (1600px) to prevent overflow
-        rootTable.add(tabsTable).width(1600).row();
+        // Wrap in a horizontal scroll pane as fallback for very small screens
+        ScrollPane tabsScrollPane = new ScrollPane(tabsTable, skin);
+        tabsScrollPane.setScrollingDisabled(false, true); // Horizontal scrolling only
+        tabsScrollPane.setFadeScrollBars(true);
+        tabsScrollPane.setScrollbarsVisible(false);
+
+        rootTable.add(tabsScrollPane).width(1600).height(70).row();
     }
 
     private TextButton createCategoryButton(String label, AchievementCategory category) {

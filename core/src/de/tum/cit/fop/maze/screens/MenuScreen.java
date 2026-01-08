@@ -448,44 +448,52 @@ public class MenuScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // 绘制背景图片 - 使用Cover模式适配不同屏幕比例
+        // 绘制背景图片 - 使用整个 GL 视口覆盖整个屏幕（包括 FitViewport 的黑边区域）
+        // 关键：使用 glViewport 重置为整个屏幕，然后渲染背景，再恢复 FitViewport
         SpriteBatch batch = game.getSpriteBatch();
-        batch.setProjectionMatrix(stage.getCamera().combined);
-        batch.begin();
 
-        // Viewport尺寸 (逻辑坐标)
-        float viewportWidth = 1920;
-        float viewportHeight = 1080;
+        // 获取实际屏幕尺寸 - 使用 backbuffer 尺寸以确保正确
+        int screenWidth = Gdx.graphics.getBackBufferWidth();
+        int screenHeight = Gdx.graphics.getBackBufferHeight();
+
+        // 重置 GL Viewport 到整个屏幕
+        Gdx.gl.glViewport(0, 0, screenWidth, screenHeight);
+
+        // 设置投影矩阵到屏幕像素坐标系
+        batch.getProjectionMatrix().setToOrtho2D(0, 0, screenWidth, screenHeight);
+        batch.begin();
 
         // 背景图片原始尺寸
         float texWidth = backgroundTexture.getWidth();
         float texHeight = backgroundTexture.getHeight();
 
         // 计算Cover模式的缩放比例
-        // Cover: 保持宽高比，确保图片覆盖整个viewport（可能会裁剪）
-        float viewportRatio = viewportWidth / viewportHeight;
+        // Cover: 保持宽高比，确保图片覆盖整个屏幕（可能会裁剪）
+        float screenRatio = (float) screenWidth / screenHeight;
         float textureRatio = texWidth / texHeight;
 
         float drawWidth, drawHeight;
         float drawX, drawY;
 
-        if (viewportRatio > textureRatio) {
-            // Viewport更宽（如21:9），以宽度为准，高度可能超出
-            drawWidth = viewportWidth;
-            drawHeight = viewportWidth / textureRatio;
+        if (screenRatio > textureRatio) {
+            // 屏幕更宽，以宽度为准，高度可能超出
+            drawWidth = screenWidth;
+            drawHeight = screenWidth / textureRatio;
             drawX = 0;
-            drawY = (viewportHeight - drawHeight) / 2; // 垂直居中
+            drawY = (screenHeight - drawHeight) / 2; // 垂直居中
         } else {
-            // Viewport更高，以高度为准，宽度可能超出
-            drawHeight = viewportHeight;
-            drawWidth = viewportHeight * textureRatio;
-            drawX = (viewportWidth - drawWidth) / 2; // 水平居中
+            // 屏幕更高，以高度为准，宽度可能超出
+            drawHeight = screenHeight;
+            drawWidth = screenHeight * textureRatio;
+            drawX = (screenWidth - drawWidth) / 2; // 水平居中
             drawY = 0;
         }
 
         batch.draw(backgroundTexture, drawX, drawY, drawWidth, drawHeight);
         batch.end();
 
+        // 恢复 Stage 的 Viewport（这会重新设置正确的 glViewport）
+        stage.getViewport().apply();
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
         stage.draw();
     }

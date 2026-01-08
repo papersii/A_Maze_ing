@@ -41,7 +41,7 @@ public class ShopScreen implements Screen {
         this.game = game;
         this.skin = game.getSkin();
         // Use FitViewport to ensure consistent display across all screen sizes
-        this.stage = new Stage(new com.badlogic.gdx.utils.viewport.FitViewport(1920, 1080));
+        this.stage = new Stage(new com.badlogic.gdx.utils.viewport.FitViewport(1920, 1080), game.getSpriteBatch());
 
         setupUI();
     }
