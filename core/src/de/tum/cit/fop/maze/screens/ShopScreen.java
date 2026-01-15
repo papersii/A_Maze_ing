@@ -252,15 +252,19 @@ public class ShopScreen implements Screen {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Draw background
+        // Draw background at full screen size (before viewport is applied)
         if (backgroundTexture != null) {
+            game.getSpriteBatch().getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(),
+                    Gdx.graphics.getHeight());
             game.getSpriteBatch().begin();
             game.getSpriteBatch().setColor(0.4f, 0.4f, 0.4f, 1f); // Dim
-            game.getSpriteBatch().draw(backgroundTexture, 0, 0, stage.getWidth(), stage.getHeight());
+            game.getSpriteBatch().draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             game.getSpriteBatch().setColor(1, 1, 1, 1);
             game.getSpriteBatch().end();
         }
 
+        // Apply viewport for UI
+        stage.getViewport().apply();
         stage.act(delta);
         stage.draw();
     }

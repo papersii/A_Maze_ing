@@ -623,21 +623,22 @@ public class HelpScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        // 关键：每帧开始时重新应用viewport，确保投影矩阵正确
-        // 这解决了从MenuScreen（会修改glViewport和投影矩阵）切换过来后的坐标偏移问题
-        stage.getViewport().apply();
-
         Gdx.gl.glClearColor(0.05f, 0.05f, 0.07f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Draw background
+        // Draw background at full screen size (before viewport is applied)
         if (backgroundTexture != null) {
+            game.getSpriteBatch().getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(),
+                    Gdx.graphics.getHeight());
             game.getSpriteBatch().begin();
             game.getSpriteBatch().setColor(0.4f, 0.4f, 0.4f, 1f); // Dim
-            game.getSpriteBatch().draw(backgroundTexture, 0, 0, stage.getWidth(), stage.getHeight());
+            game.getSpriteBatch().draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             game.getSpriteBatch().setColor(1, 1, 1, 1);
             game.getSpriteBatch().end();
         }
+
+        // Apply viewport for UI
+        stage.getViewport().apply();
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             game.goToMenu();
