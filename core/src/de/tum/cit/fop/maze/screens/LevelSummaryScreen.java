@@ -489,15 +489,16 @@ public class LevelSummaryScreen implements Screen {
 
         if (!Gdx.files.internal(nextMapPath).exists() && !Gdx.files.local(nextMapPath).exists()) {
             RandomMapConfig config = RandomMapConfig.NORMAL.copy();
-            String nextTheme = "Grassland";
+            // Theme order: 草原, 丛林, 荒漠, 冰原, 太空船
+            String nextTheme = "Grassland"; // 1-4: 草原
             if (nextLevel >= 5)
-                nextTheme = "Desert";
+                nextTheme = "Jungle"; // 5-8: 丛林
             if (nextLevel >= 9)
-                nextTheme = "Ice";
+                nextTheme = "Desert"; // 9-12: 荒漠
             if (nextLevel >= 13)
-                nextTheme = "Jungle";
+                nextTheme = "Ice"; // 13-16: 冰原
             if (nextLevel >= 17)
-                nextTheme = "Space";
+                nextTheme = "Space"; // 17-20: 太空船
 
             config.setTheme(nextTheme);
             config.setDifficulty(Math.min(5, (nextLevel / 4) + 1));

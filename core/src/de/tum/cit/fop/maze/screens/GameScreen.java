@@ -147,18 +147,18 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         this.currentLevelPath = mapPath;
         GameMap map = MapLoader.loadMap(mapPath);
 
-        // Biome Logic
+        // Biome Logic - Theme order: 草原, 丛林, 荒漠, 冰原, 太空船
         GameLogger.info("GameScreen", "Initializing GameWorld with map: " + mapPath);
         if (mapPath.contains("level-1"))
-            biomeColor = Color.WHITE;
+            biomeColor = Color.WHITE; // 草原 (Grassland)
         else if (mapPath.contains("level-2"))
-            biomeColor = new Color(1f, 0.9f, 0.6f, 1f);
+            biomeColor = new Color(0.6f, 0.8f, 0.6f, 1f); // 丛林 (Jungle - Dark Green)
         else if (mapPath.contains("level-3"))
-            biomeColor = new Color(0.7f, 0.9f, 1f, 1f);
+            biomeColor = new Color(1f, 0.9f, 0.6f, 1f); // 荒漠 (Desert - Sand)
         else if (mapPath.contains("level-4"))
-            biomeColor = new Color(0.6f, 0.8f, 0.6f, 1f);
+            biomeColor = new Color(0.7f, 0.9f, 1f, 1f); // 冰原 (Ice - Cyan)
         else if (mapPath.contains("level-5"))
-            biomeColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            biomeColor = new Color(0.8f, 0.8f, 0.8f, 1f); // 太空船 (Spaceship - Grey)
         else
             biomeColor = Color.WHITE;
 

@@ -132,15 +132,16 @@ public class VictoryScreen implements Screen {
                             .copy();
 
                     int nextLevel = getLevelNumber(nextMapPath);
-                    String nextTheme = "Grassland";
+                    // Theme order: 草原, 丛林, 荒漠, 冰原, 太空船
+                    String nextTheme = "Grassland"; // 1-4: 草原
                     if (nextLevel >= 5 && nextLevel <= 8)
-                        nextTheme = "Desert";
+                        nextTheme = "Jungle"; // 5-8: 丛林
                     else if (nextLevel >= 9 && nextLevel <= 12)
-                        nextTheme = "Ice";
+                        nextTheme = "Desert"; // 9-12: 荒漠
                     else if (nextLevel >= 13 && nextLevel <= 16)
-                        nextTheme = "Jungle";
+                        nextTheme = "Ice"; // 13-16: 冰原
                     else if (nextLevel >= 17 && nextLevel <= 20)
-                        nextTheme = "Space";
+                        nextTheme = "Space"; // 17-20: 太空船
 
                     config.setTheme(nextTheme);
 
@@ -196,13 +197,13 @@ public class VictoryScreen implements Screen {
 
         int level = getLevelNumber(mapPath);
         if (level >= 1 && level <= 4) {
-            return "You found the ancient key in the grasslands!";
+            return "You explored the peaceful grasslands!";
         } else if (level >= 5 && level <= 8) {
-            return "You survived the scorching sands of the desert!";
-        } else if (level >= 9 && level <= 12) {
-            return "You conquered the frozen wasteland!";
-        } else if (level >= 13 && level <= 16) {
             return "You navigated the deadly jungle!";
+        } else if (level >= 9 && level <= 12) {
+            return "You survived the scorching sands!";
+        } else if (level >= 13 && level <= 16) {
+            return "You conquered the frozen wasteland!";
         } else if (level >= 17 && level <= 20) {
             return "You escaped the alien station!";
         } else {
@@ -216,15 +217,15 @@ public class VictoryScreen implements Screen {
 
         int level = getLevelNumber(mapPath);
         if (level >= 1 && level <= 4)
-            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.FOREST;
+            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.FOREST; // 草原
         if (level >= 5 && level <= 8)
-            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.DESERT;
+            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.JUNGLE; // 丛林
         if (level >= 9 && level <= 12)
-            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.RAIN;
+            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.DESERT; // 荒漠
         if (level >= 13 && level <= 16)
-            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.JUNGLE;
+            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.RAIN; // 冰原
         if (level >= 17 && level <= 20)
-            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.SPACE;
+            return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.SPACE; // 太空船
 
         return de.tum.cit.fop.maze.utils.SimpleParticleSystem.Theme.FOREST;
     }
