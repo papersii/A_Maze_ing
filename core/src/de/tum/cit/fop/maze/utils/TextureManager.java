@@ -20,8 +20,11 @@ public class TextureManager implements Disposable {
         public Animation<TextureRegion> playerDown, playerUp, playerLeft, playerRight;
         public Animation<TextureRegion> playerAttackDown, playerAttackUp, playerAttackLeft, playerAttackRight;
         public TextureRegion playerDownStand, playerUpStand, playerLeftStand, playerRightStand;
-        public Animation<TextureRegion> enemyWalk; // Slime
+        public Animation<TextureRegion> enemyWalk; // Slime (Legacy)
         public Animation<TextureRegion> batFly; // Bat (Optional)
+
+        // Boar Animations (4 directions)
+        public Animation<TextureRegion> boarWalkDown, boarWalkUp, boarWalkLeft, boarWalkRight;
 
         // Legacy Wall Regions (Fallbacks)
         public TextureRegion wallRegion;
@@ -183,6 +186,9 @@ public class TextureManager implements Disposable {
                 slimeFrames.add(mobTiles[4][1]);
                 enemyWalk = new Animation<>(0.2f, slimeFrames, Animation.PlayMode.LOOP);
 
+                // Load Boar Animations from sprite sheets
+                loadBoarAnimations();
+
                 // 3. Tiles - from "basictiles" region
                 TextureRegion tileRegion = findRegionSafe("basictiles");
                 TextureRegion[][] tiles;
@@ -319,6 +325,51 @@ public class TextureManager implements Disposable {
         }
 
         /**
+         * Loads boar animations from sprite sheet files.
+         * Files expected: images/mobs/mob_boar_walk_{direction}_4f.png
+         */
+        private void loadBoarAnimations() {
+                boarWalkDown = loadSpriteSheetAnimation("images/mobs/mob_boar_walk_down_4f.png", 4, 64, 0.15f);
+                boarWalkUp = loadSpriteSheetAnimation("images/mobs/mob_boar_walk_up_4f.png", 4, 64, 0.15f);
+                boarWalkLeft = loadSpriteSheetAnimation("images/mobs/mob_boar_walk_left_4f.png", 4, 64, 0.15f);
+                boarWalkRight = loadSpriteSheetAnimation("images/mobs/mob_boar_walk_right_4f.png", 4, 64, 0.15f);
+
+                // Log success
+                if (boarWalkDown != null) {
+                        System.out.println("TextureManager: Loaded boar animations successfully");
+                }
+        }
+
+        /**
+         * Loads a horizontal sprite sheet animation.
+         * 
+         * @param path          Path to the sprite sheet file
+         * @param frameCount    Number of frames
+         * @param frameSize     Size of each frame (width = height)
+         * @param frameDuration Duration of each frame in seconds
+         * @return Animation or null if failed
+         */
+        private Animation<TextureRegion> loadSpriteSheetAnimation(String path, int frameCount, int frameSize,
+                        float frameDuration) {
+                try {
+                        if (!com.badlogic.gdx.Gdx.files.internal(path).exists()) {
+                                System.err.println("Sprite sheet not found: " + path);
+                                return null;
+                        }
+                        Texture texture = new Texture(com.badlogic.gdx.Gdx.files.internal(path));
+                        Array<TextureRegion> frames = new Array<>();
+                        for (int i = 0; i < frameCount; i++) {
+                                frames.add(new TextureRegion(texture, i * frameSize, 0, frameSize, frameSize));
+                        }
+                        Animation<TextureRegion> anim = new Animation<>(frameDuration, frames, Animation.PlayMode.LOOP);
+                        return anim;
+                } catch (Exception e) {
+                        System.err.println("Failed to load sprite sheet: " + path + " - " + e.getMessage());
+                        return null;
+                }
+        }
+
+        /**
          * Loads wall assets for various themes and sizes based on conventions.
          */
         private void loadWallAssets() {
@@ -429,6 +480,51 @@ public class TextureManager implements Disposable {
                                 return trapSpace != fallbackRegion ? trapSpace : trapRegion;
                         default:
                                 return trapRegion;
+                }
+        }
+
+        /**
+         * Returns the appropriate boar animation based on direction.
+         * Falls back to enemyWalk (slime) if boar animation not loaded.
+         * 
+         * @param direction 0=down, 1=left, 2=up, 3=right
+         * @return The boar walking animation for the given direction
+         */
+        public Animation<TextureRegion> getBoarAnimation(int direction) {
+                Animation<TextureRegion> anim = null;
+                switch (direction) {
+                        case 0:
+                                anim = boarWalkDown;
+                                break;
+                        case 1:
+                                anim = boarWalkLeft;
+                                break;
+                        case 2:
+                                anim = boarWalkUp;
+                                break;
+                        case 3:
+                                anim = boarWalkRight;
+                                break;
+                }
+                // Fallback to legacy slime animation
+                return anim != null ? anim : enemyWalk;
+        }
+
+        /**
+         * Returns boar animation based on velocity direction.
+         * 
+         * @param vx X velocity
+         * @param vy Y velocity
+         * @return The boar walking animation for the given velocity
+         */
+        public Animation<TextureRegion> getBoarAnimationByVelocity(float vx, float vy) {
+                // Determine primary direction
+                if (Math.abs(vx) > Math.abs(vy)) {
+                        return vx > 0 ? (boarWalkRight != null ? boarWalkRight : enemyWalk)
+                                        : (boarWalkLeft != null ? boarWalkLeft : enemyWalk);
+                } else {
+                        return vy > 0 ? (boarWalkUp != null ? boarWalkUp : enemyWalk)
+                                        : (boarWalkDown != null ? boarWalkDown : enemyWalk);
                 }
         }
 

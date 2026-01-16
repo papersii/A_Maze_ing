@@ -613,6 +613,24 @@ public class Enemy extends GameObject {
         return (int) y;
     }
 
+    // === Velocity Getters (for directional animation) ===
+
+    /**
+     * Returns current horizontal velocity.
+     * Used for rendering directional animations.
+     */
+    public float getVelocityX() {
+        return velocityX;
+    }
+
+    /**
+     * Returns current vertical velocity.
+     * Used for rendering directional animations.
+     */
+    public float getVelocityY() {
+        return velocityY;
+    }
+
     private float distanceToPoint(float x1, float y1, float x2, float y2) {
         return (float) Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }

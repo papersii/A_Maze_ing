@@ -379,26 +379,41 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         }
 
         // 3. Render Enemies with Health Bars
-        TextureRegion animatedFrame = textureManager.enemyWalk.getKeyFrame(stateTime, true);
-        TextureRegion staticFrame = textureManager.enemyWalk.getKeyFrame(0);
-
+        // Note: Now using boar animations with directional support
         for (Enemy e : gameWorld.getEnemies()) {
-            TextureRegion currentFrame = animatedFrame;
+            // Get directional animation based on enemy velocity
+            float vx = e.getVelocityX();
+            float vy = e.getVelocityY();
+            com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> enemyAnim = textureManager
+                    .getBoarAnimationByVelocity(vx, vy);
+
+            TextureRegion currentFrame;
             if (e.isDead()) {
-                currentFrame = staticFrame;
+                currentFrame = enemyAnim.getKeyFrame(0); // Static frame for dead
                 game.getSpriteBatch().setColor(Color.GRAY);
             } else if (e.isHurt()) {
+                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
                 game.getSpriteBatch().setColor(1f, 0f, 0f, 1f);
             } else if (e.getCurrentEffect() == de.tum.cit.fop.maze.model.weapons.WeaponEffect.FREEZE) {
+                currentFrame = enemyAnim.getKeyFrame(0); // Frozen = static
                 game.getSpriteBatch().setColor(0.5f, 0.5f, 1f, 1f);
             } else if (e.getCurrentEffect() == de.tum.cit.fop.maze.model.weapons.WeaponEffect.BURN) {
+                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
                 game.getSpriteBatch().setColor(1f, 0.5f, 0.5f, 1f);
             } else if (e.getCurrentEffect() == de.tum.cit.fop.maze.model.weapons.WeaponEffect.POISON) {
+                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
                 game.getSpriteBatch().setColor(0.5f, 1f, 0.5f, 1f);
+            } else {
+                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
             }
 
             if (e.getHealth() > 0 || e.isDead()) {
-                game.getSpriteBatch().draw(currentFrame, e.getX() * UNIT_SCALE, e.getY() * UNIT_SCALE);
+                // Render enemy centered (boar sprites are 64x64, scale to fit 16px tile)
+                float drawWidth = 24f; // Slightly larger than tile
+                float drawHeight = 24f;
+                float drawX = e.getX() * UNIT_SCALE - (drawWidth - UNIT_SCALE) / 2;
+                float drawY = e.getY() * UNIT_SCALE - (drawHeight - UNIT_SCALE) / 2;
+                game.getSpriteBatch().draw(currentFrame, drawX, drawY, drawWidth, drawHeight);
             }
             game.getSpriteBatch().setColor(Color.WHITE);
 
@@ -435,9 +450,10 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             }
         }
 
-        // 4. Mobile Traps
+        // 4. Mobile Traps (use legacy slime animation)
         for (MobileTrap trap : gameWorld.getMobileTraps()) {
-            game.getSpriteBatch().draw(animatedFrame, trap.getX() * UNIT_SCALE, trap.getY() * UNIT_SCALE);
+            TextureRegion trapFrame = textureManager.enemyWalk.getKeyFrame(stateTime, true);
+            game.getSpriteBatch().draw(trapFrame, trap.getX() * UNIT_SCALE, trap.getY() * UNIT_SCALE);
         }
 
         // 5. Floating Texts
