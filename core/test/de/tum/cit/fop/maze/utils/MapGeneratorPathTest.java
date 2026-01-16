@@ -3,14 +3,11 @@ package de.tum.cit.fop.maze.utils;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
-import de.tum.cit.fop.maze.config.RandomMapConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.RepeatedTest;
 
 import java.io.File;
-import java.util.Properties;
-import java.io.FileInputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,7 +34,7 @@ public class MapGeneratorPathTest {
      */
     @Test
     void testMapGenerationDoesNotThrow() {
-        MapGenerator generator = new MapGenerator(RandomMapConfig.NORMAL);
+        MapGenerator generator = new MapGenerator(); // Default config
         assertDoesNotThrow(() -> generator.generateAndSave(TEST_MAP_PATH));
     }
 
@@ -47,7 +44,7 @@ public class MapGeneratorPathTest {
      */
     @RepeatedTest(5)
     void testMapGenerationConsistency() {
-        MapGenerator generator = new MapGenerator(RandomMapConfig.NORMAL);
+        MapGenerator generator = new MapGenerator(getNormalConfig());
         assertDoesNotThrow(() -> generator.generateAndSave(TEST_MAP_PATH));
 
         // Verify the file was created
@@ -61,7 +58,12 @@ public class MapGeneratorPathTest {
      */
     @Test
     void testLargeMapGeneration() {
-        RandomMapConfig hardConfig = RandomMapConfig.HARD;
+        MapGenerator.MapConfig hardConfig = getNormalConfig();
+        hardConfig.width = 200;
+        hardConfig.height = 200;
+        hardConfig.difficulty = 5;
+        hardConfig.enemyDensity = 1.5f;
+
         MapGenerator generator = new MapGenerator(hardConfig);
         assertDoesNotThrow(() -> generator.generateAndSave(TEST_MAP_PATH));
     }
@@ -71,9 +73,24 @@ public class MapGeneratorPathTest {
      */
     @Test
     void testSmallMapGeneration() {
-        RandomMapConfig easyConfig = RandomMapConfig.EASY;
+        MapGenerator.MapConfig easyConfig = getNormalConfig();
+        easyConfig.width = 50;
+        easyConfig.height = 50;
+        easyConfig.difficulty = 1;
+        easyConfig.enemyDensity = 0.5f;
+
         MapGenerator generator = new MapGenerator(easyConfig);
         assertDoesNotThrow(() -> generator.generateAndSave(TEST_MAP_PATH));
+    }
+
+    // Helper to create a normal config
+    private MapGenerator.MapConfig getNormalConfig() {
+        MapGenerator.MapConfig config = new MapGenerator.MapConfig();
+        config.width = 100;
+        config.height = 100;
+        config.difficulty = 3;
+        config.theme = "Dungeon";
+        return config;
     }
 
     // === Mock implementations for testing ===

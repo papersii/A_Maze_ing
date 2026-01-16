@@ -4,7 +4,6 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
-import de.tum.cit.fop.maze.config.RandomMapConfig;
 import de.tum.cit.fop.maze.model.DamageType;
 import de.tum.cit.fop.maze.utils.MapGenerator;
 import org.junit.jupiter.api.BeforeAll;
@@ -76,23 +75,24 @@ public class LevelMapGeneratorTest {
         DamageType damageType = (level % 2 == 0) ? DamageType.MAGICAL : DamageType.PHYSICAL;
 
         // 创建配置
-        RandomMapConfig config = new RandomMapConfig()
-                .setSize(mapSize, mapSize)
-                .setDifficulty(difficulty)
-                .setTheme(theme)
-                .setDamageType(damageType)
-                .setEnemyShieldEnabled(level >= 9)
-                .setEnemyDensity(0.5f + level * 0.05f)
-                .setTrapDensity(0.3f + level * 0.04f)
-                .setMobileTrapDensity(0.2f + level * 0.03f)
-                .setLootDropRate(1.5f - level * 0.03f)
-                .setBraidChance(0.5f - level * 0.02f)
-                .setRoomCount(20 + level * 2);
+        MapGenerator.MapConfig config = new MapGenerator.MapConfig();
+        config.width = mapSize;
+        config.height = mapSize;
+        config.difficulty = difficulty;
+        config.theme = theme;
+        config.damageType = damageType;
+        config.enemyShieldEnabled = (level >= 9);
+        config.enemyDensity = 0.5f + level * 0.05f;
+        config.trapDensity = 0.3f + level * 0.04f;
+        config.mobileTrapDensity = 0.2f + level * 0.03f;
+        config.lootDropRate = 1.5f - level * 0.03f;
+        config.braidChance = 0.5f - level * 0.02f;
+        config.roomCount = 20 + level * 2;
 
         // 生成地图
         String fileName = OUTPUT_DIR + "level-" + level + ".properties";
         MapGenerator generator = new MapGenerator(config);
-        generator.generateAndSave(fileName, config);
+        generator.generateAndSave(fileName);
 
         System.out.printf("✓ Level %2d: %s | %dx%d | Difficulty: %d | %s%n",
                 level, theme, mapSize, mapSize, difficulty, damageType.name());

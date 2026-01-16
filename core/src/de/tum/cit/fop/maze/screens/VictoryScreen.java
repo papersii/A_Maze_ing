@@ -128,27 +128,8 @@ public class VictoryScreen implements Screen {
             public void changed(ChangeEvent event, Actor actor) {
                 // Check if map exists, if not generate it
                 if (!Gdx.files.internal(nextMapPath).exists() && !Gdx.files.local(nextMapPath).exists()) {
-                    de.tum.cit.fop.maze.config.RandomMapConfig config = de.tum.cit.fop.maze.config.RandomMapConfig.NORMAL
-                            .copy();
-
-                    int nextLevel = getLevelNumber(nextMapPath);
-                    // Theme order: 草原, 丛林, 荒漠, 冰原, 太空船
-                    String nextTheme = "Grassland"; // 1-4: 草原
-                    if (nextLevel >= 5 && nextLevel <= 8)
-                        nextTheme = "Jungle"; // 5-8: 丛林
-                    else if (nextLevel >= 9 && nextLevel <= 12)
-                        nextTheme = "Desert"; // 9-12: 荒漠
-                    else if (nextLevel >= 13 && nextLevel <= 16)
-                        nextTheme = "Ice"; // 13-16: 冰原
-                    else if (nextLevel >= 17 && nextLevel <= 20)
-                        nextTheme = "Space"; // 17-20: 太空船
-
-                    config.setTheme(nextTheme);
-
-                    // Increase difficulty slightly
-                    config.setDifficulty(Math.min(5, (nextLevel / 4) + 1));
-
-                    new de.tum.cit.fop.maze.utils.MapGenerator(config).generateAndSave(nextMapPath);
+                    // 使用 MapGenerator 默认配置生成地图
+                    new de.tum.cit.fop.maze.utils.MapGenerator().generateAndSave(nextMapPath);
                 }
                 game.setScreen(new GameScreen(game, nextMapPath, true));
             }

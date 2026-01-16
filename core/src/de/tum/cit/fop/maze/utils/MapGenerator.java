@@ -5,15 +5,15 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import de.tum.cit.fop.maze.config.GameConfig;
-import de.tum.cit.fop.maze.config.RandomMapConfig;
 import de.tum.cit.fop.maze.model.WallEntity;
+import de.tum.cit.fop.maze.model.DamageType;
 
 import java.util.*;
 
 /**
- * MapGenerator - 完全重构版
+ * MapGenerator - 地图生成器
  * 
- * 核心改进：
+ * 核心功能：
  * 1. 边界墙自动生成（2格宽）
  * 2. 房间+走廊算法替代完美迷宫
  * 3. 每次放置墙体后验证路径连通性
@@ -28,7 +28,7 @@ public class MapGenerator {
     private int playableHeight;
     private int totalWidth;
     private int totalHeight;
-    private RandomMapConfig config;
+    private MapConfig config;
 
     // 格子状态：0 = 可放墙, 1 = 地板（通道）
     private int[][] grid;
@@ -39,11 +39,48 @@ public class MapGenerator {
     // 安全区（起点、终点、钥匙周围）
     private Set<Long> safeZone;
 
-    public MapGenerator() {
-        this(RandomMapConfig.NORMAL);
+    /**
+     * 内嵌地图配置类 (替代原 RandomMapConfig)
+     */
+    public static class MapConfig {
+        public int width = 150;
+        public int height = 150;
+        public int difficulty = 2;
+        public DamageType damageType = DamageType.PHYSICAL;
+        public boolean enemyShieldEnabled = false;
+        public float enemyDensity = 1.0f;
+        public float trapDensity = 1.0f;
+        public float mobileTrapDensity = 1.0f;
+        public float lootDropRate = 1.0f;
+        public float braidChance = 0.3f;
+        public int roomCount = 60;
+        public String theme = "Dungeon";
+
+        public static final MapConfig DEFAULT = new MapConfig();
+
+        public MapConfig copy() {
+            MapConfig c = new MapConfig();
+            c.width = this.width;
+            c.height = this.height;
+            c.difficulty = this.difficulty;
+            c.damageType = this.damageType;
+            c.enemyShieldEnabled = this.enemyShieldEnabled;
+            c.enemyDensity = this.enemyDensity;
+            c.trapDensity = this.trapDensity;
+            c.mobileTrapDensity = this.mobileTrapDensity;
+            c.lootDropRate = this.lootDropRate;
+            c.braidChance = this.braidChance;
+            c.roomCount = this.roomCount;
+            c.theme = this.theme;
+            return c;
+        }
     }
 
-    public MapGenerator(RandomMapConfig config) {
+    public MapGenerator() {
+        this(MapConfig.DEFAULT);
+    }
+
+    public MapGenerator(MapConfig config) {
         this.config = config;
     }
 
@@ -51,7 +88,7 @@ public class MapGenerator {
         generateAndSave(fileName, this.config);
     }
 
-    public void generateAndSave(String fileName, RandomMapConfig config) {
+    public void generateAndSave(String fileName, MapConfig config) {
         this.config = config;
 
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -97,8 +134,8 @@ public class MapGenerator {
         GenerationResult result = new GenerationResult();
 
         // 初始化尺寸
-        this.playableWidth = config.getWidth();
-        this.playableHeight = config.getHeight();
+        this.playableWidth = config.width;
+        this.playableHeight = config.height;
         this.totalWidth = playableWidth + 2 * BORDER_WIDTH;
         this.totalHeight = playableHeight + 2 * BORDER_WIDTH;
 
@@ -213,7 +250,7 @@ public class MapGenerator {
      * 生成内部迷宫（房间+走廊算法）
      */
     private void generateInternalMaze() {
-        int roomCount = config.getRoomCount();
+        int roomCount = config.roomCount;
         int wallsPlaced = 0;
         int maxWalls = (playableWidth * playableHeight) / 20; // 约5%覆盖率
 
@@ -392,9 +429,9 @@ public class MapGenerator {
             }
         }
 
-        int enemyCount = (int) (floorCount / 80 * config.getEnemyDensity());
-        int trapCount = (int) (floorCount / 150 * config.getTrapDensity());
-        int mobileTrapCount = (int) (floorCount / 100 * config.getMobileTrapDensity());
+        int enemyCount = (int) (floorCount / 80 * config.enemyDensity);
+        int trapCount = (int) (floorCount / 150 * config.trapDensity);
+        int mobileTrapCount = (int) (floorCount / 100 * config.mobileTrapDensity);
 
         Collections.shuffle(floors);
 
@@ -418,12 +455,12 @@ public class MapGenerator {
 
         // Metadata
         sb.append("# Generated Map\n");
-        sb.append("theme=").append(config.getTheme()).append("\n");
-        sb.append("damageType=").append(config.getDamageType().name()).append("\n");
-        sb.append("enemyShieldEnabled=").append(config.isEnemyShieldEnabled()).append("\n");
-        sb.append("levelDifficulty=").append(config.getDifficulty()).append("\n");
-        sb.append("suggestedArmor=").append(config.getDamageType().name()).append("\n");
-        sb.append("lootDropRate=").append(config.getLootDropRate()).append("\n");
+        sb.append("theme=").append(config.theme).append("\n");
+        sb.append("damageType=").append(config.damageType.name()).append("\n");
+        sb.append("enemyShieldEnabled=").append(config.enemyShieldEnabled).append("\n");
+        sb.append("levelDifficulty=").append(config.difficulty).append("\n");
+        sb.append("suggestedArmor=").append(config.damageType.name()).append("\n");
+        sb.append("lootDropRate=").append(config.lootDropRate).append("\n");
         sb.append("playableWidth=").append(playableWidth).append("\n");
         sb.append("playableHeight=").append(playableHeight).append("\n");
         sb.append("\n");
@@ -494,7 +531,7 @@ public class MapGenerator {
         return result;
     }
 
-    public RandomMapConfig getConfig() {
+    public MapConfig getConfig() {
         return config;
     }
 }

@@ -29,6 +29,7 @@ public class LeaderboardScreen extends BaseScreen {
     private Table contentTable;
     private ScrollPane scrollPane;
     private String currentFilter = null; // null = 全部
+    private boolean showEndlessMode = false; // true = 显示无尽模式排行榜
     private Texture backgroundTexture;
 
     public LeaderboardScreen(MazeRunnerGame game) {
@@ -65,6 +66,7 @@ public class LeaderboardScreen extends BaseScreen {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 currentFilter = null;
+                showEndlessMode = false; // 退出无尽模式显示
                 refreshLeaderboard();
             }
         });
@@ -79,11 +81,25 @@ public class LeaderboardScreen extends BaseScreen {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
                     currentFilter = levelPath;
+                    showEndlessMode = false; // 退出无尽模式显示
                     refreshLeaderboard();
                 }
             });
             filterTable.add(levelBtn).width(filterBtnWidth).height(filterBtnHeight).padRight(filterBtnPad);
         }
+
+        // === ENDLESS MODE Tab ===
+        TextButton endlessBtn = new TextButton("Endless", skin);
+        endlessBtn.setColor(1f, 0.8f, 0.3f, 1f); // 金色高亮
+        endlessBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showEndlessMode = true;
+                currentFilter = null;
+                refreshLeaderboard();
+            }
+        });
+        filterTable.add(endlessBtn).width(filterBtnWidth).height(filterBtnHeight);
 
         rootTable.add(filterTable).padBottom(15).row();
 
@@ -159,6 +175,12 @@ public class LeaderboardScreen extends BaseScreen {
     private void refreshLeaderboard() {
         contentTable.clear();
 
+        // 无尽模式排行榜显示
+        if (showEndlessMode) {
+            refreshEndlessLeaderboard();
+            return;
+        }
+
         LeaderboardManager manager = LeaderboardManager.getInstance();
         List<LeaderboardEntry> entries;
 
@@ -198,6 +220,66 @@ public class LeaderboardScreen extends BaseScreen {
             rowTable.add(new Label(entry.getLevelDisplayName(), skin)).width(80).padRight(10);
             rowTable.add(new Label(entry.getFormattedTime(), skin)).width(80).padRight(10);
             rowTable.add(new Label(String.valueOf(entry.kills), skin)).width(60).padRight(10);
+
+            Label dateLabel = new Label(entry.getFormattedDate(), skin);
+            dateLabel.setColor(Color.LIGHT_GRAY);
+            rowTable.add(dateLabel).width(150);
+
+            contentTable.add(rowTable).fillX().padBottom(5).row();
+            rank++;
+        }
+    }
+
+    /**
+     * 刷新无尽模式排行榜显示
+     */
+    private void refreshEndlessLeaderboard() {
+        // 显示专门的无尽模式表头
+        contentTable.clear();
+
+        // 无尽模式特有的提示
+        Label modeLabel = new Label("~~ ENDLESS MODE LEADERBOARD ~~", skin);
+        modeLabel.setColor(Color.GOLD);
+        contentTable.add(modeLabel).padBottom(20).row();
+
+        // 获取无尽模式记录（使用特殊level过滤器）
+        LeaderboardManager manager = LeaderboardManager.getInstance();
+        List<LeaderboardEntry> entries = manager.getScoresByLevel("endless");
+
+        if (entries.isEmpty()) {
+            Label emptyLabel = new Label("No Endless Mode scores yet.\nStart Endless Mode from the main menu!", skin);
+            emptyLabel.setColor(Color.GRAY);
+            emptyLabel.setAlignment(Align.center);
+            contentTable.add(emptyLabel).pad(50);
+            return;
+        }
+
+        int rank = 1;
+        for (LeaderboardEntry entry : entries) {
+            Table rowTable = new Table();
+
+            // 排名颜色
+            Label rankLabel = new Label(String.valueOf(rank), skin);
+            if (rank == 1)
+                rankLabel.setColor(Color.GOLD);
+            else if (rank == 2)
+                rankLabel.setColor(Color.LIGHT_GRAY);
+            else if (rank == 3)
+                rankLabel.setColor(new Color(0.8f, 0.5f, 0.2f, 1f));
+
+            rowTable.add(rankLabel).width(60).padRight(10);
+            rowTable.add(new Label(truncate(entry.playerName, 15), skin)).width(150).padRight(10);
+
+            Label scoreLabel = new Label(String.valueOf(entry.score), skin);
+            scoreLabel.setColor(Color.GOLD);
+            rowTable.add(scoreLabel).width(100).padRight(10);
+
+            // 无尽模式显示Wave而非Level
+            Label waveLabel = new Label("Wave " + entry.kills, skin); // 临时使用kills存储wave
+            waveLabel.setColor(Color.CYAN);
+            rowTable.add(waveLabel).width(80).padRight(10);
+
+            rowTable.add(new Label(entry.getFormattedTime(), skin)).width(80).padRight(10);
 
             Label dateLabel = new Label(entry.getFormattedDate(), skin);
             dateLabel.setColor(Color.LIGHT_GRAY);

@@ -149,4 +149,128 @@ public class SaveManager {
         }
         return false;
     }
+
+    // ==================== ENDLESS MODE SAVE SYSTEM ====================
+
+    private static final String ENDLESS_SAVE_DIR = "saves/endless/";
+
+    /**
+     * 保存无尽模式游戏状态
+     * 
+     * @param state    无尽模式游戏状态
+     * @param filename 文件名 (不需要带 .json 后缀)
+     */
+    public static void saveEndlessGame(de.tum.cit.fop.maze.model.EndlessGameState state, String filename) {
+        Json json = new Json();
+        json.setOutputType(JsonWriter.OutputType.json);
+
+        // 确保无尽模式存档文件夹存在
+        if (!Gdx.files.local(ENDLESS_SAVE_DIR).exists()) {
+            Gdx.files.local(ENDLESS_SAVE_DIR).mkdirs();
+        }
+
+        // 自动加上 .json 后缀
+        if (!filename.endsWith(".json")) {
+            filename += ".json";
+        }
+
+        String text = json.prettyPrint(state);
+        FileHandle file = Gdx.files.local(ENDLESS_SAVE_DIR + filename);
+        file.writeString(text, false);
+
+        Gdx.app.log("SaveManager", "Saved Endless Mode to: " + file.path());
+    }
+
+    /**
+     * 默认保存无尽模式 (endless_auto_save.json)
+     */
+    public static void saveEndlessGame(de.tum.cit.fop.maze.model.EndlessGameState state) {
+        saveEndlessGame(state, "endless_auto_save");
+    }
+
+    /**
+     * 读取无尽模式存档
+     */
+    public static de.tum.cit.fop.maze.model.EndlessGameState loadEndlessGame(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            filename = "endless_auto_save.json";
+        }
+        if (!filename.endsWith(".json")) {
+            filename += ".json";
+        }
+
+        FileHandle file = Gdx.files.local(ENDLESS_SAVE_DIR + filename);
+
+        if (!file.exists()) {
+            Gdx.app.log("SaveManager", "Endless save file not found: " + filename);
+            return null;
+        }
+
+        Json json = new Json();
+        try {
+            return json.fromJson(de.tum.cit.fop.maze.model.EndlessGameState.class, file.readString());
+        } catch (Exception e) {
+            Gdx.app.error("SaveManager", "Failed to load endless save: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 默认读取无尽模式存档
+     */
+    public static de.tum.cit.fop.maze.model.EndlessGameState loadEndlessGame() {
+        return loadEndlessGame("endless_auto_save.json");
+    }
+
+    /**
+     * 获取所有无尽模式存档文件
+     */
+    public static FileHandle[] getEndlessSaveFiles() {
+        FileHandle dir = Gdx.files.local(ENDLESS_SAVE_DIR);
+        if (!dir.exists()) {
+            dir.mkdirs();
+            return new FileHandle[0];
+        }
+
+        FileHandle[] files = dir.list(".json");
+        Arrays.sort(files, new Comparator<FileHandle>() {
+            @Override
+            public int compare(FileHandle f1, FileHandle f2) {
+                return Long.compare(f2.lastModified(), f1.lastModified());
+            }
+        });
+
+        return files;
+    }
+
+    /**
+     * 删除无尽模式存档
+     */
+    public static boolean deleteEndlessSave(String filename) {
+        if (filename == null || filename.isEmpty())
+            return false;
+
+        if (!filename.endsWith(".json")) {
+            filename += ".json";
+        }
+
+        FileHandle file = Gdx.files.local(ENDLESS_SAVE_DIR + filename);
+
+        if (file.exists()) {
+            boolean deleted = file.delete();
+            if (deleted) {
+                Gdx.app.log("SaveManager", "Deleted endless save: " + filename);
+            }
+            return deleted;
+        }
+        return false;
+    }
+
+    /**
+     * 检查是否有无尽模式存档
+     */
+    public static boolean hasEndlessSave() {
+        FileHandle[] files = getEndlessSaveFiles();
+        return files != null && files.length > 0;
+    }
 }

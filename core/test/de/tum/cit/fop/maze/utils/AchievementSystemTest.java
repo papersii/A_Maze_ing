@@ -107,13 +107,13 @@ public class AchievementSystemTest {
     @Test
     public void testCategoryProperties() {
         assertEquals("Weapons", AchievementCategory.WEAPON.getDisplayName());
-        assertEquals("⚔️", AchievementCategory.WEAPON.getIcon());
+        assertEquals("[W]", AchievementCategory.WEAPON.getIcon());
 
         assertEquals("Armor", AchievementCategory.ARMOR.getDisplayName());
-        assertEquals("🛡️", AchievementCategory.ARMOR.getIcon());
+        assertEquals("[A]", AchievementCategory.ARMOR.getIcon());
 
         assertEquals("Combat", AchievementCategory.COMBAT.getDisplayName());
-        assertEquals("💀", AchievementCategory.COMBAT.getIcon());
+        assertEquals("[C]", AchievementCategory.COMBAT.getIcon());
     }
 
     // === Achievement Definitions Tests ===
@@ -231,7 +231,7 @@ public class AchievementSystemTest {
                 AchievementRarity.EPIC, AchievementCategory.WEAPON);
 
         String str = test.toString();
-        assertTrue(str.contains("🟣"), "Should contain rarity icon");
+        assertTrue(str.contains("(E)"), "Should contain rarity icon");
         assertTrue(str.contains("Test Name"), "Should contain name");
         assertTrue(str.contains("🔒"), "Should contain lock symbol");
     }

@@ -16,7 +16,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import de.tum.cit.fop.maze.MazeRunnerGame;
 import de.tum.cit.fop.maze.config.GameSettings;
-import de.tum.cit.fop.maze.config.RandomMapConfig;
+
 import de.tum.cit.fop.maze.model.LevelSummaryData;
 import de.tum.cit.fop.maze.utils.AchievementManager;
 import de.tum.cit.fop.maze.utils.AchievementUnlockInfo;
@@ -310,7 +310,7 @@ public class LevelSummaryScreen implements Screen {
         Table footer = new Table();
 
         // Primary Action (Next Level) - Only on Victory
-        if (data.isVictory() && !data.isRandomMode()) {
+        if (data.isVictory()) {
             TextButton nextBtn = new TextButton("NEXT LEVEL >>", skin);
             nextBtn.getLabel().setFontScale(1.2f);
             nextBtn.setColor(COLOR_VICTORY);
@@ -451,9 +451,6 @@ public class LevelSummaryScreen implements Screen {
     }
 
     private String getSubtitle() {
-        if (data.isRandomMode()) {
-            return data.isVictory() ? "Random Map Completed!" : "You were defeated...";
-        }
         int level = data.getLevelNumber();
         String theme = data.getThemeName();
         if (data.isVictory()) {
@@ -488,21 +485,8 @@ public class LevelSummaryScreen implements Screen {
         GameSettings.unlockLevel(nextLevel);
 
         if (!Gdx.files.internal(nextMapPath).exists() && !Gdx.files.local(nextMapPath).exists()) {
-            RandomMapConfig config = RandomMapConfig.NORMAL.copy();
-            // Theme order: 草原, 丛林, 荒漠, 冰原, 太空船
-            String nextTheme = "Grassland"; // 1-4: 草原
-            if (nextLevel >= 5)
-                nextTheme = "Jungle"; // 5-8: 丛林
-            if (nextLevel >= 9)
-                nextTheme = "Desert"; // 9-12: 荒漠
-            if (nextLevel >= 13)
-                nextTheme = "Ice"; // 13-16: 冰原
-            if (nextLevel >= 17)
-                nextTheme = "Space"; // 17-20: 太空船
-
-            config.setTheme(nextTheme);
-            config.setDifficulty(Math.min(5, (nextLevel / 4) + 1));
-            new MapGenerator(config).generateAndSave(nextMapPath);
+            // 使用 MapGenerator 默认配置生成地图
+            new MapGenerator().generateAndSave(nextMapPath);
         }
         game.setScreen(new ArmorSelectScreen(game, nextMapPath));
     }

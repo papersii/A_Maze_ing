@@ -17,14 +17,10 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import com.badlogic.gdx.utils.viewport.Viewport;
 import de.tum.cit.fop.maze.MazeRunnerGame;
-import de.tum.cit.fop.maze.config.GameSettings;
 import de.tum.cit.fop.maze.utils.SaveManager;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
-import de.tum.cit.fop.maze.utils.MapGenerator;
 import de.tum.cit.fop.maze.utils.GameLogger;
 import de.tum.cit.fop.maze.utils.UIUtils;
 
@@ -32,7 +28,6 @@ public class MenuScreen implements Screen {
 
     private final Stage stage;
     private final MazeRunnerGame game;
-    private Label loadingLabel;
     private final Texture backgroundTexture;
 
     public MenuScreen(MazeRunnerGame game) {
@@ -77,26 +72,20 @@ public class MenuScreen implements Screen {
             }
         });
 
-        // 4. "Random Map" Button
-        TextButton randomButton = new TextButton("Random Map", game.getSkin());
-        table.add(randomButton).width(300).height(60).padBottom(20).row();
+        // 4. "Endless Mode" Button (原 Random Map 位置)
+        TextButton endlessButton = new TextButton("Endless Mode", game.getSkin());
+        endlessButton.setColor(1f, 0.8f, 0.3f, 1f); // 金黄色高亮
+        table.add(endlessButton).width(300).height(60).padBottom(20).row();
 
-        loadingLabel = new Label("Generating 200x200 Map...", game.getSkin());
-        loadingLabel.setColor(Color.YELLOW);
-        loadingLabel.setVisible(false);
-        // 先添加到表格最后，或者在按钮下方
-        table.add(loadingLabel).padBottom(10).row();
-
-        randomButton.addListener(new ChangeListener() {
+        endlessButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                if (loadingLabel.isVisible())
-                    return;
-                showRandomMapDialog();
+                GameLogger.info("MenuScreen", "Endless Mode clicked");
+                game.setScreen(new EndlessGameScreen(game));
             }
         });
 
-        // 4. "Load Game" Button
+        // 5. "Load Game" Button
         TextButton loadButton = new TextButton("Load Game", game.getSkin());
         table.add(loadButton).width(300).height(60).padBottom(20).row();
 
@@ -107,7 +96,7 @@ public class MenuScreen implements Screen {
             }
         });
 
-        // Shop Button (NEW)
+        // Shop Button
         TextButton shopButton = new TextButton("Shop", game.getSkin());
         table.add(shopButton).width(300).height(60).padBottom(20).row();
 
@@ -119,7 +108,7 @@ public class MenuScreen implements Screen {
             }
         });
 
-        // Achievements Button (NEW)
+        // Achievements Button
         TextButton achievementsButton = new TextButton("Achievements", game.getSkin());
         table.add(achievementsButton).width(300).height(60).padBottom(20).row();
 
@@ -131,7 +120,7 @@ public class MenuScreen implements Screen {
             }
         });
 
-        // Leaderboard Button (NEW)
+        // Leaderboard Button
         TextButton leaderboardButton = new TextButton("Leaderboard", game.getSkin());
         table.add(leaderboardButton).width(300).height(60).padBottom(20).row();
 
@@ -143,7 +132,7 @@ public class MenuScreen implements Screen {
             }
         });
 
-        // Help Button (NEW)
+        // Help Button
         TextButton helpButton = new TextButton("Help", game.getSkin());
         table.add(helpButton).width(300).height(60).padBottom(20).row();
 
@@ -155,7 +144,7 @@ public class MenuScreen implements Screen {
             }
         });
 
-        // 4. "Settings" Button
+        // "Settings" Button
         TextButton settingsButton = new TextButton("Settings", game.getSkin());
         table.add(settingsButton).width(300).height(60).padBottom(20).row();
 
@@ -166,7 +155,7 @@ public class MenuScreen implements Screen {
             }
         });
 
-        // 5. "Exit" Button
+        // "Exit" Button
         TextButton exitButton = new TextButton("Exit", game.getSkin());
         table.add(exitButton).width(300).height(60).row();
 
@@ -262,209 +251,6 @@ public class MenuScreen implements Screen {
         win.setPosition(screenW / 2 - dialogW / 2, screenH / 2 - dialogH / 2);
 
         stage.addActor(win);
-    }
-
-    private void showRandomMapDialog() {
-        // 创建一个全屏或大窗口来显示地图列表
-        Window win = new Window("Select Random Map", game.getSkin());
-        win.setResizable(true);
-        win.setModal(true);
-        win.getTitleLabel().setAlignment(Align.center);
-
-        // 1. 获取地图列表
-        FileHandle mapsDir = Gdx.files.local("maps/random");
-        if (!mapsDir.exists()) {
-            mapsDir.mkdirs();
-        }
-
-        // 过滤 random_*.properties
-        FileHandle[] files = mapsDir
-                .list((dir, name) -> name.startsWith("random_") && name.endsWith(".properties"));
-
-        // 按最后修改时间降序排序 (最新的在上面)
-        Arrays.sort(files, new Comparator<FileHandle>() {
-            @Override
-            public int compare(FileHandle f1, FileHandle f2) {
-                return Long.compare(f2.lastModified(), f1.lastModified());
-            }
-        });
-
-        // 2. 构建列表内容
-        Table listTable = new Table();
-        listTable.top();
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        if (files.length == 0) {
-            listTable.add(new Label("No generated maps found.", game.getSkin())).pad(20);
-        } else {
-            for (FileHandle file : files) {
-                Table row = new Table();
-                // row.setBackground(game.getSkin().getDrawable("default-rect")); // Removed to
-                // avoid crash
-
-                String name = file.nameWithoutExtension();
-                String dateStr = sdf.format(new Date(file.lastModified()));
-
-                Label nameLabel = new Label(name + "\n" + dateStr, game.getSkin());
-                nameLabel.setFontScale(0.8f);
-
-                TextButton playBtn = new TextButton("Play", game.getSkin());
-                playBtn.addListener(new ChangeListener() {
-                    @Override
-                    public void changed(ChangeEvent event, Actor actor) {
-                        game.goToGame(file.path());
-                        win.remove();
-                    }
-                });
-
-                TextButton delBtn = new TextButton("Delete", game.getSkin());
-                delBtn.setColor(1, 0.3f, 0.3f, 1);
-                delBtn.addListener(new ChangeListener() {
-                    @Override
-                    public void changed(ChangeEvent event, Actor actor) {
-                        file.delete();
-                        win.remove();
-                        showRandomMapDialog(); // 刷新列表
-                    }
-                });
-
-                row.add(nameLabel).expandX().left().pad(5);
-                row.add(playBtn).width(80).pad(5);
-                row.add(delBtn).width(70).pad(5);
-
-                listTable.add(row).growX().padBottom(5).row();
-            }
-        }
-
-        ScrollPane scroll = new ScrollPane(listTable, game.getSkin());
-        scroll.setFadeScrollBars(false);
-
-        // Auto-focus scroll on hover so user doesn't need to click
-        UIUtils.enableHoverScrollFocus(scroll, stage);
-
-        win.add(scroll).grow().pad(10).row();
-
-        // 3. 底部按钮
-        Table botTable = new Table();
-
-        // === Difficulty Presets (NEW) ===
-        Table difficultyTable = new Table();
-        difficultyTable.add(new Label("Difficulty: ", game.getSkin())).padRight(10);
-
-        String[] presets = { "Easy", "Normal", "Hard", "Nightmare", "Custom" };
-        final int[] selectedPreset = { 1 }; // Default: Normal
-        final de.tum.cit.fop.maze.config.RandomMapConfig[] customConfigHolder = { null };
-
-        for (int i = 0; i < presets.length; i++) {
-            final int presetIndex = i;
-            TextButton presetBtn = new TextButton(presets[i], game.getSkin());
-            if (i == selectedPreset[0]) {
-                presetBtn.setColor(0.3f, 0.7f, 0.3f, 1f); // Highlight default
-            }
-            presetBtn.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    selectedPreset[0] = presetIndex;
-                    // Update button colors
-                    for (Actor a : difficultyTable.getChildren()) {
-                        if (a instanceof TextButton) {
-                            ((TextButton) a).setColor(Color.WHITE);
-                        }
-                    }
-                    presetBtn.setColor(0.3f, 0.7f, 0.3f, 1f);
-
-                    // If Custom clicked, open dialog
-                    if (presetIndex == 4) {
-                        RandomMapConfigDialog dialog = new RandomMapConfigDialog(game,
-                                customConfigHolder[0] != null ? customConfigHolder[0]
-                                        : new de.tum.cit.fop.maze.config.RandomMapConfig(),
-                                (activeConfig) -> {
-                                    customConfigHolder[0] = activeConfig;
-                                },
-                                () -> {
-                                    // On cancel
-                                });
-                        stage.addActor(dialog);
-                    }
-                }
-            });
-            difficultyTable.add(presetBtn).width(90).pad(3);
-        }
-
-        win.row();
-        win.add(difficultyTable).padBottom(15).row();
-
-        TextButton genBtn = new TextButton("Generate New Map", game.getSkin());
-        genBtn.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                win.remove();
-                String timeSuffix = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-                String newName = "maps/random/random_" + timeSuffix + ".properties";
-
-                // Get config based on selected preset
-                de.tum.cit.fop.maze.config.RandomMapConfig config;
-                switch (selectedPreset[0]) {
-                    case 0:
-                        config = de.tum.cit.fop.maze.config.RandomMapConfig.EASY;
-                        break;
-                    case 2:
-                        config = de.tum.cit.fop.maze.config.RandomMapConfig.HARD;
-                        break;
-                    case 3:
-                        config = de.tum.cit.fop.maze.config.RandomMapConfig.NIGHTMARE;
-                        break;
-                    case 4: // Custom
-                        config = customConfigHolder[0];
-                        if (config == null)
-                            config = de.tum.cit.fop.maze.config.RandomMapConfig.NORMAL; // Fallback
-                        break;
-                    default:
-                        config = de.tum.cit.fop.maze.config.RandomMapConfig.NORMAL;
-                        break;
-                }
-                startRandomGeneration(newName, config);
-            }
-        });
-
-        TextButton closeBtn = new TextButton("Cancel", game.getSkin());
-        closeBtn.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                win.remove();
-            }
-        });
-
-        botTable.add(genBtn).height(50).padRight(20);
-        botTable.add(closeBtn).height(50);
-
-        win.add(botTable).pad(10);
-
-        win.setSize(800, 600);
-        win.setPosition(stage.getWidth() / 2 - 400, stage.getHeight() / 2 - 300);
-        stage.addActor(win);
-    }
-
-    // 重载方法以支持指定文件名
-    private void startRandomGeneration(String fileName) {
-        startRandomGeneration(fileName, de.tum.cit.fop.maze.config.RandomMapConfig.NORMAL);
-    }
-
-    // 使用配置生成随机地图
-    private void startRandomGeneration(String fileName, de.tum.cit.fop.maze.config.RandomMapConfig config) {
-        loadingLabel.setText("Generating " + config.getWidth() + "x" + config.getHeight() + " Map...");
-        loadingLabel.setVisible(true);
-        new Thread(() -> {
-            MapGenerator gen = new MapGenerator(config);
-            gen.generateAndSave(fileName, config);
-            // 确保回到主线程切换场景 - 使用 ArmorSelectScreen
-            Gdx.app.postRunnable(() -> {
-                loadingLabel.setVisible(false);
-                // 跳转到护甲选择界面而不是直接进入游戏
-                game.setScreen(new ArmorSelectScreen(game, fileName));
-            });
-        }).start();
     }
 
     @Override

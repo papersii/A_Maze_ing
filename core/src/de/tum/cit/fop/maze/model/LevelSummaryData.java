@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * Level Summary Data - 关卡结算数据封装
  * 
- * 统一胜利/失败、关卡/Random模式的结算数据。
+ * 统一胜利/失败关卡模式的结算数据。
  */
 public class LevelSummaryData {
 
@@ -17,7 +17,6 @@ public class LevelSummaryData {
     // === Core ===
     private Result result;
     private String mapPath;
-    private boolean isRandomMode;
 
     // === Statistics ===
     private int killCount;
@@ -34,7 +33,6 @@ public class LevelSummaryData {
     public LevelSummaryData(Result result, String mapPath) {
         this.result = result;
         this.mapPath = mapPath;
-        this.isRandomMode = mapPath != null && mapPath.contains("random");
         this.newAchievements = new ArrayList<>();
     }
 
@@ -45,10 +43,6 @@ public class LevelSummaryData {
 
     public String getMapPath() {
         return mapPath;
-    }
-
-    public boolean isRandomMode() {
-        return isRandomMode;
     }
 
     public boolean isVictory() {

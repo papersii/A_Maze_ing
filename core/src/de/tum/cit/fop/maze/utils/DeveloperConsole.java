@@ -60,6 +60,12 @@ public class DeveloperConsole {
     /** FPS显示开关 */
     private boolean showFps = false;
 
+    /** 无尽模式标志 - 启用后禁用level/skip/win命令 */
+    private boolean endlessMode = false;
+
+    /** 无尽模式数据引用 */
+    private EndlessModeData endlessModeData;
+
     /**
      * 关卡切换监听器接口
      */
@@ -241,6 +247,11 @@ public class DeveloperConsole {
                     break;
                 case "debug":
                     showHelpDebug();
+                    break;
+
+                // === ENDLESS MODE Commands ===
+                case "endless":
+                    handleEndless(parts);
                     break;
 
                 default:
@@ -815,6 +826,11 @@ public class DeveloperConsole {
     // ==================== Level Commands ====================
 
     private void handleLevel(String[] parts) {
+        if (endlessMode) {
+            log("[ERROR] 'level' command disabled in Endless Mode.");
+            log("  Use 'endless' commands instead.");
+            return;
+        }
         if (parts.length < 2) {
             // No argument: show level category help
             showHelpLevel();
@@ -842,6 +858,10 @@ public class DeveloperConsole {
     }
 
     private void handleSkip() {
+        if (endlessMode) {
+            log("[ERROR] 'skip' command disabled in Endless Mode.");
+            return;
+        }
         if (levelChangeListener != null) {
             log("[OK] Skipping to next level...");
             levelChangeListener.onSkip();
@@ -851,6 +871,11 @@ public class DeveloperConsole {
     }
 
     private void handleWin() {
+        if (endlessMode) {
+            log("[ERROR] 'win' command disabled in Endless Mode.");
+            log("  Survive as long as possible!");
+            return;
+        }
         if (levelChangeListener != null) {
             log("[OK] Completing current level...");
             levelChangeListener.onWin();
@@ -1019,5 +1044,141 @@ public class DeveloperConsole {
 
     public void setVariable(String key, Object value) {
         variables.put(key, value);
+    }
+
+    // ==================== Endless Mode Support ====================
+
+    /**
+     * 无尽模式数据接口 - 用于控制台交互
+     */
+    public interface EndlessModeData {
+        int getTotalKills();
+
+        int getCurrentScore();
+
+        float getSurvivalTime();
+
+        int getCurrentCombo();
+
+        int getCurrentWave();
+
+        String getCurrentZone();
+
+        void setScore(int score);
+
+        void setCombo(int combo);
+
+        void addKills(int kills);
+    }
+
+    /**
+     * 设置无尽模式
+     */
+    public void setEndlessMode(boolean enabled, EndlessModeData data) {
+        this.endlessMode = enabled;
+        this.endlessModeData = data;
+        if (enabled) {
+            log("[INFO] Endless Mode enabled. Use 'endless' for commands.");
+        }
+    }
+
+    public boolean isEndlessMode() {
+        return endlessMode;
+    }
+
+    /**
+     * 处理无尽模式命令
+     */
+    private void handleEndless(String[] parts) {
+        if (!endlessMode) {
+            log("[WARN] Not in Endless Mode. Start Endless Mode first.");
+            showHelpEndless();
+            return;
+        }
+
+        if (parts.length < 2) {
+            showHelpEndless();
+            return;
+        }
+
+        String subCmd = parts[1].toLowerCase();
+
+        switch (subCmd) {
+            case "status":
+            case "info":
+                showEndlessStatus();
+                break;
+            case "score":
+                if (parts.length > 2) {
+                    int newScore = parseIntSafe(parts[2], 0);
+                    endlessModeData.setScore(newScore);
+                    log("[OK] Score set to " + newScore);
+                } else {
+                    log("[INFO] Current Score: " + endlessModeData.getCurrentScore());
+                }
+                break;
+            case "combo":
+                if (parts.length > 2) {
+                    int newCombo = parseIntSafe(parts[2], 0);
+                    endlessModeData.setCombo(newCombo);
+                    log("[OK] Combo set to " + newCombo);
+                } else {
+                    log("[INFO] Current Combo: " + endlessModeData.getCurrentCombo());
+                }
+                break;
+            case "kill":
+                int killCount = parts.length > 2 ? parseIntSafe(parts[2], 10) : 10;
+                endlessModeData.addKills(killCount);
+                log("[OK] Added " + killCount + " kills. Total: " + endlessModeData.getTotalKills());
+                break;
+            case "wave":
+                log("[INFO] Current Wave: " + (endlessModeData.getCurrentWave() + 1));
+                log("  Survival Time: " + formatTime(endlessModeData.getSurvivalTime()));
+                break;
+            case "zone":
+                log("[INFO] Current Zone: " + endlessModeData.getCurrentZone());
+                break;
+            default:
+                log("[ERROR] Unknown endless command: " + subCmd);
+                showHelpEndless();
+        }
+    }
+
+    private void showHelpEndless() {
+        log("╔═══════════════════════════════════════════════════════════╗");
+        log("║                  ENDLESS MODE COMMANDS                    ║");
+        log("╚═══════════════════════════════════════════════════════════╝");
+        log("");
+        log("endless status        Show full endless mode stats");
+        log("endless score [n]     View/Set current score");
+        log("endless combo [n]     View/Set current combo");
+        log("endless kill [n]      Add kills (debug)");
+        log("endless wave          View current wave info");
+        log("endless zone          View current zone");
+        log("");
+        log("NOTE: 'level', 'skip', 'win' are disabled in Endless Mode.");
+    }
+
+    private void showEndlessStatus() {
+        if (endlessModeData == null) {
+            log("[ERROR] No endless mode data available.");
+            return;
+        }
+        log("╔═══════════════════════════════════════════════════════════╗");
+        log("║                ENDLESS MODE STATUS                        ║");
+        log("╚═══════════════════════════════════════════════════════════╝");
+        log("");
+        log("  Score:         " + endlessModeData.getCurrentScore());
+        log("  Total Kills:   " + endlessModeData.getTotalKills());
+        log("  Survival Time: " + formatTime(endlessModeData.getSurvivalTime()));
+        log("  Current Wave:  " + (endlessModeData.getCurrentWave() + 1));
+        log("  Current Combo: " + endlessModeData.getCurrentCombo());
+        log("  Current Zone:  " + endlessModeData.getCurrentZone());
+    }
+
+    private String formatTime(float seconds) {
+        int mins = (int) (seconds / 60);
+        int secs = (int) (seconds % 60);
+        return String.format("%02d:%02d", mins, secs);
     }
 }
