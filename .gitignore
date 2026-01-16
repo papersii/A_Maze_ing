@@ -218,3 +218,6 @@ DESERT_WALL_GENERATION_GUIDE.md
 
 ### Local Unit Tests
 core/test/de/tum/cit/fop/maze/model/PhysicsMovementTest.java
+
+### Design Documents
+docs/design/addiction_mechanics.md

@@ -51,7 +51,7 @@ public class MenuScreen implements Screen {
         stage.addActor(table);
 
         // 1. Title
-        table.add(new Label("Maze Runner v2.1", game.getSkin(), "title")).padBottom(60).row();
+        table.add(new Label("A-mazeing", game.getSkin(), "title")).padBottom(60).row();
 
         // 2. "New Game" Button
         TextButton newGameButton = new TextButton("New Game", game.getSkin());
