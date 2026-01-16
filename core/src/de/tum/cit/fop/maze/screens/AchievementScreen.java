@@ -5,6 +5,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -406,18 +407,53 @@ public class AchievementScreen implements Screen {
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Draw background at full screen size (before viewport is applied)
+        // Draw background using Cover mode (same as MenuScreen)
         if (backgroundTexture != null) {
-            game.getSpriteBatch().getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(),
-                    Gdx.graphics.getHeight());
-            game.getSpriteBatch().begin();
-            game.getSpriteBatch().setColor(0.4f, 0.4f, 0.4f, 1f); // Dim
-            game.getSpriteBatch().draw(backgroundTexture, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-            game.getSpriteBatch().setColor(1, 1, 1, 1);
-            game.getSpriteBatch().end();
+            SpriteBatch batch = game.getSpriteBatch();
+
+            // 获取实际屏幕尺寸 - 使用 backbuffer 尺寸以确保正确
+            int screenWidth = Gdx.graphics.getBackBufferWidth();
+            int screenHeight = Gdx.graphics.getBackBufferHeight();
+
+            // 重置 GL Viewport 到整个屏幕
+            Gdx.gl.glViewport(0, 0, screenWidth, screenHeight);
+
+            // 设置投影矩阵到屏幕像素坐标系
+            batch.getProjectionMatrix().setToOrtho2D(0, 0, screenWidth, screenHeight);
+            batch.begin();
+            batch.setColor(0.4f, 0.4f, 0.4f, 1f); // Dim
+
+            // 背景图片原始尺寸
+            float texWidth = backgroundTexture.getWidth();
+            float texHeight = backgroundTexture.getHeight();
+
+            // 计算Cover模式的缩放比例
+            float screenRatio = (float) screenWidth / screenHeight;
+            float textureRatio = texWidth / texHeight;
+
+            float drawWidth, drawHeight;
+            float drawX, drawY;
+
+            if (screenRatio > textureRatio) {
+                // 屏幕更宽，以宽度为准，高度可能超出
+                drawWidth = screenWidth;
+                drawHeight = screenWidth / textureRatio;
+                drawX = 0;
+                drawY = (screenHeight - drawHeight) / 2; // 垂直居中
+            } else {
+                // 屏幕更高，以高度为准，宽度可能超出
+                drawHeight = screenHeight;
+                drawWidth = screenHeight * textureRatio;
+                drawX = (screenWidth - drawWidth) / 2; // 水平居中
+                drawY = 0;
+            }
+
+            batch.draw(backgroundTexture, drawX, drawY, drawWidth, drawHeight);
+            batch.setColor(1, 1, 1, 1);
+            batch.end();
         }
 
-        // Apply viewport for UI
+        // 恢复 Stage 的 Viewport（这会重新设置正确的 glViewport）
         stage.getViewport().apply();
         stage.act(Math.min(delta, 1 / 30f));
         stage.draw();
