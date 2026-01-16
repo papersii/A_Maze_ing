@@ -157,7 +157,11 @@ public class LevelSelectScreen implements Screen {
                 @Override
                 public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
                     hoveredLevel = levelNum;
-                    updatePanels(levelNum);
+                    // 只有在没有选中关卡时，悬浮才会更新面板和背景
+                    // 一旦点击选中了某个关卡，悬浮效果就不再改变背景
+                    if (selectedLevel == -1) {
+                        updatePanels(levelNum);
+                    }
                 }
 
                 @Override
@@ -334,6 +338,8 @@ public class LevelSelectScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        // Play menu background music (same as main menu)
+        de.tum.cit.fop.maze.utils.AudioManager.getInstance().playMenuBgm();
     }
 
     @Override

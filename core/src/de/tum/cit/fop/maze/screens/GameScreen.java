@@ -180,7 +180,33 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             }
         }
 
+        // === Play theme-appropriate BGM ===
+        // Level 20 gets special boss music, otherwise use theme-based BGM
+        int levelNumber = extractLevelNumber(mapPath);
+        if (levelNumber == 20) {
+            de.tum.cit.fop.maze.utils.AudioManager.getInstance().playBgm(
+                    de.tum.cit.fop.maze.utils.AudioManager.BGM_BOSS);
+        } else {
+            de.tum.cit.fop.maze.utils.AudioManager.getInstance().playThemeBgm(map.getTheme());
+        }
+
         setInputProcessors();
+    }
+
+    /**
+     * Extract level number from map path.
+     * e.g., "maps/level-5.properties" -> 5
+     */
+    private int extractLevelNumber(String mapPath) {
+        try {
+            String levelStr = mapPath.replaceAll("[^0-9]", "");
+            if (!levelStr.isEmpty()) {
+                return Integer.parseInt(levelStr);
+            }
+        } catch (Exception e) {
+            GameLogger.warn("GameScreen", "Failed to extract level number from: " + mapPath);
+        }
+        return 1; // Default to level 1
     }
 
     // --- WorldListener Implementation ---

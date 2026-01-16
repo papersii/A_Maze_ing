@@ -536,6 +536,8 @@ public class MenuScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        // Play menu background music
+        de.tum.cit.fop.maze.utils.AudioManager.getInstance().playMenuBgm();
     }
 
     @Override
