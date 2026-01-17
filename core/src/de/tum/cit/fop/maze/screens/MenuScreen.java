@@ -144,6 +144,19 @@ public class MenuScreen implements Screen {
             }
         });
 
+        // Element Creator Button (Developer Feature)
+        TextButton elementCreatorButton = new TextButton("Element Creator", game.getSkin());
+        elementCreatorButton.setColor(0.6f, 0.8f, 1f, 1f); // Light blue to indicate dev feature
+        table.add(elementCreatorButton).width(300).height(60).padBottom(20).row();
+
+        elementCreatorButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                GameLogger.info("MenuScreen", "Element Creator clicked");
+                game.setScreen(new ElementCreatorScreen(game));
+            }
+        });
+
         // "Settings" Button
         TextButton settingsButton = new TextButton("Settings", game.getSkin());
         table.add(settingsButton).width(300).height(60).padBottom(20).row();
