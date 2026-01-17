@@ -37,6 +37,9 @@ public class EndlessMapGenerator {
             { 2, 2 }, { 3, 2 }, { 2, 3 }, { 4, 2 }, { 2, 4 }, { 3, 3 }, { 4, 4 }
     };
 
+    /** 玩家出生点安全区域半径（格子数，确保玩家不会出生在墙内） */
+    private static final int SPAWN_SAFE_ZONE_RADIUS = 8;
+
     public EndlessMapGenerator() {
         this.seed = System.currentTimeMillis();
         this.random = new Random(seed);
@@ -177,12 +180,17 @@ public class EndlessMapGenerator {
             int localX = rand.nextInt(chunkSize - width);
             int localY = rand.nextInt(chunkSize - height);
 
+            // 转换为世界坐标进行安全区域检查
+            int worldX = worldStartX + localX;
+            int worldY = worldStartY + localY;
+
+            // 检查是否在玩家出生安全区域内
+            if (isInSpawnSafeZone(worldX, worldY, width, height)) {
+                continue;
+            }
+
             // 检查是否可以放置
             if (canPlaceWall(occupied, localX, localY, width, height, chunkSize)) {
-                // 放置墙体
-                int worldX = worldStartX + localX;
-                int worldY = worldStartY + localY;
-
                 int typeId = getTypeIdForSize(width, height);
                 WallEntity wall = new WallEntity(worldX, worldY, width, height, typeId, false);
                 chunk.addWall(wall);
@@ -252,6 +260,9 @@ public class EndlessMapGenerator {
 
     /**
      * 生成陷阱位置
+     * 
+     * 修复：使用整数坐标确保陷阱严格对齐到网格格子，
+     * 并通过HashSet追踪已占用位置避免重叠。
      */
     private void generateTraps(MapChunk chunk, Random rand) {
         int chunkSize = chunk.getSize();
@@ -262,14 +273,37 @@ public class EndlessMapGenerator {
         float trapDensity = 0.005f;
         int expectedTraps = (int) (chunkSize * chunkSize * trapDensity);
 
-        for (int i = 0; i < expectedTraps; i++) {
-            float localX = rand.nextFloat() * (chunkSize - 2) + 1;
-            float localY = rand.nextFloat() * (chunkSize - 2) + 1;
+        // 追踪已放置陷阱的格子位置，避免重复
+        java.util.Set<String> occupiedCells = new java.util.HashSet<>();
 
-            float worldX = worldStartX + localX;
-            float worldY = worldStartY + localY;
+        int attempts = 0;
+        int maxAttempts = expectedTraps * 3; // 最大尝试次数，避免无限循环
+        int trapsPlaced = 0;
 
-            // 检查是否与墙体重叠（简化检查）
+        while (trapsPlaced < expectedTraps && attempts < maxAttempts) {
+            attempts++;
+
+            // 使用整数坐标，确保陷阱严格对齐到格子
+            int localX = rand.nextInt(chunkSize - 2) + 1;
+            int localY = rand.nextInt(chunkSize - 2) + 1;
+
+            int worldX = worldStartX + localX;
+            int worldY = worldStartY + localY;
+
+            // 生成唯一键用于去重
+            String cellKey = worldX + "," + worldY;
+
+            // 检查是否已有陷阱在此位置
+            if (occupiedCells.contains(cellKey)) {
+                continue;
+            }
+
+            // 检查是否在玩家出生安全区域内
+            if (isInSpawnSafeZone(worldX, worldY, 1, 1)) {
+                continue;
+            }
+
+            // 检查是否与墙体重叠
             boolean collision = false;
             for (WallEntity wall : chunk.getWalls()) {
                 if (worldX >= wall.getOriginX() && worldX < wall.getOriginX() + wall.getGridWidth() &&
@@ -280,7 +314,10 @@ public class EndlessMapGenerator {
             }
 
             if (!collision) {
+                // 使用整数坐标添加陷阱
                 chunk.addTrap(worldX, worldY);
+                occupiedCells.add(cellKey);
+                trapsPlaced++;
             }
         }
     }
@@ -326,6 +363,45 @@ public class EndlessMapGenerator {
         float centerX = EndlessModeConfig.MAP_WIDTH / 2f;
         float centerY = EndlessModeConfig.MAP_HEIGHT / 2f;
         return new Vector2(centerX, centerY);
+    }
+
+    /**
+     * 检查给定位置是否在玩家出生安全区域内
+     * 
+     * @param worldX 世界坐标X
+     * @param worldY 世界坐标Y
+     * @param width  物体宽度
+     * @param height 物体高度
+     * @return true如果该区域与安全区域重叠
+     */
+    private boolean isInSpawnSafeZone(int worldX, int worldY, int width, int height) {
+        float spawnX = EndlessModeConfig.MAP_WIDTH / 2f;
+        float spawnY = EndlessModeConfig.MAP_HEIGHT / 2f;
+        float radius = SPAWN_SAFE_ZONE_RADIUS;
+
+        // 检查物体的四个角是否在安全区域内
+        float[] cornersX = { worldX, worldX + width, worldX, worldX + width };
+        float[] cornersY = { worldY, worldY, worldY + height, worldY + height };
+
+        for (int i = 0; i < 4; i++) {
+            float dx = cornersX[i] - spawnX;
+            float dy = cornersY[i] - spawnY;
+            float dist = (float) Math.sqrt(dx * dx + dy * dy);
+            if (dist <= radius) {
+                return true;
+            }
+        }
+
+        // 额外检查：物体中心到出生点的距离
+        float centerX = worldX + width / 2f;
+        float centerY = worldY + height / 2f;
+        float dx = centerX - spawnX;
+        float dy = centerY - spawnY;
+        float dist = (float) Math.sqrt(dx * dx + dy * dy);
+
+        // 考虑物体尺寸的一半
+        float effectiveRadius = radius + Math.max(width, height) / 2f;
+        return dist <= effectiveRadius;
     }
 
     /**
