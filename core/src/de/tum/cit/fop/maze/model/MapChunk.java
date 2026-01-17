@@ -198,6 +198,13 @@ public class MapChunk {
         return trapPositions;
     }
 
+    /**
+     * 获取陷阱列表（别名方法）
+     */
+    public List<Vector2> getTraps() {
+        return trapPositions;
+    }
+
     public List<Vector2> getSpawnPoints() {
         return spawnPoints;
     }

@@ -154,8 +154,8 @@ public class EndlessMapGenerator {
         int worldStartX = chunk.getWorldStartX();
         int worldStartY = chunk.getWorldStartY();
 
-        // 墙体密度（每100格子大约有多少墙体）- 提高密度以匹配关卡地图水平
-        float wallDensity = 0.25f;
+        // 墙体密度（提高到0.40f以匹配关卡地图）
+        float wallDensity = 0.40f;
         int expectedWalls = (int) (chunkSize * chunkSize * wallDensity / 16);
 
         // 使用占用网格避免墙体重叠
@@ -199,8 +199,8 @@ public class EndlessMapGenerator {
      * 检查是否可以在指定位置放置墙体
      */
     private boolean canPlaceWall(boolean[][] occupied, int x, int y, int w, int h, int size) {
-        // 添加安全边距
-        int margin = 1;
+        // 减少安全边距以允许更密集的布局
+        int margin = 0;
         int startX = Math.max(0, x - margin);
         int startY = Math.max(0, y - margin);
         int endX = Math.min(size, x + w + margin);

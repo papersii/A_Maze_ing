@@ -204,6 +204,52 @@ public class Player extends GameObject {
         }
     }
 
+    /**
+     * 仅更新定时器（用于无尽模式，无需碰撞管理器）
+     * Update timers only, without collision management - used for Endless Mode
+     */
+    public void updateTimers(float delta) {
+        // 死亡检查
+        if (!isDead && lives <= 0) {
+            isDead = true;
+            deathTimer = DEATH_ANIMATION_DURATION;
+            GameLogger.info("Player", "Player died (Timer Update Check). Lives: " + lives);
+        }
+
+        // 无敌计时器
+        if (invincibilityTimer > 0) {
+            invincibilityTimer -= delta;
+        }
+        // 攻击冷却计时器
+        if (attackTimer > 0) {
+            attackTimer -= delta;
+        }
+        // 受伤红闪计时器
+        if (hurtTimer > 0) {
+            hurtTimer -= delta;
+        }
+        // 武器切换提示计时器
+        if (switchNameTimer > 0) {
+            switchNameTimer -= delta;
+            if (switchNameTimer <= 0) {
+                justSwitchedWeaponName = null;
+            }
+        }
+
+        // 攻击动画计时器
+        if (isAttacking) {
+            attackAnimTimer -= delta;
+            if (attackAnimTimer <= 0) {
+                isAttacking = false;
+            }
+        }
+
+        // 死亡动画计时器
+        if (isDead && deathTimer > 0) {
+            deathTimer -= delta;
+        }
+    }
+
     // Death Animation Getters
     public boolean isDead() {
         return isDead;

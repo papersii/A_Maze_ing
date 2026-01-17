@@ -81,6 +81,8 @@ public class EndlessGameScreen implements Screen {
 
     // === 暂停菜单 ===
     private Table pauseTable;
+    private de.tum.cit.fop.maze.ui.SettingsUI settingsUI;
+    private Table settingsTable;
 
     // === 控制台 ===
     private DeveloperConsole developerConsole;
@@ -245,7 +247,15 @@ public class EndlessGameScreen implements Screen {
         pauseTable.add(title).padBottom(40).row();
 
         addPauseButton("Resume", this::togglePause);
+        addPauseButton("Settings", () -> {
+            pauseTable.setVisible(false);
+            showSettingsOverlay();
+        });
         addPauseButton("Save Game", this::saveEndlessGame);
+        addPauseButton("Load Game", () -> {
+            pauseTable.setVisible(false);
+            showLoadDialog();
+        });
         addPauseButton("Main Menu", () -> {
             game.goToMenu();
         });
@@ -322,6 +332,9 @@ public class EndlessGameScreen implements Screen {
     private void updateGame(float delta) {
         stateTime += delta;
 
+        // 更新玩家定时器（攻击动画、受伤闪烁等）
+        player.updateTimers(delta);
+
         // 更新核心系统
         comboSystem.update(delta);
         rageSystem.update(totalKills, waveSystem.getSurvivalTime());
@@ -329,13 +342,15 @@ public class EndlessGameScreen implements Screen {
 
         // 更新玩家输入
         updatePlayerInput(delta);
-        // 不调用player.update(delta, collisionManager)，因为无尽模式没有GameMap
 
         // 更新区块加载
         chunkManager.updateActiveChunks(player.getX(), player.getY());
 
         // 更新敌人
         updateEnemies(delta);
+
+        // 更新陷阱碰撞检测
+        updateTraps(delta);
 
         // 更新浮动文字
         updateFloatingTexts(delta);
@@ -649,6 +664,33 @@ public class EndlessGameScreen implements Screen {
                     wall.getGridWidth() * UNIT_SCALE,
                     wall.getGridHeight() * UNIT_SCALE);
         }
+
+        // 渲染陷阱
+        for (Vector2 trapPos : chunk.getTraps()) {
+            // 尝试获取动画
+            com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> trapAnim = textureManager
+                    .getTrapAnimation(chunk.getTheme());
+            if (trapAnim != null) {
+                // 绘制静态底座
+                TextureRegion base = textureManager.getTrapRegion(chunk.getTheme());
+                if (base != null) {
+                    game.getSpriteBatch().draw(base, trapPos.x * UNIT_SCALE, trapPos.y * UNIT_SCALE,
+                            UNIT_SCALE, UNIT_SCALE);
+                }
+                // 绘制动画覆盖层
+                TextureRegion currentFrame = trapAnim.getKeyFrame(stateTime, true);
+                float overlayY = trapPos.y * UNIT_SCALE + (UNIT_SCALE / 2f);
+                game.getSpriteBatch().draw(currentFrame, trapPos.x * UNIT_SCALE, overlayY,
+                        UNIT_SCALE, UNIT_SCALE);
+            } else {
+                // 无动画时使用静态纹理
+                TextureRegion trapTex = textureManager.getTrapRegion(chunk.getTheme());
+                if (trapTex != null) {
+                    game.getSpriteBatch().draw(trapTex, trapPos.x * UNIT_SCALE, trapPos.y * UNIT_SCALE,
+                            UNIT_SCALE, UNIT_SCALE);
+                }
+            }
+        }
     }
 
     private TextureRegion getFloorTextureForTheme(String theme) {
@@ -817,6 +859,132 @@ public class EndlessGameScreen implements Screen {
 
         // TODO: 调用SaveManager保存无尽模式存档
         GameLogger.info("EndlessGameScreen", "Game saved: " + state);
+    }
+
+    // === 设置和加载对话框 ===
+
+    private void showSettingsOverlay() {
+        if (settingsTable == null) {
+            settingsUI = new de.tum.cit.fop.maze.ui.SettingsUI(game, uiStage, () -> {
+                // On Back -> Hide settings, show pause menu
+                settingsTable.setVisible(false);
+                pauseTable.setVisible(true);
+            });
+            settingsTable = settingsUI.build();
+            settingsTable.setVisible(false);
+            settingsTable.setFillParent(true);
+            uiStage.addActor(settingsTable);
+        }
+        settingsTable.setVisible(true);
+        settingsTable.toFront();
+    }
+
+    private void showLoadDialog() {
+        Window win = new Window("Select Endless Save", game.getSkin());
+        win.setModal(true);
+        win.setResizable(true);
+        win.getTitleLabel().setAlignment(com.badlogic.gdx.utils.Align.center);
+
+        com.badlogic.gdx.files.FileHandle[] files = SaveManager.getEndlessSaveFiles();
+        Table listTable = new Table();
+        listTable.top();
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
+
+        if (files.length == 0) {
+            listTable.add(new Label("No endless saves found.", game.getSkin())).pad(20);
+        } else {
+            for (com.badlogic.gdx.files.FileHandle file : files) {
+                Table rowTable = new Table();
+                String dateStr = sdf.format(new java.util.Date(file.lastModified()));
+                TextButton loadBtn = new TextButton(file.nameWithoutExtension() + "\n" + dateStr, game.getSkin());
+                loadBtn.getLabel().setFontScale(0.8f);
+                loadBtn.getLabel().setAlignment(com.badlogic.gdx.utils.Align.left);
+                loadBtn.addListener(new ChangeListener() {
+                    @Override
+                    public void changed(ChangeEvent event, Actor actor) {
+                        EndlessGameState state = SaveManager.loadEndlessGame(file.name());
+                        if (state != null) {
+                            win.remove();
+                            game.setScreen(new EndlessGameScreen(game, state));
+                        }
+                    }
+                });
+                TextButton deleteBtn = new TextButton("X", game.getSkin());
+                deleteBtn.setColor(Color.RED);
+                deleteBtn.addListener(new ChangeListener() {
+                    @Override
+                    public void changed(ChangeEvent event, Actor actor) {
+                        SaveManager.deleteEndlessSave(file.name());
+                        win.remove();
+                        showLoadDialog();
+                    }
+                });
+                rowTable.add(loadBtn).expandX().fillX().height(50).padRight(5);
+                rowTable.add(deleteBtn).width(50).height(50);
+                listTable.add(rowTable).expandX().fillX().padBottom(5).row();
+            }
+        }
+
+        ScrollPane scrollPane = new ScrollPane(listTable, game.getSkin());
+        scrollPane.setFadeScrollBars(false);
+
+        final ScrollPane sp = scrollPane;
+        scrollPane.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+            @Override
+            public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer,
+                    Actor fromActor) {
+                uiStage.setScrollFocus(sp);
+            }
+
+            @Override
+            public void exit(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer,
+                    Actor toActor) {
+                // Keep focus for better UX
+            }
+        });
+
+        win.add(scrollPane).grow().pad(10).row();
+        TextButton closeBtn = new TextButton("Close", game.getSkin());
+        closeBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                win.remove();
+                pauseTable.setVisible(true);
+            }
+        });
+        win.add(closeBtn).padBottom(10);
+        float w = MathUtils.clamp(uiStage.getWidth() * 0.6f, 300, 600);
+        float h = uiStage.getHeight() * 0.7f;
+        win.setSize(w, h);
+        win.setPosition(uiStage.getWidth() / 2 - w / 2, uiStage.getHeight() / 2 - h / 2);
+        uiStage.addActor(win);
+    }
+
+    // === 陷阱更新 ===
+
+    /**
+     * 更新陷阱碰撞检测
+     */
+    private void updateTraps(float delta) {
+        // 遍历已加载区块的陷阱
+        for (MapChunk chunk : chunkManager.getLoadedChunks()) {
+            for (Vector2 trapPos : chunk.getTraps()) {
+                // 检查玩家是否踩到陷阱
+                float dx = player.getX() - trapPos.x;
+                float dy = player.getY() - trapPos.y;
+                float dist = (float) Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 0.8f) { // 碰撞半径
+                    // 造成陷阱伤害
+                    boolean damaged = player.damage(1, DamageType.PHYSICAL);
+                    if (damaged) {
+                        floatingTexts.add(new FloatingText(
+                                player.getX(), player.getY() + 0.5f,
+                                "-1", Color.RED));
+                    }
+                }
+            }
+        }
     }
 
     // === Screen生命周期 ===
