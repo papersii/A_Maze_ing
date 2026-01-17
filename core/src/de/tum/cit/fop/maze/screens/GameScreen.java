@@ -498,8 +498,9 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
                 float drawX = e.getX() * UNIT_SCALE - (drawWidth - UNIT_SCALE) / 2;
                 float drawY = e.getY() * UNIT_SCALE - (drawHeight - UNIT_SCALE) / 2;
 
-                // Flip if moving left
-                boolean flipX = e.getVelocityX() < 0;
+                // Flip if moving left, BUT ONLY for custom elements (Standard mobs have
+                // directional sprites)
+                boolean flipX = isCustom && e.getVelocityX() < 0;
 
                 if (flipX) {
                     game.getSpriteBatch().draw(currentFrame, drawX + drawWidth, drawY, -drawWidth, drawHeight);
