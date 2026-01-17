@@ -256,19 +256,31 @@ public class ElementCreatorScreen implements Screen {
 
         Table options = new Table();
 
-        ButtonGroup<TextButton> group = new ButtonGroup<>();
-        group.setMinCheckCount(1);
-        group.setMaxCheckCount(1);
+        // Use regular buttons with manual toggle via color
+        final TextButton btn4 = new TextButton("4 Frames (Simple)", skin);
+        final TextButton btn16 = new TextButton("16 Frames (Detailed)", skin);
 
-        TextButton btn4 = new TextButton("4 Frames (Simple)", skin, "toggle");
-        btn4.setChecked(true);
+        btn4.setColor(Color.GREEN); // Initially selected
         btn4.setUserObject(4);
-        group.add(btn4);
-        options.add(btn4).size(250, 80).pad(20);
-
-        TextButton btn16 = new TextButton("16 Frames (Detailed)", skin, "toggle");
         btn16.setUserObject(16);
-        group.add(btn16);
+
+        btn4.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                btn4.setColor(Color.GREEN);
+                btn16.setColor(Color.WHITE);
+            }
+        });
+
+        btn16.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                btn16.setColor(Color.GREEN);
+                btn4.setColor(Color.WHITE);
+            }
+        });
+
+        options.add(btn4).size(250, 80).pad(20);
         options.add(btn16).size(250, 80).pad(20);
 
         contentTable.add(options).row();
@@ -280,8 +292,10 @@ public class ElementCreatorScreen implements Screen {
         infoLabel.setAlignment(Align.center);
         contentTable.add(infoLabel).padTop(30);
 
-        // Store group for retrieval
-        contentTable.setUserObject(group);
+        // Store buttons for retrieval
+        Table btnGroup = new Table();
+        btnGroup.setUserObject(new TextButton[] { btn4, btn16 });
+        contentTable.setUserObject(btnGroup.getUserObject());
     }
 
     // ==================== Step 3: Sprite Upload ====================
@@ -452,17 +466,21 @@ public class ElementCreatorScreen implements Screen {
         contentTable.add(new Label("Select levels where this element will appear:", skin)).padBottom(20).row();
 
         Table levelGrid = new Table();
+        final java.util.Map<Integer, TextButton> levelButtons = new java.util.HashMap<>();
         for (int i = 1; i <= 20; i++) {
             final int level = i;
-            TextButton levelBtn = new TextButton(String.valueOf(i), skin, "toggle");
-            levelBtn.setChecked(currentElement.isAssignedToLevel(level));
+            TextButton levelBtn = new TextButton(String.valueOf(i), skin);
+            levelBtn.setColor(currentElement.isAssignedToLevel(level) ? Color.GREEN : Color.WHITE);
+            levelButtons.put(level, levelBtn);
             levelBtn.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    if (levelBtn.isChecked()) {
-                        currentElement.assignToLevel(level);
-                    } else {
+                    if (currentElement.isAssignedToLevel(level)) {
                         currentElement.removeFromLevel(level);
+                        levelBtn.setColor(Color.WHITE);
+                    } else {
+                        currentElement.assignToLevel(level);
+                        levelBtn.setColor(Color.GREEN);
                     }
                 }
             });
@@ -583,19 +601,21 @@ public class ElementCreatorScreen implements Screen {
                 return true;
 
             case 2:
-                // Get frame count
-                @SuppressWarnings("unchecked")
-                ButtonGroup<TextButton> group = (ButtonGroup<TextButton>) contentTable.getUserObject();
-                if (group != null) {
-                    TextButton checked = group.getChecked();
-                    if (checked != null && checked.getUserObject() instanceof Integer) {
-                        int frames = (Integer) checked.getUserObject();
-                        if (frames != currentElement.getFrameCount()) {
-                            // Recreate element with new frame count
-                            currentElement = new CustomElementDefinition(
-                                    currentElement.getName(),
-                                    currentElement.getType(),
-                                    frames);
+                // Get frame count from button colors
+                Object btnData = contentTable.getUserObject();
+                if (btnData instanceof TextButton[]) {
+                    TextButton[] buttons = (TextButton[]) btnData;
+                    for (TextButton btn : buttons) {
+                        if (btn.getColor().equals(Color.GREEN) && btn.getUserObject() instanceof Integer) {
+                            int frames = (Integer) btn.getUserObject();
+                            if (frames != currentElement.getFrameCount()) {
+                                // Recreate element with new frame count
+                                currentElement = new CustomElementDefinition(
+                                        currentElement.getName(),
+                                        currentElement.getType(),
+                                        frames);
+                            }
+                            break;
                         }
                     }
                 }
