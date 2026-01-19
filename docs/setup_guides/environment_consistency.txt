@@ -10,40 +10,38 @@
 
 ---
 
-## 2. 终极解决方案：GitHub Cloud Build (Zero Config)
-**这是我们确保"一致性"的最佳手段**。
-你不需要配置 Docker，也不需要配置 Java 环境。
+## 2. 解决方案：Local Docker Build (本地 Docker 构建)
 
-### 怎么做？(How to use)
-1. **Push 代码**：当你把代码 push 到 GitHub 的 `main` 分支时。
-2. **自动构建**：GitHub 上的服务器（CI/CD）会自动启动一个纯净的环境来编译你的代码。
-3. **下载成品**：
-   - 打开 GitHub 仓库页面。
-   - 点击顶部的 **"Actions"** 标签。
-   - 点击最新的一个 Workflow Run（通常是你的 commit 信息）。
-   - 在页面底部的 **"Artifacts"** 区域，你会看到 `Amazeing-Game-Desktop`。
-   - 点击下载，这就是一个**绝对标准**的、在干净环境下编译出来的可运行游戏包。
+由于我们使用 Artemis 作为代码仓库，且为了确保所有人的开发环境一致，我们提供了一键式 Docker 构建脚本。
+你**不需要**配置复杂的 Java 环境，只需要安装 Docker。
 
-### 它的好处
-- 如果它在 GitHub 上构建失败（红叉❌），说明是**代码**写错了，不是你电脑的问题。
-- 如果它构建成功（绿勾✅），但你队友跑不起来，说明是你队友的**环境配置**错了。
-- **无需配置**：只要有浏览器就能下载最新的构建版本。
+### 准备工作
+- **必须安装**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- 安装后启动 Docker Desktop，确保左下角是绿色的 (Engine running)。
 
----
+### 如何使用 (How to use)
 
-## 3. Docker 容器化构建 (Local Alternative)
-如果你想在本地模拟云端构建环境（比如没网的时候），可以使用 Docker。
-
-### 使用方法
+#### Mac / Linux 用户:
 在终端运行：
 ```bash
 ./docker_build.sh
 ```
-这个脚本会启动一个纯净的 Java 17 容器来编译项目。如果这个脚本跑通了，说明代码没问题。
+
+#### Windows 用户:
+双击运行项目根目录下的：
+```cmd
+docker_build.bat
+```
+
+### 脚本做了什么？
+1. 它会创建一个**纯净的** Linux 环境（Java 17），这个环境和 Artemis 服务器上的环境高度一致。
+2. 它会自动下载所有依赖。
+3. 它会编译游戏，并将生成的 `.jar` 文件输出到 `docker-build-out/` 文件夹。
+4. **如果脚本报错，说明代码本身有问题；如果脚本成功，说明代码是好的。**
 
 ---
 
-## 4. 常见报错排查 (Troubleshooting)
+## 3. 常见报错排查 (Troubleshooting)
 
 ### Q: `local.properties` 冲突?
 **A:** `local.properties` 包含你本地的 SDK 路径，绝对不能提交。如果 Git 提示该文件有变动，请执行：
@@ -58,8 +56,8 @@ git rm --cached local.properties
 
 ---
 
-## 5. 总结
+## 4. 总结
 保持一致性的三板斧：
-1. **信赖 GitHub Actions**：它是我们唯一的真理标准。
+1. **信赖 Docker**：Docker 里的结果就是最终结果。
 2. **信赖 Git Ignore**：不要把生成的、本地的配置传上去。
-3. **保持环境隔离**：有问题去 Actions 看日志，那里是最干净的现场。
+3. **保持环境隔离**：不要手动修改 `gradle-wrapper.properties` 里的版本，除非团队均已同步。
