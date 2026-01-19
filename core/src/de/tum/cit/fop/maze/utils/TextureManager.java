@@ -125,107 +125,22 @@ public class TextureManager implements Disposable {
                 return region;
         }
 
-        /**
-         * Load player skin from Element Manager PLAYER type, custom file, or default
-         * atlas.
-         * Supports 4-frame (single row, right-facing with auto-mirror) similar to
-         * enemies.
-         * 
-         * @return 4x4 TextureRegion array [direction][frame] (0=down, 1=right, 2=up,
-         *         3=left)
-         */
-        private TextureRegion[][] loadPlayerSkin() {
-                // 1. Check for PLAYER element in Element Manager (same as enemies)
-                de.tum.cit.fop.maze.custom.CustomElementManager cem = de.tum.cit.fop.maze.custom.CustomElementManager
-                                .getInstance();
-                for (de.tum.cit.fop.maze.custom.CustomElementDefinition def : cem.getAllElements()) {
-                        if (def.getType() == de.tum.cit.fop.maze.custom.ElementType.PLAYER) {
-                                Animation<TextureRegion> moveAnim = cem.getAnimation(def.getId(), "Move");
-                                if (moveAnim != null) {
-                                        // Extract ALL frames from animation
-                                        Object[] keyFrames = moveAnim.getKeyFrames();
-                                        int frameCount = keyFrames.length;
-
-                                        TextureRegion[] rightFrames = new TextureRegion[frameCount];
-                                        for (int i = 0; i < frameCount; i++) {
-                                                rightFrames[i] = (TextureRegion) keyFrames[i];
-                                        }
-
-                                        // Create mirrored left frames
-                                        TextureRegion[] leftFrames = new TextureRegion[frameCount];
-                                        for (int i = 0; i < frameCount; i++) {
-                                                leftFrames[i] = new TextureRegion(rightFrames[i]);
-                                                leftFrames[i].flip(true, false);
-                                        }
-
-                                        TextureRegion[][] tiles = new TextureRegion[4][frameCount];
-                                        tiles[0] = rightFrames; // down
-                                        tiles[1] = rightFrames; // right
-                                        tiles[2] = rightFrames; // up
-                                        tiles[3] = leftFrames; // left (mirrored)
-
-                                        GameLogger.info("TextureManager",
-                                                        "Loaded player skin from Element Manager: " + def.getName()
-                                                                        + " (" + frameCount + " frames)");
-                                        return tiles;
-                                }
-                        }
-                }
-
-                // 2. Check for custom skin path from PlayerSkinManager
-                String customSkinPath = de.tum.cit.fop.maze.custom.PlayerSkinManager.getInstance().getCustomSkin();
-                if (customSkinPath != null) {
-                        try {
-                                com.badlogic.gdx.files.FileHandle skinFile = com.badlogic.gdx.Gdx.files
-                                                .local(customSkinPath);
-                                if (skinFile.exists()) {
-                                        Texture skinTexture = new Texture(skinFile);
-                                        int width = skinTexture.getWidth();
-                                        int height = skinTexture.getHeight();
-                                        int frameSize = width / 4;
-
-                                        TextureRegion[] rightFrames = new TextureRegion[4];
-                                        TextureRegion[] leftFrames = new TextureRegion[4];
-                                        for (int i = 0; i < 4; i++) {
-                                                rightFrames[i] = new TextureRegion(skinTexture, i * frameSize, 0,
-                                                                frameSize, height);
-                                                leftFrames[i] = new TextureRegion(skinTexture, i * frameSize, 0,
-                                                                frameSize, height);
-                                                leftFrames[i].flip(true, false);
-                                        }
-
-                                        TextureRegion[][] tiles = new TextureRegion[4][4];
-                                        tiles[0] = rightFrames;
-                                        tiles[1] = rightFrames;
-                                        tiles[2] = rightFrames;
-                                        tiles[3] = leftFrames;
-
-                                        GameLogger.info("TextureManager",
-                                                        "Loaded player skin from file: " + customSkinPath);
-                                        return tiles;
-                                }
-                        } catch (Exception e) {
-                                GameLogger.error("TextureManager", "Failed to load custom skin: " + e.getMessage());
-                        }
-                }
-
-                // Fall back to default atlas
-                TextureRegion charRegion = findRegionSafe("character");
-                if (charRegion == fallbackRegion) {
-                        TextureRegion[][] tiles = new TextureRegion[4][4];
-                        for (int i = 0; i < 4; i++)
-                                for (int j = 0; j < 4; j++)
-                                        tiles[i][j] = fallbackRegion;
-                        return tiles;
-                }
-                return charRegion.split(16, 32);
-        }
-
         private void loadAssets() {
                 // Atlas is now provided externally to avoid duplicate loading
 
-                // 1. Player - Check for custom skin first
-                TextureRegion[][] charTiles = loadPlayerSkin();
+                // 1. Player
+                TextureRegion charRegion = findRegionSafe("character");
+
+                // Split the region into tiles
+                TextureRegion[][] charTiles;
+                if (charRegion == fallbackRegion) {
+                        charTiles = new TextureRegion[4][4];
+                        for (int i = 0; i < 4; i++)
+                                for (int j = 0; j < 4; j++)
+                                        charTiles[i][j] = fallbackRegion;
+                } else {
+                        charTiles = charRegion.split(16, 32);
+                }
 
                 // Stand Frames (Frame 0)
                 playerDownStand = charTiles[0][0];
@@ -233,14 +148,12 @@ public class TextureManager implements Disposable {
                 playerUpStand = charTiles[2][0];
                 playerLeftStand = charTiles[3][0];
 
-                // Walk Animations - use all available frames from the skin
-                int frameCount = charTiles[0].length;
-                float frameDuration = frameCount > 4 ? 0.08f : 0.15f; // Faster for more frames
-
-                playerDown = new Animation<>(frameDuration, charTiles[0]);
-                playerRight = new Animation<>(frameDuration, charTiles[1]);
-                playerUp = new Animation<>(frameDuration, charTiles[2]);
-                playerLeft = new Animation<>(frameDuration, charTiles[3]);
+                // Walk Animations
+                playerDown = new Animation<>(0.15f, charTiles[0][0], charTiles[0][1], charTiles[0][2], charTiles[0][3]);
+                playerRight = new Animation<>(0.15f, charTiles[1][0], charTiles[1][1], charTiles[1][2],
+                                charTiles[1][3]);
+                playerUp = new Animation<>(0.15f, charTiles[2][0], charTiles[2][1], charTiles[2][2], charTiles[2][3]);
+                playerLeft = new Animation<>(0.15f, charTiles[3][0], charTiles[3][1], charTiles[3][2], charTiles[3][3]);
 
                 playerDown.setPlayMode(Animation.PlayMode.LOOP);
                 playerUp.setPlayMode(Animation.PlayMode.LOOP);

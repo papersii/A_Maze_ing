@@ -34,9 +34,6 @@ import de.tum.cit.fop.maze.utils.AchievementUnlockInfo;
 import de.tum.cit.fop.maze.utils.MapLoader;
 import de.tum.cit.fop.maze.utils.SaveManager;
 import de.tum.cit.fop.maze.utils.GameLogger;
-import de.tum.cit.fop.maze.custom.CustomElementManager;
-import de.tum.cit.fop.maze.custom.CustomElementDefinition;
-import de.tum.cit.fop.maze.custom.ElementType;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -85,6 +82,10 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
     // 宝箱交互UI
     private ChestInteractUI chestInteractUI;
     private TreasureChest activeChest;
+
+    // === 玩家/武器朝向记忆 (队友功能) ===
+    private int lastPlayerFacing = 3; // 记录最后水平朝向 (2=左, 3=右)
+    private int lastWeaponFacing = 3;
 
     public GameScreen(MazeRunnerGame game, String saveFilePath) {
         this.game = game;
@@ -476,21 +477,9 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             boolean isCustom = false;
 
             if (e.getCustomElementId() != null) {
-                String action;
-                if (e.isDead()) {
-                    action = "Death";
-                } else {
-                    // Check if enemy is moving or idle (velocity threshold)
-                    boolean isIdle = Math.abs(vx) < 0.1f && Math.abs(vy) < 0.1f;
-                    action = isIdle ? "Idle" : "Move";
-                }
+                String action = e.isDead() ? "Death" : "Move";
                 enemyAnim = de.tum.cit.fop.maze.custom.CustomElementManager.getInstance()
                         .getAnimation(e.getCustomElementId(), action);
-                // Fallback: If Idle animation doesn't exist, use Move
-                if (enemyAnim == null && action.equals("Idle")) {
-                    enemyAnim = de.tum.cit.fop.maze.custom.CustomElementManager.getInstance()
-                            .getAnimation(e.getCustomElementId(), "Move");
-                }
                 if (enemyAnim != null)
                     isCustom = true;
             }
@@ -644,7 +633,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         // 6. Render Player
         renderPlayer(player);
 
-        // 6.5 Render Projectiles
+        // 6.5 Render Projectiles (队友功能: 弹道渲染)
         for (de.tum.cit.fop.maze.model.Projectile p : gameWorld.getProjectiles()) {
             TextureRegion projRegion = null;
             String key = p.getTextureKey();
@@ -652,7 +641,8 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             // 1. Try Custom Element (by ID)
             if (key != null) {
                 com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> anim = de.tum.cit.fop.maze.custom.CustomElementManager
-                        .getInstance().getAnimation(key, "Projectile");
+                        .getInstance()
+                        .getAnimation(key, "Projectile");
                 if (anim != null) {
                     projRegion = anim.getKeyFrame(stateTime, true);
                 }
@@ -667,7 +657,6 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
                     projRegion = textureManager.arrowRegion;
                     game.getSpriteBatch().setColor(Color.CYAN);
                 } else {
-                    // Default
                     projRegion = textureManager.arrowRegion;
                 }
             }
@@ -721,39 +710,41 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         }
     }
 
-    // Track last horizontal direction for player facing (3=right, 2=left)
-    private int lastPlayerFacing = 3; // Default facing right
-
     private void renderPlayer(Player player) {
         TextureRegion playerFrame;
         int dir = gameWorld.getPlayerDirection();
 
-        // Prioritize explicit key presses for facing direction
-        if (Gdx.input.isKeyPressed(GameSettings.KEY_LEFT)) {
-            lastPlayerFacing = 2;
-        } else if (Gdx.input.isKeyPressed(GameSettings.KEY_RIGHT)) {
-            lastPlayerFacing = 3;
-        } else if (dir == 2 || dir == 3) {
-            // Fallback to game world direction if no keys pressed (e.g. joystick or lag)
-            lastPlayerFacing = dir;
-        }
-
+        boolean isRunning = player.isRunning(); // Visually relevant? current code doesn't change sprite for run.
         boolean isMoving = Gdx.input.isKeyPressed(GameSettings.KEY_UP) || Gdx.input.isKeyPressed(GameSettings.KEY_DOWN)
                 ||
                 Gdx.input.isKeyPressed(GameSettings.KEY_LEFT) || Gdx.input.isKeyPressed(GameSettings.KEY_RIGHT);
 
-        // Determine which direction to use for sprite selection
-        int spriteDir = dir;
-        if (dir == 0 || dir == 1) { // Up or down
-            spriteDir = lastPlayerFacing; // Use last left/right facing
-        }
+        if (player.isAttacking()) {
+            float total = player.getAttackAnimTotalDuration();
+            if (total <= 0)
+                total = 0.2f;
+            float elapsed = total - player.getAttackAnimTimer();
+            float progress = (elapsed / total) * 0.2f;
 
-        // Player doesn't have attack animation - use walking/idle sprite
-        // When attacking or moving, use walk animation; when idle, use Idle animation
-        boolean isMovingOrAttacking = isMoving || player.isAttacking();
-
-        if (isMovingOrAttacking) {
-            switch (spriteDir) {
+            switch (dir) {
+                case 1:
+                    playerFrame = textureManager.playerAttackUp.getKeyFrame(progress, false);
+                    break;
+                case 2:
+                    playerFrame = textureManager.playerAttackLeft.getKeyFrame(progress, false);
+                    break;
+                case 3:
+                    playerFrame = textureManager.playerAttackRight.getKeyFrame(progress, false);
+                    break;
+                default:
+                    playerFrame = textureManager.playerAttackDown.getKeyFrame(progress, false);
+                    break;
+            }
+        } else if (isMoving) {
+            switch (dir) {
+                case 1:
+                    playerFrame = textureManager.playerUp.getKeyFrame(stateTime, true);
+                    break;
                 case 2:
                     playerFrame = textureManager.playerLeft.getKeyFrame(stateTime, true);
                     break;
@@ -761,19 +752,23 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
                     playerFrame = textureManager.playerRight.getKeyFrame(stateTime, true);
                     break;
                 default:
-                    playerFrame = textureManager.playerRight.getKeyFrame(stateTime, true);
+                    playerFrame = textureManager.playerDown.getKeyFrame(stateTime, true);
                     break;
             }
         } else {
-            // Try to get custom Idle animation from Element Manager
-            playerFrame = getPlayerIdleFrame(spriteDir);
-        }
-
-        // Override with death sprite if player is dead
-        if (player.isDead()) {
-            TextureRegion deathFrame = getPlayerDeathFrame(player, spriteDir);
-            if (deathFrame != null) {
-                playerFrame = deathFrame;
+            switch (dir) {
+                case 1:
+                    playerFrame = textureManager.playerUpStand;
+                    break;
+                case 2:
+                    playerFrame = textureManager.playerLeftStand;
+                    break;
+                case 3:
+                    playerFrame = textureManager.playerRightStand;
+                    break;
+                default:
+                    playerFrame = textureManager.playerDownStand;
+                    break;
             }
         }
 
@@ -783,150 +778,44 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         else if (player.isHurt())
             game.getSpriteBatch().setColor(1f, 0f, 0f, 1f);
 
-        // Player size: slightly larger than mobs (1.2x UNIT_SCALE)
-        float playerSize = UNIT_SCALE * 1.2f;
-        float drawX = player.getX() * UNIT_SCALE + UNIT_SCALE / 2 - playerSize / 2;
+        float drawX = player.getX() * UNIT_SCALE;
         float drawY = player.getY() * UNIT_SCALE;
+        if (playerFrame.getRegionWidth() > 16) {
+            drawX -= (playerFrame.getRegionWidth() - 16) / 2f;
+        }
 
-        // No rotation for death - just draw the sprite
-        game.getSpriteBatch().draw(playerFrame, drawX, drawY, playerSize, playerSize);
+        if (player.isDead()) {
+            float rotation = player.getDeathProgress() * 90f;
+            game.getSpriteBatch().draw(playerFrame, drawX, drawY,
+                    playerFrame.getRegionWidth() / 2f, playerFrame.getRegionHeight() / 2f,
+                    playerFrame.getRegionWidth(), playerFrame.getRegionHeight(),
+                    1f, 1f, rotation, false);
+        } else {
+            game.getSpriteBatch().draw(playerFrame, drawX, drawY);
+        }
         game.getSpriteBatch().setColor(oldC);
 
-        // === Render Equipped Weapon (not when dead) ===
+        // === 渲染装备的武器 (队友功能) ===
         if (!player.isDead()) {
-            renderEquippedWeapon(player, spriteDir);
+            renderEquippedWeapon(player, dir);
         }
     }
 
-    // Cached player idle animation from Element Manager
-    private Animation<TextureRegion> playerIdleRight = null;
-    private Animation<TextureRegion> playerIdleLeft = null;
-    private boolean playerIdleLoaded = false;
-
     /**
-     * Get player idle frame from Element Manager or fall back to walk frame.
-     */
-    private TextureRegion getPlayerIdleFrame(int spriteDir) {
-        // Load idle animation once
-        if (!playerIdleLoaded) {
-            playerIdleLoaded = true;
-            CustomElementManager cem = CustomElementManager.getInstance();
-            for (CustomElementDefinition def : cem.getAllElements()) {
-                if (def.getType() == ElementType.PLAYER) {
-                    Animation<TextureRegion> idleAnim = cem.getAnimation(def.getId(), "Idle");
-                    if (idleAnim != null) {
-                        playerIdleRight = idleAnim;
-                        // Create mirrored left animation
-                        Object[] keyFrames = idleAnim.getKeyFrames();
-                        TextureRegion[] leftFrames = new TextureRegion[keyFrames.length];
-                        for (int i = 0; i < keyFrames.length; i++) {
-                            leftFrames[i] = new TextureRegion((TextureRegion) keyFrames[i]);
-                            leftFrames[i].flip(true, false);
-                        }
-                        float frameDuration = keyFrames.length > 4 ? 0.12f : 0.2f;
-                        playerIdleLeft = new Animation<>(frameDuration, leftFrames);
-                        playerIdleLeft.setPlayMode(Animation.PlayMode.LOOP);
-                        GameLogger.info("GameScreen", "Loaded player idle animation: " + keyFrames.length + " frames");
-                    }
-                    break;
-                }
-            }
-        }
-
-        // Use idle animation if available
-        if (playerIdleRight != null && playerIdleLeft != null) {
-            if (spriteDir == 2) {
-                return playerIdleLeft.getKeyFrame(stateTime, true);
-            } else {
-                return playerIdleRight.getKeyFrame(stateTime, true);
-            }
-        }
-
-        // Fall back to first frame of walk animation
-        if (spriteDir == 2) {
-            return textureManager.playerLeftStand;
-        } else {
-            return textureManager.playerRightStand;
-        }
-    }
-
-    // Cached player death animation
-    private Animation<TextureRegion> playerDeathRight = null;
-    private Animation<TextureRegion> playerDeathLeft = null;
-    private boolean playerDeathLoaded = false;
-
-    /**
-     * Get player death frame from Element Manager.
-     */
-    private TextureRegion getPlayerDeathFrame(Player player, int spriteDir) {
-        // Load death animation once
-        if (!playerDeathLoaded) {
-            playerDeathLoaded = true;
-            CustomElementManager cem = CustomElementManager.getInstance();
-            for (CustomElementDefinition def : cem.getAllElements()) {
-                if (def.getType() == ElementType.PLAYER) {
-                    Animation<TextureRegion> deathAnim = cem.getAnimation(def.getId(), "Death");
-                    if (deathAnim != null) {
-                        playerDeathRight = deathAnim;
-                        // Create mirrored left animation
-                        Object[] keyFrames = deathAnim.getKeyFrames();
-                        TextureRegion[] leftFrames = new TextureRegion[keyFrames.length];
-                        for (int i = 0; i < keyFrames.length; i++) {
-                            leftFrames[i] = new TextureRegion((TextureRegion) keyFrames[i]);
-                            leftFrames[i].flip(true, false);
-                        }
-                        // Death animation is usually one-shot, but for now we clamp to last frame
-                        playerDeathLeft = new Animation<>(0.2f, leftFrames);
-                        playerDeathLeft.setPlayMode(Animation.PlayMode.NORMAL);
-                        playerDeathRight.setPlayMode(Animation.PlayMode.NORMAL);
-
-                        GameLogger.info("GameScreen", "Loaded player death animation: " + keyFrames.length + " frames");
-                    }
-                    break;
-                }
-            }
-        }
-
-        if (playerDeathRight != null && playerDeathLeft != null) {
-            // Using deathProgress which goes 0->1 over 1.5 seconds.
-            float animTime = player.getDeathProgress() * 1.5f;
-
-            if (spriteDir == 2) {
-                return playerDeathLeft.getKeyFrame(animTime, false);
-            } else {
-                return playerDeathRight.getKeyFrame(animTime, false);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Renders the player's equipped weapon sprite.
-     * Uses custom element animations if available, with direction matching.
-     */
-    // Track last horizontal direction for weapon facing (3=right, 2=left)
-    private int lastWeaponFacing = 3; // Default facing right
-
-    /**
-     * Renders the player's equipped weapon sprite.
-     * Uses custom element animations if available, with direction matching.
+     * 渲染玩家装备的武器精灵 (队友功能)
      */
     private void renderEquippedWeapon(Player player, int dir) {
         if (player.isDead())
             return;
 
-        // Check if current weapon has a custom element ID
         de.tum.cit.fop.maze.model.weapons.Weapon weapon = player.getCurrentWeapon();
         if (weapon == null)
             return;
 
-        // Try to get custom weapon animation from Element Manager
-        // (For now, we check if there's a custom weapon element with matching name)
         String weaponId = findCustomWeaponId(weapon.getName());
         if (weaponId == null)
-            return; // No custom sprite for this weapon
+            return;
 
-        // Select animation based on player attack state
         String action = player.isAttacking() ? "Attack" : "Idle";
         com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> weaponAnim = de.tum.cit.fop.maze.custom.CustomElementManager
                 .getInstance()
@@ -937,33 +826,21 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
 
         TextureRegion weaponFrame = weaponAnim.getKeyFrame(stateTime, !player.isAttacking());
 
-        // Only update facing when moving left or right (dir 2 or 3)
-        // When moving up or down, keep the last horizontal facing
+        // 更新武器朝向记忆
         if (dir == 2 || dir == 3) {
             lastWeaponFacing = dir;
         }
 
-        // Calculate weapon position (offset from player center)
         float playerCenterX = player.getX() * UNIT_SCALE + UNIT_SCALE / 2;
         float playerCenterY = player.getY() * UNIT_SCALE + UNIT_SCALE / 2;
 
-        float weaponSize = UNIT_SCALE * 1.2f; // Larger than before for better visibility
-        float offsetX = 0f, offsetY = 0f;
-
-        // Use lastWeaponFacing for horizontal direction
-        boolean flipX = (lastWeaponFacing == 2); // Mirror when facing left
-
-        // Position based on last horizontal facing
-        if (lastWeaponFacing == 2) { // Left
-            offsetX = -UNIT_SCALE * 0.4f;
-        } else { // Right (default)
-            offsetX = UNIT_SCALE * 0.4f;
-        }
+        float weaponSize = UNIT_SCALE * 1.2f;
+        float offsetX = (lastWeaponFacing == 2) ? -UNIT_SCALE * 0.4f : UNIT_SCALE * 0.4f;
 
         float weaponX = playerCenterX + offsetX - weaponSize / 2;
-        float weaponY = playerCenterY + offsetY - weaponSize / 2;
+        float weaponY = playerCenterY - weaponSize / 2;
 
-        // Draw weapon (flip if facing left)
+        boolean flipX = (lastWeaponFacing == 2);
         if (flipX) {
             game.getSpriteBatch().draw(weaponFrame, weaponX + weaponSize, weaponY, -weaponSize, weaponSize);
         } else {
@@ -972,7 +849,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
     }
 
     /**
-     * Finds a custom weapon element ID by matching weapon name.
+     * 根据武器名称查找自定义武器元素ID
      */
     private String findCustomWeaponId(String weaponName) {
         for (de.tum.cit.fop.maze.custom.CustomElementDefinition def : de.tum.cit.fop.maze.custom.CustomElementManager

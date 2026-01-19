@@ -106,12 +106,9 @@ public class EndlessGameScreen implements Screen {
     private static final float CAMERA_LERP_SPEED = 4.0f;
     private static final int MAX_ENEMIES = EndlessModeConfig.MAX_ENEMY_COUNT;
 
-    // === 武器/玩家渲染 ===
-    private int lastWeaponFacing = 3; // Default facing right
-    private int lastPlayerFacing = 3; // Track for idle facing
-    private com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> playerIdleRight = null;
-    private com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> playerIdleLeft = null;
-    private boolean playerIdleLoaded = false;
+    // === 玩家/武器朝向记忆 (队友功能) ===
+    private int lastPlayerFacing = 3;
+    private int lastWeaponFacing = 3;
 
     // === 敌人刷新 ===
     private Random spawnRandom;
@@ -953,34 +950,28 @@ public class EndlessGameScreen implements Screen {
 
         boolean isMoving = player.isMoving();
 
-        // Update lastPlayerFacing BEFORE sprite selection (only when moving left/right)
-        if (dir == 2 || dir == 3) {
-            lastPlayerFacing = dir;
-        }
-
-        // Determine sprite direction: use lastPlayerFacing for idle when up/down or
-        // stopped
-        int spriteDir = dir;
-        if (!isMoving || dir == 0 || dir == 1) {
-            spriteDir = lastPlayerFacing; // Use last horizontal facing
-        }
-
         if (player.isAttacking()) {
-            // Option 1: Use idle sprite during attack (weapon animation shows attack)
-            // This avoids visual mismatch when custom player skin lacks attack animation
-            switch (spriteDir) {
+            float progress = (player.getAttackAnimTotalDuration() - player.getAttackAnimTimer()) /
+                    player.getAttackAnimTotalDuration() * 0.2f;
+            switch (dir) {
+                case 1:
+                    playerFrame = textureManager.playerAttackUp.getKeyFrame(progress, false);
+                    break;
                 case 2:
-                    playerFrame = textureManager.playerLeftStand;
+                    playerFrame = textureManager.playerAttackLeft.getKeyFrame(progress, false);
                     break;
                 case 3:
-                    playerFrame = textureManager.playerRightStand;
+                    playerFrame = textureManager.playerAttackRight.getKeyFrame(progress, false);
                     break;
                 default:
-                    playerFrame = textureManager.playerRightStand;
+                    playerFrame = textureManager.playerAttackDown.getKeyFrame(progress, false);
                     break;
             }
         } else if (isMoving) {
-            switch (spriteDir) {
+            switch (dir) {
+                case 1:
+                    playerFrame = textureManager.playerUp.getKeyFrame(stateTime, true);
+                    break;
                 case 2:
                     playerFrame = textureManager.playerLeft.getKeyFrame(stateTime, true);
                     break;
@@ -988,12 +979,14 @@ public class EndlessGameScreen implements Screen {
                     playerFrame = textureManager.playerRight.getKeyFrame(stateTime, true);
                     break;
                 default:
-                    playerFrame = textureManager.playerRight.getKeyFrame(stateTime, true);
+                    playerFrame = textureManager.playerDown.getKeyFrame(stateTime, true);
                     break;
             }
         } else {
-            // Idle: use lastPlayerFacing for horizontal direction
-            switch (spriteDir) {
+            switch (dir) {
+                case 1:
+                    playerFrame = textureManager.playerUpStand;
+                    break;
                 case 2:
                     playerFrame = textureManager.playerLeftStand;
                     break;
@@ -1001,7 +994,7 @@ public class EndlessGameScreen implements Screen {
                     playerFrame = textureManager.playerRightStand;
                     break;
                 default:
-                    playerFrame = textureManager.playerRightStand;
+                    playerFrame = textureManager.playerDownStand;
                     break;
             }
         }
@@ -1012,21 +1005,19 @@ public class EndlessGameScreen implements Screen {
             game.getSpriteBatch().setColor(1f, 0f, 0f, 1f);
         }
 
-        // Use proper player sizing (match GameScreen)
-        float playerSize = UNIT_SCALE * 1.2f;
-        float drawX = player.getX() * UNIT_SCALE + UNIT_SCALE / 2 - playerSize / 2;
+        float drawX = player.getX() * UNIT_SCALE;
         float drawY = player.getY() * UNIT_SCALE;
-        game.getSpriteBatch().draw(playerFrame, drawX, drawY, playerSize, playerSize);
+        game.getSpriteBatch().draw(playerFrame, drawX, drawY);
         game.getSpriteBatch().setColor(Color.WHITE);
 
-        // Render equipped weapon (if not dead)
+        // === 渲染装备的武器 (队友功能) ===
         if (!player.isDead()) {
             renderEquippedWeapon(player, dir);
         }
     }
 
     /**
-     * Renders the player's equipped weapon sprite.
+     * 渲染玩家装备的武器精灵 (队友功能)
      */
     private void renderEquippedWeapon(Player player, int dir) {
         if (player.isDead())
@@ -1042,7 +1033,8 @@ public class EndlessGameScreen implements Screen {
 
         String action = player.isAttacking() ? "Attack" : "Idle";
         com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> weaponAnim = de.tum.cit.fop.maze.custom.CustomElementManager
-                .getInstance().getAnimation(weaponId, action);
+                .getInstance()
+                .getAnimation(weaponId, action);
 
         if (weaponAnim == null)
             return;
@@ -1071,7 +1063,7 @@ public class EndlessGameScreen implements Screen {
     }
 
     /**
-     * Finds a custom weapon element ID by matching weapon name.
+     * 根据武器名称查找自定义武器元素ID
      */
     private String findCustomWeaponId(String weaponName) {
         for (de.tum.cit.fop.maze.custom.CustomElementDefinition def : de.tum.cit.fop.maze.custom.CustomElementManager
