@@ -80,12 +80,11 @@ local.properties
 
 # IntelliJ
 out/
-
-# mpeltonen/sbt-idea plugin
-.idea_modules/
-
-# JIRA plugin
-atlassian-ide-plugin.xml
+build/
+.idea/
+*.iml
+*.ipr
+*.iws
 
 # Crashlytics plugin (for Android Studio and IntelliJ)
 com_crashlytics_export_strings.xml

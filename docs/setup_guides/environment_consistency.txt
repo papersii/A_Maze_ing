@@ -1,0 +1,65 @@
+# Environment Consistency & Troubleshooting Guide
+
+## 1. 为什么会出现 "Works on my machine" (在我电脑上没问题)？
+在多人协作项目中，代码在不同电脑上运行结果不一致通常由以下原因导致：
+
+### A. 配置文件残留 (Configuration Drift)
+- **现象**：IDE（IntelliJ/Eclipse）的本地配置文件被提交到了 Git。
+- **原因**：每个人的 IDE 设置（SDK 路径、编译器版本、运行配置）可能不同。如果 `.idea/` 文件夹或 `*.iml` 文件被提交，别人的 IDE 会尝试读取你的路径，导致报错。
+- **解决方案**：严格的 `.gitignore`（已更新）。**永远不要提交** `.idea/`、`.gradle/`、`build/` 或 `local.properties`。
+
+---
+
+## 2. 终极解决方案：GitHub Cloud Build (Zero Config)
+**这是我们确保"一致性"的最佳手段**。
+你不需要配置 Docker，也不需要配置 Java 环境。
+
+### 怎么做？(How to use)
+1. **Push 代码**：当你把代码 push 到 GitHub 的 `main` 分支时。
+2. **自动构建**：GitHub 上的服务器（CI/CD）会自动启动一个纯净的环境来编译你的代码。
+3. **下载成品**：
+   - 打开 GitHub 仓库页面。
+   - 点击顶部的 **"Actions"** 标签。
+   - 点击最新的一个 Workflow Run（通常是你的 commit 信息）。
+   - 在页面底部的 **"Artifacts"** 区域，你会看到 `Amazeing-Game-Desktop`。
+   - 点击下载，这就是一个**绝对标准**的、在干净环境下编译出来的可运行游戏包。
+
+### 它的好处
+- 如果它在 GitHub 上构建失败（红叉❌），说明是**代码**写错了，不是你电脑的问题。
+- 如果它构建成功（绿勾✅），但你队友跑不起来，说明是你队友的**环境配置**错了。
+- **无需配置**：只要有浏览器就能下载最新的构建版本。
+
+---
+
+## 3. Docker 容器化构建 (Local Alternative)
+如果你想在本地模拟云端构建环境（比如没网的时候），可以使用 Docker。
+
+### 使用方法
+在终端运行：
+```bash
+./docker_build.sh
+```
+这个脚本会启动一个纯净的 Java 17 容器来编译项目。如果这个脚本跑通了，说明代码没问题。
+
+---
+
+## 4. 常见报错排查 (Troubleshooting)
+
+### Q: `local.properties` 冲突?
+**A:** `local.properties` 包含你本地的 SDK 路径，绝对不能提交。如果 Git 提示该文件有变动，请执行：
+```bash
+git rm --cached local.properties
+```
+
+### Q: 队友的 IntelliJ 爆红，但我的是好的？
+**A:** 大概率是因为 `.idea` 文件冲突。
+1. 让队友运行 `git clean -fdX` (注意备份，这会删除所有忽略文件)。
+2. 或者手动删除项目根目录下的 `.idea` 文件夹，然后重新 Import Project。
+
+---
+
+## 5. 总结
+保持一致性的三板斧：
+1. **信赖 GitHub Actions**：它是我们唯一的真理标准。
+2. **信赖 Git Ignore**：不要把生成的、本地的配置传上去。
+3. **保持环境隔离**：有问题去 Actions 看日志，那里是最干净的现场。
