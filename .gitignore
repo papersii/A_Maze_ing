@@ -225,3 +225,6 @@ maps/random/
 ### Animation Pipeline
 raw_assets/videos/
 raw_assets/animations/
+
+### Asset Saves
+assets/saves/

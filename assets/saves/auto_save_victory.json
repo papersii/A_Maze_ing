@@ -1,9 +1,0 @@
-{
-"playerX": 16,
-"playerY": 41,
-"currentLevel": "maps/level-1.properties",
-"lives": 3,
-"inventoryWeaponTypes": [
-	"Sword"
-]
-}
