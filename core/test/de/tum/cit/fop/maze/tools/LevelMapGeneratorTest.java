@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Disabled;
 
 /**
  * 测试类：使用修复后的 MapGenerator 重新生成所有 20 个关卡地图。
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 
  * 运行方式：./gradlew :core:test --tests "LevelMapGeneratorTest.generateAllLevels"
  */
+@Disabled("Manual tool for map generation - do not run in CI/CD")
 public class LevelMapGeneratorTest {
 
     private static final String OUTPUT_DIR = "assets/maps/";

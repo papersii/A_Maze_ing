@@ -902,6 +902,12 @@ public class EndlessGameScreen implements Screen {
                 TreasureChest chest = TreasureChest.createRandom(
                         pos.x, pos.y, spawnRandom,
                         de.tum.cit.fop.maze.config.GameConfig.CHEST_PUZZLE_PROBABILITY);
+                // 设置奖励（无尽模式使用无尽模式奖励）
+                chest.setReward(ChestRewardGenerator.generateEndlessModeReward(spawnRandom));
+                // 如果是谜题宝箱，设置谜题
+                if (chest.getType() == TreasureChest.ChestType.PUZZLE) {
+                    chest.setPuzzle(PuzzleGenerator.generateRandom(spawnRandom));
+                }
                 chests.add(chest);
             }
             chunkChests.put(chunkId, chests);
@@ -1331,17 +1337,48 @@ public class EndlessGameScreen implements Screen {
                             AudioManager.getInstance().playSound("pickup");
                         }
                     } else {
-                        // 谜题宝箱：设置标记（简化实现：直接打开）
-                        chest.startOpening();
-                        chest.update(0.5f);
+                        // 谜题宝箱：暂停游戏并显示谜题UI
+                        isPaused = true;
+                        isChestUIActive = true;
+                        activeChest = chest;
 
-                        boolean success = chest.claimReward(player);
-                        if (success && chest.getReward() != null) {
-                            floatingTexts.add(new FloatingText(
-                                    chest.getX(), chest.getY() + 0.5f,
-                                    "Puzzle: " + chest.getReward().getDisplayName(), Color.CYAN));
-                            AudioManager.getInstance().playSound("pickup");
-                        }
+                        chestUI = new ChestInteractUI(chest, game.getSkin(), new ChestInteractUI.ChestUIListener() {
+                            @Override
+                            public void onChestOpened(ChestReward reward) {
+                                // 领取奖励
+                                if (reward != null) {
+                                    reward.applyToPlayer(player);
+                                    floatingTexts.add(new FloatingText(
+                                            chest.getX(), chest.getY() + 0.5f,
+                                            reward.getDisplayName(), Color.CYAN));
+                                    AudioManager.getInstance().playSound("collect");
+                                }
+                                chest.startOpening();
+                                chest.update(0.5f);
+                            }
+
+                            @Override
+                            public void onChestFailed() {
+                                // 谜题失败，给安慰奖
+                                player.addCoins(1);
+                                chest.setInteracted(true);
+                            }
+
+                            @Override
+                            public void onUIClose() {
+                                // 关闭UI，恢复游戏
+                                if (chestUI != null) {
+                                    chestUI.remove();
+                                    chestUI = null;
+                                }
+                                activeChest = null;
+                                isChestUIActive = false;
+                                isPaused = false;
+                            }
+                        });
+
+                        uiStage.addActor(chestUI);
+                        GameLogger.info("EndlessGameScreen", "Puzzle chest interaction started");
                     }
                     return; // 一次只处理一个宝箱
                 }

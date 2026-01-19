@@ -39,7 +39,14 @@ public class EntityFactory {
         // 注册宝箱 (Treasure Chest)
         register(GameConfig.OBJECT_ID_CHEST, (x, y) -> {
             java.util.Random random = new java.util.Random();
-            return TreasureChest.createRandom(x, y, random, GameConfig.CHEST_PUZZLE_PROBABILITY);
+            TreasureChest chest = TreasureChest.createRandom(x, y, random, GameConfig.CHEST_PUZZLE_PROBABILITY);
+            // 设置奖励
+            chest.setReward(ChestRewardGenerator.generateLevelModeReward(random));
+            // 如果是谜题宝箱，设置谜题
+            if (chest.getType() == TreasureChest.ChestType.PUZZLE) {
+                chest.setPuzzle(PuzzleGenerator.generateRandom(random));
+            }
+            return chest;
         });
 
         // 注意：ID 1 (Entry) 通常不生成实体对象，而是设置玩家起始位置，

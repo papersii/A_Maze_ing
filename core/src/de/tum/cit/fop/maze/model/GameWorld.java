@@ -739,6 +739,12 @@ public class GameWorld {
      * - 谜题宝箱：通知监听器显示谜题UI（暂停游戏）
      */
     private void updateChests(float delta) {
+        // 更新所有宝箱的动画状态
+        for (TreasureChest chest : gameMap.getTreasureChests()) {
+            chest.update(delta);
+        }
+
+        // 检查玩家与宝箱的交互
         for (TreasureChest chest : gameMap.getTreasureChests()) {
             if (chest.isInteracted())
                 continue; // 已交互过
