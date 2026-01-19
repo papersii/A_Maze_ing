@@ -806,15 +806,20 @@ public class ElementCreatorScreen implements Screen {
                 defaultVal = currentElement.getType().getDefaultValue(prop);
             }
             if (defaultVal instanceof Boolean) {
-                CheckBox cb = new CheckBox("", skin);
-                cb.setChecked((Boolean) defaultVal);
-                cb.addListener(new ChangeListener() {
+                // 使用 TextButton 替代 CheckBox（因为皮肤中没有 CheckBox 样式）
+                final boolean[] checked = { (Boolean) defaultVal };
+                final TextButton toggleBtn = new TextButton(checked[0] ? "ON" : "OFF", skin);
+                toggleBtn.setColor(checked[0] ? Color.GREEN : Color.GRAY);
+                toggleBtn.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
-                        currentElement.setProperty(prop, cb.isChecked());
+                        checked[0] = !checked[0];
+                        toggleBtn.setText(checked[0] ? "ON" : "OFF");
+                        toggleBtn.setColor(checked[0] ? Color.GREEN : Color.GRAY);
+                        currentElement.setProperty(prop, checked[0]);
                     }
                 });
-                row.add(cb).left();
+                row.add(toggleBtn).width(80).left();
             } else if (defaultVal instanceof Number) {
                 TextField tf = new TextField(defaultVal.toString(), skin);
                 tf.setTextFieldFilter(new TextField.TextFieldFilter.DigitsOnlyFilter());

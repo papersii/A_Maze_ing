@@ -1,0 +1,1060 @@
+[
+{
+	"id": "dfc92038",
+	"name": "Iron Sword",
+	"type": "WEAPON",
+	"frameCount": 4,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Idle": [
+			"custom_images/dfc92038/idle_0.png",
+			"custom_images/dfc92038/idle_1.png",
+			"custom_images/dfc92038/idle_2.png",
+			"custom_images/dfc92038/idle_3.png"
+		],
+		"IdleDown": [
+			"custom_images/dfc92038/idledown_0.png",
+			"custom_images/dfc92038/idledown_1.png",
+			"custom_images/dfc92038/idledown_2.png",
+			"custom_images/dfc92038/idledown_3.png"
+		],
+		"IdleUp": [
+			"custom_images/dfc92038/idleup_0.png",
+			"custom_images/dfc92038/idleup_1.png",
+			"custom_images/dfc92038/idleup_2.png",
+			"custom_images/dfc92038/idleup_3.png"
+		],
+		"Attack": [
+			"custom_images/dfc92038/attack_0.png",
+			"custom_images/dfc92038/attack_1.png",
+			"custom_images/dfc92038/attack_2.png",
+			"custom_images/dfc92038/attack_3.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"damage": {
+			"class": "java.lang.Integer",
+			"value": 10
+		},
+		"effect": {
+			"class": "java.lang.String",
+			"value": "NONE"
+		},
+		"cooldown": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"range": {
+			"class": "java.lang.Integer",
+			"value": 2
+		},
+		"energyCost": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"11": 1,
+		"12": 1,
+		"13": 1,
+		"14": 1,
+		"15": 1,
+		"16": 1,
+		"17": 1,
+		"18": 1,
+		"19": 1,
+		"1": 1,
+		"2": 1,
+		"3": 1,
+		"4": 1,
+		"5": 1,
+		"6": 1,
+		"7": 1,
+		"8": 1,
+		"9": 1,
+		"20": 1,
+		"10": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "1653aaac",
+	"name": "Slime",
+	"type": "ENEMY",
+	"frameCount": 16,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"custom_images/1653aaac/move_0.png",
+			"custom_images/1653aaac/move_1.png",
+			"custom_images/1653aaac/move_2.png",
+			"custom_images/1653aaac/move_3.png",
+			"custom_images/1653aaac/move_4.png",
+			"custom_images/1653aaac/move_5.png",
+			"custom_images/1653aaac/move_6.png",
+			"custom_images/1653aaac/move_7.png",
+			"custom_images/1653aaac/move_8.png",
+			"custom_images/1653aaac/move_9.png",
+			"custom_images/1653aaac/move_10.png",
+			"custom_images/1653aaac/move_11.png",
+			"custom_images/1653aaac/move_12.png",
+			"custom_images/1653aaac/move_13.png",
+			"custom_images/1653aaac/move_14.png",
+			"custom_images/1653aaac/move_15.png"
+		],
+		"Idle": [
+			"custom_images/1653aaac/idle_0.png",
+			"custom_images/1653aaac/idle_1.png",
+			"custom_images/1653aaac/idle_2.png",
+			"custom_images/1653aaac/idle_3.png",
+			"custom_images/1653aaac/idle_4.png",
+			"custom_images/1653aaac/idle_5.png",
+			"custom_images/1653aaac/idle_6.png",
+			"custom_images/1653aaac/idle_7.png",
+			"custom_images/1653aaac/idle_8.png",
+			"custom_images/1653aaac/idle_9.png",
+			"custom_images/1653aaac/idle_10.png",
+			"custom_images/1653aaac/idle_11.png",
+			"custom_images/1653aaac/idle_12.png",
+			"custom_images/1653aaac/idle_13.png",
+			"custom_images/1653aaac/idle_14.png",
+			"custom_images/1653aaac/idle_15.png"
+		],
+		"Death": [
+			"custom_images/1653aaac/death_0.png",
+			"custom_images/1653aaac/death_1.png",
+			"custom_images/1653aaac/death_2.png",
+			"custom_images/1653aaac/death_3.png",
+			"custom_images/1653aaac/death_4.png",
+			"custom_images/1653aaac/death_5.png",
+			"custom_images/1653aaac/death_6.png",
+			"custom_images/1653aaac/death_7.png",
+			"custom_images/1653aaac/death_8.png",
+			"custom_images/1653aaac/death_9.png",
+			"custom_images/1653aaac/death_10.png",
+			"custom_images/1653aaac/death_11.png",
+			"custom_images/1653aaac/death_12.png",
+			"custom_images/1653aaac/death_13.png",
+			"custom_images/1653aaac/death_14.png",
+			"custom_images/1653aaac/death_15.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 2
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 3
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"1": 1,
+		"2": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "8a0a13d8",
+	"name": "Wild Boar",
+	"type": "ENEMY",
+	"frameCount": 16,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"custom_images/8a0a13d8/move_0.png",
+			"custom_images/8a0a13d8/move_1.png",
+			"custom_images/8a0a13d8/move_2.png",
+			"custom_images/8a0a13d8/move_3.png",
+			"custom_images/8a0a13d8/move_4.png",
+			"custom_images/8a0a13d8/move_5.png",
+			"custom_images/8a0a13d8/move_6.png",
+			"custom_images/8a0a13d8/move_7.png",
+			"custom_images/8a0a13d8/move_8.png",
+			"custom_images/8a0a13d8/move_9.png",
+			"custom_images/8a0a13d8/move_10.png",
+			"custom_images/8a0a13d8/move_11.png",
+			"custom_images/8a0a13d8/move_12.png",
+			"custom_images/8a0a13d8/move_13.png",
+			"custom_images/8a0a13d8/move_14.png",
+			"custom_images/8a0a13d8/move_15.png"
+		],
+		"Death": [
+			"custom_images/8a0a13d8/death_0.png",
+			"custom_images/8a0a13d8/death_1.png",
+			"custom_images/8a0a13d8/death_2.png",
+			"custom_images/8a0a13d8/death_3.png",
+			"custom_images/8a0a13d8/death_4.png",
+			"custom_images/8a0a13d8/death_5.png",
+			"custom_images/8a0a13d8/death_6.png",
+			"custom_images/8a0a13d8/death_7.png",
+			"custom_images/8a0a13d8/death_8.png",
+			"custom_images/8a0a13d8/death_9.png",
+			"custom_images/8a0a13d8/death_10.png",
+			"custom_images/8a0a13d8/death_11.png",
+			"custom_images/8a0a13d8/death_12.png",
+			"custom_images/8a0a13d8/death_13.png",
+			"custom_images/8a0a13d8/death_14.png",
+			"custom_images/8a0a13d8/death_15.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 2
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 3
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"11": 1,
+		"12": 1,
+		"13": 1,
+		"14": 1,
+		"15": 1,
+		"16": 1,
+		"17": 1,
+		"18": 1,
+		"19": 1,
+		"1": 1,
+		"2": 1,
+		"3": 1,
+		"4": 1,
+		"5": 1,
+		"6": 1,
+		"7": 1,
+		"8": 1,
+		"9": 1,
+		"20": 1,
+		"10": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "ffdca0ed",
+	"name": "Govlin1",
+	"type": "ENEMY",
+	"frameCount": 16,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"custom_images/ffdca0ed/move_0.png",
+			"custom_images/ffdca0ed/move_1.png",
+			"custom_images/ffdca0ed/move_2.png",
+			"custom_images/ffdca0ed/move_3.png",
+			"custom_images/ffdca0ed/move_4.png",
+			"custom_images/ffdca0ed/move_5.png",
+			"custom_images/ffdca0ed/move_6.png",
+			"custom_images/ffdca0ed/move_7.png",
+			"custom_images/ffdca0ed/move_8.png",
+			"custom_images/ffdca0ed/move_9.png",
+			"custom_images/ffdca0ed/move_10.png",
+			"custom_images/ffdca0ed/move_11.png",
+			"custom_images/ffdca0ed/move_12.png",
+			"custom_images/ffdca0ed/move_13.png",
+			"custom_images/ffdca0ed/move_14.png",
+			"custom_images/ffdca0ed/move_15.png"
+		],
+		"Idle": [
+			"custom_images/ffdca0ed/idle_0.png",
+			"custom_images/ffdca0ed/idle_1.png",
+			"custom_images/ffdca0ed/idle_2.png",
+			"custom_images/ffdca0ed/idle_3.png",
+			"custom_images/ffdca0ed/idle_4.png",
+			"custom_images/ffdca0ed/idle_5.png",
+			"custom_images/ffdca0ed/idle_6.png",
+			"custom_images/ffdca0ed/idle_7.png",
+			"custom_images/ffdca0ed/idle_8.png",
+			"custom_images/ffdca0ed/idle_9.png",
+			"custom_images/ffdca0ed/idle_10.png",
+			"custom_images/ffdca0ed/idle_11.png",
+			"custom_images/ffdca0ed/idle_12.png",
+			"custom_images/ffdca0ed/idle_13.png",
+			"custom_images/ffdca0ed/idle_14.png",
+			"custom_images/ffdca0ed/idle_15.png"
+		],
+		"Death": [
+			"custom_images/ffdca0ed/death_0.png",
+			"custom_images/ffdca0ed/death_1.png",
+			"custom_images/ffdca0ed/death_2.png",
+			"custom_images/ffdca0ed/death_3.png",
+			"custom_images/ffdca0ed/death_4.png",
+			"custom_images/ffdca0ed/death_5.png",
+			"custom_images/ffdca0ed/death_6.png",
+			"custom_images/ffdca0ed/death_7.png",
+			"custom_images/ffdca0ed/death_8.png",
+			"custom_images/ffdca0ed/death_9.png",
+			"custom_images/ffdca0ed/death_10.png",
+			"custom_images/ffdca0ed/death_11.png",
+			"custom_images/ffdca0ed/death_12.png",
+			"custom_images/ffdca0ed/death_13.png",
+			"custom_images/ffdca0ed/death_14.png",
+			"custom_images/ffdca0ed/death_15.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 2
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 3
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"11": 1,
+		"12": 1,
+		"13": 1,
+		"14": 1,
+		"15": 1,
+		"16": 1,
+		"17": 1,
+		"18": 1,
+		"19": 1,
+		"1": 1,
+		"2": 1,
+		"3": 1,
+		"4": 1,
+		"5": 1,
+		"6": 1,
+		"7": 1,
+		"8": 1,
+		"9": 1,
+		"20": 1,
+		"10": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "e660d6ea",
+	"name": "Skin1",
+	"type": "PLAYER",
+	"frameCount": 16,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"custom_images/e660d6ea/move_0.png",
+			"custom_images/e660d6ea/move_1.png",
+			"custom_images/e660d6ea/move_2.png",
+			"custom_images/e660d6ea/move_3.png",
+			"custom_images/e660d6ea/move_4.png",
+			"custom_images/e660d6ea/move_5.png",
+			"custom_images/e660d6ea/move_6.png",
+			"custom_images/e660d6ea/move_7.png",
+			"custom_images/e660d6ea/move_8.png",
+			"custom_images/e660d6ea/move_9.png",
+			"custom_images/e660d6ea/move_10.png",
+			"custom_images/e660d6ea/move_11.png",
+			"custom_images/e660d6ea/move_12.png",
+			"custom_images/e660d6ea/move_13.png",
+			"custom_images/e660d6ea/move_14.png",
+			"custom_images/e660d6ea/move_15.png"
+		],
+		"Idle": [
+			"custom_images/e660d6ea/idle_0.png",
+			"custom_images/e660d6ea/idle_1.png",
+			"custom_images/e660d6ea/idle_2.png",
+			"custom_images/e660d6ea/idle_3.png",
+			"custom_images/e660d6ea/idle_4.png",
+			"custom_images/e660d6ea/idle_5.png",
+			"custom_images/e660d6ea/idle_6.png",
+			"custom_images/e660d6ea/idle_7.png",
+			"custom_images/e660d6ea/idle_8.png",
+			"custom_images/e660d6ea/idle_9.png",
+			"custom_images/e660d6ea/idle_10.png",
+			"custom_images/e660d6ea/idle_11.png",
+			"custom_images/e660d6ea/idle_12.png",
+			"custom_images/e660d6ea/idle_13.png",
+			"custom_images/e660d6ea/idle_14.png",
+			"custom_images/e660d6ea/idle_15.png"
+		],
+		"Death": [
+			"custom_images/e660d6ea/death_0.png",
+			"custom_images/e660d6ea/death_1.png",
+			"custom_images/e660d6ea/death_2.png",
+			"custom_images/e660d6ea/death_3.png",
+			"custom_images/e660d6ea/death_4.png",
+			"custom_images/e660d6ea/death_5.png",
+			"custom_images/e660d6ea/death_6.png",
+			"custom_images/e660d6ea/death_7.png",
+			"custom_images/e660d6ea/death_8.png",
+			"custom_images/e660d6ea/death_9.png",
+			"custom_images/e660d6ea/death_10.png",
+			"custom_images/e660d6ea/death_11.png",
+			"custom_images/e660d6ea/death_12.png",
+			"custom_images/e660d6ea/death_13.png",
+			"custom_images/e660d6ea/death_14.png",
+			"custom_images/e660d6ea/death_15.png"
+		]
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"11": 1,
+		"12": 1,
+		"13": 1,
+		"14": 1,
+		"15": 1,
+		"16": 1,
+		"17": 1,
+		"18": 1,
+		"19": 1,
+		"1": 1,
+		"2": 1,
+		"3": 1,
+		"4": 1,
+		"5": 1,
+		"6": 1,
+		"7": 1,
+		"8": 1,
+		"9": 1,
+		"20": 1,
+		"10": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "5f27fc68",
+	"name": "Ice Bow",
+	"type": "WEAPON",
+	"frameCount": 4,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Idle": [
+			"custom_images/5f27fc68/idle_0.png",
+			"custom_images/5f27fc68/idle_1.png",
+			"custom_images/5f27fc68/idle_2.png",
+			"custom_images/5f27fc68/idle_3.png"
+		],
+		"Attack": [
+			"custom_images/5f27fc68/attack_0.png",
+			"custom_images/5f27fc68/attack_1.png",
+			"custom_images/5f27fc68/attack_2.png",
+			"custom_images/5f27fc68/attack_3.png"
+		],
+		"Projectile": [
+			"custom_images/5f27fc68/projectile_0.png",
+			"custom_images/5f27fc68/projectile_1.png",
+			"custom_images/5f27fc68/projectile_2.png",
+			"custom_images/5f27fc68/projectile_3.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"damage": {
+			"class": "java.lang.Integer",
+			"value": 2
+		},
+		"effect": {
+			"class": "java.lang.String",
+			"value": "NONE"
+		},
+		"cooldown": {
+			"class": "java.lang.Integer",
+			"value": 1
+		},
+		"range": {
+			"class": "java.lang.Integer",
+			"value": 8
+		},
+		"isRanged": {
+			"class": "java.lang.String",
+			"value": "True"
+		},
+		"projectileSpeed": {
+			"class": "java.lang.String",
+			"value": "20"
+		},
+		"energyCost": {
+			"class": "java.lang.Float",
+			"value": 10
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"11": 1,
+		"12": 1,
+		"13": 1,
+		"14": 1,
+		"15": 1,
+		"16": 1,
+		"17": 1,
+		"18": 1,
+		"19": 1,
+		"1": 1,
+		"2": 1,
+		"3": 1,
+		"4": 1,
+		"5": 1,
+		"6": 1,
+		"7": 1,
+		"8": 1,
+		"9": 1,
+		"20": 1,
+		"10": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "428bd172",
+	"name": "Munaiyi",
+	"type": "ENEMY",
+	"frameCount": 16,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"custom_images/428bd172/move_0.png",
+			"custom_images/428bd172/move_1.png",
+			"custom_images/428bd172/move_2.png",
+			"custom_images/428bd172/move_3.png",
+			"custom_images/428bd172/move_4.png",
+			"custom_images/428bd172/move_5.png",
+			"custom_images/428bd172/move_6.png",
+			"custom_images/428bd172/move_7.png",
+			"custom_images/428bd172/move_8.png",
+			"custom_images/428bd172/move_9.png",
+			"custom_images/428bd172/move_10.png",
+			"custom_images/428bd172/move_11.png",
+			"custom_images/428bd172/move_12.png",
+			"custom_images/428bd172/move_13.png",
+			"custom_images/428bd172/move_14.png",
+			"custom_images/428bd172/move_15.png"
+		],
+		"Idle": [
+			"custom_images/428bd172/idle_0.png",
+			"custom_images/428bd172/idle_1.png",
+			"custom_images/428bd172/idle_2.png",
+			"custom_images/428bd172/idle_3.png",
+			"custom_images/428bd172/idle_4.png",
+			"custom_images/428bd172/idle_5.png",
+			"custom_images/428bd172/idle_6.png",
+			"custom_images/428bd172/idle_7.png",
+			"custom_images/428bd172/idle_8.png",
+			"custom_images/428bd172/idle_9.png",
+			"custom_images/428bd172/idle_10.png",
+			"custom_images/428bd172/idle_11.png",
+			"custom_images/428bd172/idle_12.png",
+			"custom_images/428bd172/idle_13.png",
+			"custom_images/428bd172/idle_14.png",
+			"custom_images/428bd172/idle_15.png"
+		],
+		"Death": [
+			"custom_images/428bd172/death_0.png",
+			"custom_images/428bd172/death_1.png",
+			"custom_images/428bd172/death_2.png",
+			"custom_images/428bd172/death_3.png",
+			"custom_images/428bd172/death_4.png",
+			"custom_images/428bd172/death_5.png",
+			"custom_images/428bd172/death_6.png",
+			"custom_images/428bd172/death_7.png",
+			"custom_images/428bd172/death_8.png",
+			"custom_images/428bd172/death_9.png",
+			"custom_images/428bd172/death_10.png",
+			"custom_images/428bd172/death_11.png",
+			"custom_images/428bd172/death_12.png",
+			"custom_images/428bd172/death_13.png",
+			"custom_images/428bd172/death_14.png",
+			"custom_images/428bd172/death_15.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 2
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 3
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"11": 1,
+		"12": 1,
+		"13": 1,
+		"14": 1,
+		"15": 1,
+		"16": 1,
+		"17": 1,
+		"18": 1,
+		"19": 1,
+		"1": 1,
+		"2": 1,
+		"3": 1,
+		"4": 1,
+		"5": 1,
+		"6": 1,
+		"7": 1,
+		"8": 1,
+		"9": 1,
+		"20": 1,
+		"10": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "default_boar",
+	"name": "Standard Boar",
+	"type": "ENEMY",
+	"frameCount": 4,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"internal:default",
+			"internal:default",
+			"internal:default",
+			"internal:default"
+		],
+		"Death": [
+			"internal:default",
+			"internal:default",
+			"internal:default",
+			"internal:default"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 3
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"enemyType": {
+			"class": "java.lang.String",
+			"value": "BOAR"
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 5
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 2 ]
+	},
+	"spawnCount": 8
+},
+{
+	"id": "1df77cc6",
+	"name": "Alien",
+	"type": "ENEMY",
+	"frameCount": 16,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"custom_images/1df77cc6/move_0.png",
+			"custom_images/1df77cc6/move_1.png",
+			"custom_images/1df77cc6/move_2.png",
+			"custom_images/1df77cc6/move_3.png",
+			"custom_images/1df77cc6/move_4.png",
+			"custom_images/1df77cc6/move_5.png",
+			"custom_images/1df77cc6/move_6.png",
+			"custom_images/1df77cc6/move_7.png",
+			"custom_images/1df77cc6/move_8.png",
+			"custom_images/1df77cc6/move_9.png",
+			"custom_images/1df77cc6/move_10.png",
+			"custom_images/1df77cc6/move_11.png",
+			"custom_images/1df77cc6/move_12.png",
+			"custom_images/1df77cc6/move_13.png",
+			"custom_images/1df77cc6/move_14.png",
+			"custom_images/1df77cc6/move_15.png"
+		],
+		"Idle": [
+			"custom_images/1df77cc6/idle_0.png",
+			"custom_images/1df77cc6/idle_1.png",
+			"custom_images/1df77cc6/idle_2.png",
+			"custom_images/1df77cc6/idle_3.png",
+			"custom_images/1df77cc6/idle_4.png",
+			"custom_images/1df77cc6/idle_5.png",
+			"custom_images/1df77cc6/idle_6.png",
+			"custom_images/1df77cc6/idle_7.png",
+			"custom_images/1df77cc6/idle_8.png",
+			"custom_images/1df77cc6/idle_9.png",
+			"custom_images/1df77cc6/idle_10.png",
+			"custom_images/1df77cc6/idle_11.png",
+			"custom_images/1df77cc6/idle_12.png",
+			"custom_images/1df77cc6/idle_13.png",
+			"custom_images/1df77cc6/idle_14.png",
+			"custom_images/1df77cc6/idle_15.png"
+		],
+		"Death": [
+			"custom_images/1df77cc6/death_0.png",
+			"custom_images/1df77cc6/death_1.png",
+			"custom_images/1df77cc6/death_2.png",
+			"custom_images/1df77cc6/death_3.png",
+			"custom_images/1df77cc6/death_4.png",
+			"custom_images/1df77cc6/death_5.png",
+			"custom_images/1df77cc6/death_6.png",
+			"custom_images/1df77cc6/death_7.png",
+			"custom_images/1df77cc6/death_8.png",
+			"custom_images/1df77cc6/death_9.png",
+			"custom_images/1df77cc6/death_10.png",
+			"custom_images/1df77cc6/death_11.png",
+			"custom_images/1df77cc6/death_12.png",
+			"custom_images/1df77cc6/death_13.png",
+			"custom_images/1df77cc6/death_14.png",
+			"custom_images/1df77cc6/death_15.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 2
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 3
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2, 3 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"1": 1,
+		"2": 1,
+		"3": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "0cfa1e47",
+	"name": "Boar2",
+	"type": "ENEMY",
+	"frameCount": 16,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"custom_images/0cfa1e47/move_0.png",
+			"custom_images/0cfa1e47/move_1.png",
+			"custom_images/0cfa1e47/move_2.png",
+			"custom_images/0cfa1e47/move_3.png",
+			"custom_images/0cfa1e47/move_4.png",
+			"custom_images/0cfa1e47/move_5.png",
+			"custom_images/0cfa1e47/move_6.png",
+			"custom_images/0cfa1e47/move_7.png",
+			"custom_images/0cfa1e47/move_8.png",
+			"custom_images/0cfa1e47/move_9.png",
+			"custom_images/0cfa1e47/move_10.png",
+			"custom_images/0cfa1e47/move_11.png",
+			"custom_images/0cfa1e47/move_12.png",
+			"custom_images/0cfa1e47/move_13.png",
+			"custom_images/0cfa1e47/move_14.png",
+			"custom_images/0cfa1e47/move_15.png"
+		],
+		"Idle": [
+			"custom_images/0cfa1e47/idle_0.png",
+			"custom_images/0cfa1e47/idle_1.png",
+			"custom_images/0cfa1e47/idle_2.png",
+			"custom_images/0cfa1e47/idle_3.png",
+			"custom_images/0cfa1e47/idle_4.png",
+			"custom_images/0cfa1e47/idle_5.png",
+			"custom_images/0cfa1e47/idle_6.png",
+			"custom_images/0cfa1e47/idle_7.png",
+			"custom_images/0cfa1e47/idle_8.png",
+			"custom_images/0cfa1e47/idle_9.png",
+			"custom_images/0cfa1e47/idle_10.png",
+			"custom_images/0cfa1e47/idle_11.png",
+			"custom_images/0cfa1e47/idle_12.png",
+			"custom_images/0cfa1e47/idle_13.png",
+			"custom_images/0cfa1e47/idle_14.png",
+			"custom_images/0cfa1e47/idle_15.png"
+		],
+		"Death": [
+			"custom_images/0cfa1e47/death_0.png",
+			"custom_images/0cfa1e47/death_1.png",
+			"custom_images/0cfa1e47/death_2.png",
+			"custom_images/0cfa1e47/death_3.png",
+			"custom_images/0cfa1e47/death_4.png",
+			"custom_images/0cfa1e47/death_5.png",
+			"custom_images/0cfa1e47/death_6.png",
+			"custom_images/0cfa1e47/death_7.png",
+			"custom_images/0cfa1e47/death_8.png",
+			"custom_images/0cfa1e47/death_9.png",
+			"custom_images/0cfa1e47/death_10.png",
+			"custom_images/0cfa1e47/death_11.png",
+			"custom_images/0cfa1e47/death_12.png",
+			"custom_images/0cfa1e47/death_13.png",
+			"custom_images/0cfa1e47/death_14.png",
+			"custom_images/0cfa1e47/death_15.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 2
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 3
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"1": 1,
+		"2": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "3d4d80aa",
+	"name": "Goblin2",
+	"type": "ENEMY",
+	"frameCount": 16,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"custom_images/3d4d80aa/move_0.png",
+			"custom_images/3d4d80aa/move_1.png",
+			"custom_images/3d4d80aa/move_2.png",
+			"custom_images/3d4d80aa/move_3.png",
+			"custom_images/3d4d80aa/move_4.png",
+			"custom_images/3d4d80aa/move_5.png",
+			"custom_images/3d4d80aa/move_6.png",
+			"custom_images/3d4d80aa/move_7.png",
+			"custom_images/3d4d80aa/move_8.png",
+			"custom_images/3d4d80aa/move_9.png",
+			"custom_images/3d4d80aa/move_10.png",
+			"custom_images/3d4d80aa/move_11.png",
+			"custom_images/3d4d80aa/move_12.png",
+			"custom_images/3d4d80aa/move_13.png",
+			"custom_images/3d4d80aa/move_14.png",
+			"custom_images/3d4d80aa/move_15.png"
+		],
+		"Idle": [
+			"custom_images/3d4d80aa/idle_0.png",
+			"custom_images/3d4d80aa/idle_1.png",
+			"custom_images/3d4d80aa/idle_2.png",
+			"custom_images/3d4d80aa/idle_3.png",
+			"custom_images/3d4d80aa/idle_4.png",
+			"custom_images/3d4d80aa/idle_5.png",
+			"custom_images/3d4d80aa/idle_6.png",
+			"custom_images/3d4d80aa/idle_7.png",
+			"custom_images/3d4d80aa/idle_8.png",
+			"custom_images/3d4d80aa/idle_9.png",
+			"custom_images/3d4d80aa/idle_10.png",
+			"custom_images/3d4d80aa/idle_11.png",
+			"custom_images/3d4d80aa/idle_12.png",
+			"custom_images/3d4d80aa/idle_13.png",
+			"custom_images/3d4d80aa/idle_14.png",
+			"custom_images/3d4d80aa/idle_15.png"
+		],
+		"Death": [
+			"custom_images/3d4d80aa/death_0.png",
+			"custom_images/3d4d80aa/death_1.png",
+			"custom_images/3d4d80aa/death_2.png",
+			"custom_images/3d4d80aa/death_3.png",
+			"custom_images/3d4d80aa/death_4.png",
+			"custom_images/3d4d80aa/death_5.png",
+			"custom_images/3d4d80aa/death_6.png",
+			"custom_images/3d4d80aa/death_7.png",
+			"custom_images/3d4d80aa/death_8.png",
+			"custom_images/3d4d80aa/death_9.png",
+			"custom_images/3d4d80aa/death_10.png",
+			"custom_images/3d4d80aa/death_11.png",
+			"custom_images/3d4d80aa/death_12.png",
+			"custom_images/3d4d80aa/death_13.png",
+			"custom_images/3d4d80aa/death_14.png",
+			"custom_images/3d4d80aa/death_15.png"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 2
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 3
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 ]
+	},
+	"levelProbabilities": {
+		"class": "java.util.HashMap",
+		"11": 1,
+		"12": 1,
+		"13": 1,
+		"14": 1,
+		"15": 1,
+		"16": 1,
+		"17": 1,
+		"18": 1,
+		"19": 1,
+		"1": 1,
+		"2": 1,
+		"3": 1,
+		"4": 1,
+		"5": 1,
+		"6": 1,
+		"7": 1,
+		"8": 1,
+		"9": 1,
+		"20": 1,
+		"10": 1
+	},
+	"spawnCount": 20
+},
+{
+	"id": "default_slime",
+	"name": "Standard Slime",
+	"type": "ENEMY",
+	"frameCount": 4,
+	"spritePaths": {
+		"class": "java.util.HashMap",
+		"Move": [
+			"internal:default",
+			"internal:default",
+			"internal:default",
+			"internal:default"
+		],
+		"Death": [
+			"internal:default",
+			"internal:default",
+			"internal:default",
+			"internal:default"
+		]
+	},
+	"properties": {
+		"class": "java.util.HashMap",
+		"moveSpeed": {
+			"class": "java.lang.Float",
+			"value": 2
+		},
+		"defense": {
+			"class": "java.lang.Integer",
+			"value": 0
+		},
+		"enemyType": {
+			"class": "java.lang.String",
+			"value": "SLIME"
+		},
+		"health": {
+			"class": "java.lang.Integer",
+			"value": 2
+		},
+		"attackDamage": {
+			"class": "java.lang.Integer",
+			"value": 1
+		}
+	},
+	"assignedLevels": {
+		"class": "java.util.HashSet",
+		"items": [ 1 ]
+	},
+	"spawnCount": 10
+}
+]

@@ -784,6 +784,11 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             drawX -= (playerFrame.getRegionWidth() - 16) / 2f;
         }
 
+        // 朝上时先渲染武器（在玩家身后）
+        if (!player.isDead() && dir == 1) {
+            renderEquippedWeapon(player, dir);
+        }
+
         if (player.isDead()) {
             float rotation = player.getDeathProgress() * 90f;
             game.getSpriteBatch().draw(playerFrame, drawX, drawY,
@@ -796,7 +801,8 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         game.getSpriteBatch().setColor(oldC);
 
         // === 渲染装备的武器 (队友功能) ===
-        if (!player.isDead()) {
+        // 朝上时武器在玩家后面，其他方向武器在玩家前面
+        if (!player.isDead() && dir != 1) {
             renderEquippedWeapon(player, dir);
         }
     }
@@ -816,10 +822,28 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         if (weaponId == null)
             return;
 
-        String action = player.isAttacking() ? "Attack" : "Idle";
+        // 根据玩家朝向选择对应的武器动作
+        String baseAction = player.isAttacking() ? "Attack" : "Idle";
+        String directionSuffix = "";
+        if (dir == 1) {
+            directionSuffix = "Up";
+        } else if (dir == 0) {
+            directionSuffix = "Down";
+        }
+
+        // 尝试加载方向特定的动画，如果没有则回退到默认动画
+        String action = baseAction + directionSuffix;
         com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> weaponAnim = de.tum.cit.fop.maze.custom.CustomElementManager
                 .getInstance()
                 .getAnimation(weaponId, action);
+
+        // 如果没有方向特定的动画，使用默认动画
+        if (weaponAnim == null && !directionSuffix.isEmpty()) {
+            action = baseAction;
+            weaponAnim = de.tum.cit.fop.maze.custom.CustomElementManager
+                    .getInstance()
+                    .getAnimation(weaponId, action);
+        }
 
         if (weaponAnim == null)
             return;
@@ -835,12 +859,38 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         float playerCenterY = player.getY() * UNIT_SCALE + UNIT_SCALE / 2;
 
         float weaponSize = UNIT_SCALE * 1.2f;
-        float offsetX = (lastWeaponFacing == 2) ? -UNIT_SCALE * 0.4f : UNIT_SCALE * 0.4f;
+        float offsetX;
+        float offsetY;
+        boolean flipX;
+
+        // 根据玩家朝向调整武器位置和镜像
+        switch (dir) {
+            case 1: // 朝上 - 向右上偏移更多
+                offsetX = UNIT_SCALE * 0.5f;
+                offsetY = UNIT_SCALE * 0.6f;
+                flipX = false;
+                break;
+            case 0: // 朝下 - 向左偏移
+                offsetX = -UNIT_SCALE * 0.4f;
+                offsetY = UNIT_SCALE * 0.35f;
+                flipX = false;
+                break;
+            case 2: // 朝左
+                offsetX = -UNIT_SCALE * 0.25f;
+                offsetY = UNIT_SCALE * 0.3f;
+                flipX = true;
+                break;
+            case 3: // 朝右
+            default:
+                offsetX = UNIT_SCALE * 0.25f;
+                offsetY = UNIT_SCALE * 0.3f;
+                flipX = false;
+                break;
+        }
 
         float weaponX = playerCenterX + offsetX - weaponSize / 2;
-        float weaponY = playerCenterY - weaponSize / 2;
+        float weaponY = playerCenterY + offsetY - weaponSize / 2;
 
-        boolean flipX = (lastWeaponFacing == 2);
         if (flipX) {
             game.getSpriteBatch().draw(weaponFrame, weaponX + weaponSize, weaponY, -weaponSize, weaponSize);
         } else {

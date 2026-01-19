@@ -21,7 +21,7 @@ public class CustomElementManager {
 
     private static CustomElementManager instance;
 
-    private static final String SAVE_DIR = ".maze_runner/custom_elements/";
+    private static final String SAVE_DIR = "custom_elements/";
     private static final String LOCAL_IMAGE_DIR = "custom_images/";
     private static final String ELEMENTS_FILE = "elements.json";
 
@@ -186,7 +186,7 @@ public class CustomElementManager {
     @SuppressWarnings("unchecked")
     private void loadElements() {
         try {
-            FileHandle file = Gdx.files.external(SAVE_DIR + ELEMENTS_FILE);
+            FileHandle file = Gdx.files.local(SAVE_DIR + ELEMENTS_FILE);
             if (file.exists()) {
                 String jsonStr = file.readString();
                 CustomElementDefinition[] loaded = json.fromJson(CustomElementDefinition[].class, jsonStr);
@@ -211,12 +211,12 @@ public class CustomElementManager {
      */
     private void persistToFile() {
         try {
-            FileHandle dir = Gdx.files.external(SAVE_DIR);
+            FileHandle dir = Gdx.files.local(SAVE_DIR);
             if (!dir.exists()) {
                 dir.mkdirs();
             }
 
-            FileHandle file = Gdx.files.external(SAVE_DIR + ELEMENTS_FILE);
+            FileHandle file = Gdx.files.local(SAVE_DIR + ELEMENTS_FILE);
             CustomElementDefinition[] array = elements.values().toArray(new CustomElementDefinition[0]);
             String jsonStr = json.prettyPrint(array);
             file.writeString(jsonStr, false);
@@ -230,7 +230,7 @@ public class CustomElementManager {
      * Get the sprite storage directory for an element
      */
     public FileHandle getSpriteDir(String elementId) {
-        return Gdx.files.external(SAVE_DIR + "sprites/" + elementId + "/");
+        return Gdx.files.local(SAVE_DIR + "sprites/" + elementId + "/");
     }
 
     /**

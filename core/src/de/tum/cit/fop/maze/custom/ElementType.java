@@ -12,7 +12,7 @@ public enum ElementType {
 
     WEAPON("Weapon",
             new String[] { "damage", "cooldown", "range", "effect", "energyCost", "isRanged", "projectileSpeed" },
-            new String[] { "Idle", "Attack", "Projectile" }),
+            new String[] { "Idle", "IdleUp", "IdleDown", "Attack", "AttackUp", "AttackDown", "Projectile" }),
 
     OBSTACLE("Obstacle", new String[] { "collisionDamage", "isDestructible", "health" },
             new String[] { "Idle", "Destroyed" }),
