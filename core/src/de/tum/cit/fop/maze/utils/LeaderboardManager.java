@@ -22,7 +22,7 @@ import java.util.*;
  */
 public class LeaderboardManager {
 
-    private static final String PREFS_NAME = "maze_leaderboard";
+    private static final String PREFS_NAME = "maze_leaderboard_v1";
     private static final String KEY_ENTRIES = "leaderboard_entries";
     private static final int MAX_ENTRIES = 100;
 

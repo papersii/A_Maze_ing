@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class ShopManager {
 
-    private static final String PREFS_NAME = "maze_shop";
+    private static final String PREFS_NAME = "maze_shop_v1";
     private static final String KEY_PURCHASED_ITEMS = "purchased_items";
     private static final String KEY_PLAYER_COINS = "player_coins";
 

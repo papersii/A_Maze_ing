@@ -21,6 +21,14 @@ tasks.register('run', JavaExec) {
     }
 }
 
+// Global configuration to ensure all JavaExec tasks (including those created by IntelliJ)
+// use the necessary flag on macOS.
+tasks.withType(JavaExec).configureEach {
+    if (OperatingSystem.current() == OperatingSystem.MAC_OS) {
+        jvmArgs += "-XstartOnFirstThread"
+    }
+}
+
 tasks.register('debug', JavaExec) {
     dependsOn classes
     mainClass = project.mainClassName

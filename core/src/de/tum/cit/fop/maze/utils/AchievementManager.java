@@ -21,7 +21,7 @@ import java.util.Map;
  * - Challenge: Flawless victory, speedrun, etc.
  */
 public class AchievementManager {
-    private static final String PREFS_NAME = "maze_achievements";
+    private static final String PREFS_NAME = "maze_achievements_v1";
     private static final String UNLOCKED_CARDS_KEY = "unlocked_cards";
     private static final String TOTAL_COINS_KEY = "total_coins_earned";
 

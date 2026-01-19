@@ -19,7 +19,7 @@ import com.badlogic.gdx.Preferences;
  */
 public class GameSettings {
 
-    private static final String PREFS_NAME = "maze_runner_settings";
+    private static final String PREFS_NAME = "maze_runner_settings_v1";
 
     // ==================== 硬编码默认值 (不可修改) ====================
 
