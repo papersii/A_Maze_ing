@@ -12,6 +12,18 @@
 			"custom_images/dfc92038/idle_2.png",
 			"custom_images/dfc92038/idle_3.png"
 		],
+		"IdleDown": [
+			"custom_images/dfc92038/idledown_0.png",
+			"custom_images/dfc92038/idledown_1.png",
+			"custom_images/dfc92038/idledown_2.png",
+			"custom_images/dfc92038/idledown_3.png"
+		],
+		"IdleUp": [
+			"custom_images/dfc92038/idleup_0.png",
+			"custom_images/dfc92038/idleup_1.png",
+			"custom_images/dfc92038/idleup_2.png",
+			"custom_images/dfc92038/idleup_3.png"
+		],
 		"Attack": [
 			"custom_images/dfc92038/attack_0.png",
 			"custom_images/dfc92038/attack_1.png",
