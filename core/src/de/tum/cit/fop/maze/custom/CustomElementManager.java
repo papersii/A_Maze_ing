@@ -342,25 +342,24 @@ public class CustomElementManager {
 
                 FileHandle file = null;
 
-                // 1. Try Local Storage (Preferred for custom items)
+                // 1. Try Internal first (for assets packaged with the game)
                 if (path.startsWith(LOCAL_IMAGE_DIR)) {
-                    file = Gdx.files.local(path);
-                }
-
-                // 2. Try Absolute
-                if (file == null || !file.exists()) {
-                    file = Gdx.files.absolute(path);
-                }
-
-                // 3. Try Internal
-                if (!file.exists()) {
                     file = Gdx.files.internal(path);
                 }
 
-                // 4. Fallback: Try local again if not tried (e.g. if path didn't start with
-                // prefix)
-                if (!file.exists()) {
+                // 2. Try Local Storage (for user-created custom items)
+                if (file == null || !file.exists()) {
                     file = Gdx.files.local(path);
+                }
+
+                // 3. Try Absolute (for development)
+                if (!file.exists()) {
+                    file = Gdx.files.absolute(path);
+                }
+
+                // 4. Fallback: Try internal again for other paths
+                if (!file.exists()) {
+                    file = Gdx.files.internal(path);
                 }
 
                 if (file.exists()) {
