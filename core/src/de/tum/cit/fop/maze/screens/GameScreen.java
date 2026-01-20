@@ -903,10 +903,10 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
 
         // 根据玩家朝向调整武器位置和镜像
         switch (dir) {
-            case 1: // 朝上 - 向右上偏移更多
+            case 1: // 朝上 - 向右上偏移并镜像
                 offsetX = UNIT_SCALE * 0.5f;
                 offsetY = UNIT_SCALE * 0.6f;
-                flipX = false;
+                flipX = true;
                 break;
             case 0: // 朝下 - 向左偏移
                 offsetX = -UNIT_SCALE * 0.4f;
