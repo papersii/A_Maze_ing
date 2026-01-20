@@ -1,7 +1,0 @@
-[CustomElementManager] [22:29:24.561] [INFO] [CustomElementManager]: Attempting to load elements from: custom_elements/elements.json
-[CustomElementManager] [22:29:24.563] [INFO] [CustomElementManager]: Internal path: custom_elements/elements.json, exists: true
-[CustomElementManager] [22:29:24.566] [INFO] [CustomElementManager]: JSON content length: 1946
-[CustomElementManager] [22:29:24.638] [INFO] [CustomElementManager]: Loaded element: Standard Boar [default_boar]
-[CustomElementManager] [22:29:24.639] [INFO] [CustomElementManager]: Loaded element: Standard Slime [default_slime]
-[CustomElementManager] [22:29:24.639] [INFO] [CustomElementManager]: Total loaded: 2 from: custom_elements/elements.json
-

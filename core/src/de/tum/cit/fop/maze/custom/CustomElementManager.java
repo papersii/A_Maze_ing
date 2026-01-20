@@ -186,37 +186,26 @@ public class CustomElementManager {
     @SuppressWarnings("unchecked")
     private void loadElements() {
         try {
-            String fullPath = SAVE_DIR + ELEMENTS_FILE;
-            GameLogger.info("CustomElementManager", "Attempting to load elements from: " + fullPath);
-
             // 优先尝试从 internal (assets目录) 加载
-            FileHandle file = Gdx.files.internal(fullPath);
-            GameLogger.info("CustomElementManager", "Internal path: " + file.path() + ", exists: " + file.exists());
+            FileHandle file = Gdx.files.internal(SAVE_DIR + ELEMENTS_FILE);
 
             // 如果 internal 不存在，尝试 local
             if (!file.exists()) {
-                file = Gdx.files.local(fullPath);
-                GameLogger.info("CustomElementManager", "Local path: " + file.path() + ", exists: " + file.exists());
+                file = Gdx.files.local(SAVE_DIR + ELEMENTS_FILE);
             }
 
             if (file.exists()) {
                 String jsonStr = file.readString();
-                GameLogger.info("CustomElementManager", "JSON content length: " + jsonStr.length());
                 CustomElementDefinition[] loaded = json.fromJson(CustomElementDefinition[].class, jsonStr);
                 if (loaded != null) {
                     for (CustomElementDefinition element : loaded) {
                         elements.put(element.getId(), element);
-                        GameLogger.info("CustomElementManager",
-                                "Loaded element: " + element.getName() + " [" + element.getId() + "]");
                     }
                 }
-                GameLogger.info("CustomElementManager", "Total loaded: " + elements.size() + " from: " + file.path());
-            } else {
-                GameLogger.warn("CustomElementManager", "No custom elements file found at internal or local paths!");
+                GameLogger.info("CustomElementManager", "Loaded " + elements.size() + " custom elements");
             }
         } catch (Exception e) {
             GameLogger.error("CustomElementManager", "Failed to load elements: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -359,38 +348,29 @@ public class CustomElementManager {
                 // 1. Try Internal first (for assets packaged with the game)
                 if (path.startsWith(LOCAL_IMAGE_DIR)) {
                     file = Gdx.files.internal(path);
-                    GameLogger.debug("CustomElementManager", "Try internal: " + path + " exists: " + file.exists());
                 }
 
                 // 2. Try Local Storage (for user-created custom items)
                 if (file == null || !file.exists()) {
                     file = Gdx.files.local(path);
-                    GameLogger.debug("CustomElementManager", "Try local: " + path + " exists: " + file.exists());
                 }
 
                 // 3. Try Absolute (for development)
                 if (!file.exists()) {
                     file = Gdx.files.absolute(path);
-                    GameLogger.debug("CustomElementManager", "Try absolute: " + path + " exists: " + file.exists());
                 }
 
                 // 4. Fallback: Try internal again for other paths
                 if (!file.exists()) {
                     file = Gdx.files.internal(path);
-                    GameLogger.debug("CustomElementManager",
-                            "Fallback internal: " + path + " exists: " + file.exists());
                 }
 
                 if (file.exists()) {
                     Texture tex = new Texture(file);
                     frames.add(createCroppedRegion(tex));
-                    GameLogger.debug("CustomElementManager", "Loaded texture: " + path);
-                } else {
-                    GameLogger.warn("CustomElementManager", "Texture NOT found: " + path);
                 }
             } catch (Exception e) {
-                GameLogger.error("CustomElementManager",
-                        "Failed to load texture for " + elementId + ": " + path + " - " + e.getMessage());
+                GameLogger.error("CustomElementManager", "Failed to load texture: " + path);
             }
         }
 
