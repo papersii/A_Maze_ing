@@ -359,29 +359,38 @@ public class CustomElementManager {
                 // 1. Try Internal first (for assets packaged with the game)
                 if (path.startsWith(LOCAL_IMAGE_DIR)) {
                     file = Gdx.files.internal(path);
+                    GameLogger.debug("CustomElementManager", "Try internal: " + path + " exists: " + file.exists());
                 }
 
                 // 2. Try Local Storage (for user-created custom items)
                 if (file == null || !file.exists()) {
                     file = Gdx.files.local(path);
+                    GameLogger.debug("CustomElementManager", "Try local: " + path + " exists: " + file.exists());
                 }
 
                 // 3. Try Absolute (for development)
                 if (!file.exists()) {
                     file = Gdx.files.absolute(path);
+                    GameLogger.debug("CustomElementManager", "Try absolute: " + path + " exists: " + file.exists());
                 }
 
                 // 4. Fallback: Try internal again for other paths
                 if (!file.exists()) {
                     file = Gdx.files.internal(path);
+                    GameLogger.debug("CustomElementManager",
+                            "Fallback internal: " + path + " exists: " + file.exists());
                 }
 
                 if (file.exists()) {
                     Texture tex = new Texture(file);
                     frames.add(createCroppedRegion(tex));
+                    GameLogger.debug("CustomElementManager", "Loaded texture: " + path);
+                } else {
+                    GameLogger.warn("CustomElementManager", "Texture NOT found: " + path);
                 }
             } catch (Exception e) {
-                GameLogger.error("CustomElementManager", "Failed to load texture for " + elementId + ": " + path);
+                GameLogger.error("CustomElementManager",
+                        "Failed to load texture for " + elementId + ": " + path + " - " + e.getMessage());
             }
         }
 
