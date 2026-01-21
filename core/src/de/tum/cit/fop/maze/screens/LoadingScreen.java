@@ -115,6 +115,8 @@ public class LoadingScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        // Stop any playing music during loading
+        de.tum.cit.fop.maze.utils.AudioManager.getInstance().stopMusic();
         GameLogger.info("LoadingScreen", "LoadingScreen shown");
     }
 
