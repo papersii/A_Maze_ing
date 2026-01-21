@@ -16,7 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent;
+
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -109,7 +109,6 @@ public class EndlessGameScreen implements Screen {
 
     // === 玩家/武器朝向记忆 (队友功能) ===
     private int lastPlayerFacing = 3;
-    private int lastWeaponFacing = 3;
 
     // === 敌人刷新 ===
     private Random spawnRandom;
@@ -1072,9 +1071,15 @@ public class EndlessGameScreen implements Screen {
         float drawHeight = playerFrame.getRegionHeight();
 
         // 自定义皮肤统一缩放到16像素
+        // 自定义皮肤统一缩放到16像素
         if (useCustomSkin && playerFrame != null) {
             drawWidth = UNIT_SCALE;
             drawHeight = UNIT_SCALE;
+        }
+
+        // 朝上或朝左时先渲染武器（在玩家身后）
+        if (!player.isDead() && (dir == 1 || dir == 2)) {
+            renderEquippedWeapon(player, dir);
         }
 
         if (flipX) {
@@ -1086,7 +1091,7 @@ public class EndlessGameScreen implements Screen {
         game.getSpriteBatch().setColor(Color.WHITE);
 
         // === 渲染装备的武器 (队友功能) ===
-        if (!player.isDead()) {
+        if (!player.isDead() && dir != 1 && dir != 2) {
             renderEquippedWeapon(player, dir);
         }
     }
@@ -1174,10 +1179,6 @@ public class EndlessGameScreen implements Screen {
             return;
 
         TextureRegion weaponFrame = weaponAnim.getKeyFrame(stateTime, !player.isAttacking());
-
-        if (dir == 2 || dir == 3) {
-            lastWeaponFacing = dir;
-        }
 
         float playerCenterX = player.getX() * UNIT_SCALE + UNIT_SCALE / 2;
         float playerCenterY = player.getY() * UNIT_SCALE + UNIT_SCALE / 2;

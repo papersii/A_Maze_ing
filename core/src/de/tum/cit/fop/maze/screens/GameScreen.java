@@ -85,7 +85,6 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
 
     // === 玩家/武器朝向记忆 (队友功能) ===
     private int lastPlayerFacing = 3; // 记录最后水平朝向 (2=左, 3=右)
-    private int lastWeaponFacing = 3;
 
     public GameScreen(MazeRunnerGame game, String saveFilePath) {
         this.game = game;
@@ -888,8 +887,8 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             drawX -= (playerFrame.getRegionWidth() - 16) / 2f;
         }
 
-        // 朝上时先渲染武器（在玩家身后）
-        if (!player.isDead() && dir == 1) {
+        // 朝上或朝左时先渲染武器（在玩家身后）
+        if (!player.isDead() && (dir == 1 || dir == 2)) {
             renderEquippedWeapon(player, dir);
         }
 
@@ -905,8 +904,8 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         game.getSpriteBatch().setColor(oldC);
 
         // === 渲染装备的武器 (队友功能) ===
-        // 朝上时武器在玩家后面，其他方向武器在玩家前面
-        if (!player.isDead() && dir != 1) {
+        // 朝上或朝左时武器在玩家后面，其他方向武器在玩家前面
+        if (!player.isDead() && dir != 1 && dir != 2) {
             renderEquippedWeapon(player, dir);
         }
     }
@@ -994,11 +993,6 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             return;
 
         TextureRegion weaponFrame = weaponAnim.getKeyFrame(stateTime, !player.isAttacking());
-
-        // 更新武器朝向记忆
-        if (dir == 2 || dir == 3) {
-            lastWeaponFacing = dir;
-        }
 
         float playerCenterX = player.getX() * UNIT_SCALE + UNIT_SCALE / 2;
         float playerCenterY = player.getY() * UNIT_SCALE + UNIT_SCALE / 2;
