@@ -76,18 +76,9 @@ public class GameConfig {
 
     // ==================== 实时渲染优化配置 ====================
 
-    /** 空间索引格子大小（格子单位） */
-    public static final int SPATIAL_CELL_SIZE = 8;
+    /** 实体渲染半径（格子单位）- 只渲染玩家附近的实体 */
+    public static final float ENTITY_RENDER_RADIUS = 8f;
 
-    /** 实体更新半径（格子单位）- 与相机无关 */
-    public static final float ENTITY_UPDATE_RADIUS = 25f;
-
-    /** 实体渲染半径（格子单位）- 与相机无关，约等于屏幕对角线一半 */
-    public static final float ENTITY_RENDER_RADIUS = 10f;
-
-    /** 敌人追踪激活半径（格子单位） */
-    public static final float ENEMY_CHASE_RADIUS = 15f;
-
-    /** 敌人巡逻激活半径（格子单位）- 超出则休眠 */
-    public static final float ENEMY_PATROL_RADIUS = 20f;
+    /** 敌人更新距离阈值平方 - 超过此距离跳过更新 (40^2 = 1600) */
+    public static final float ENEMY_UPDATE_DISTANCE_SQUARED = 1600f;
 }

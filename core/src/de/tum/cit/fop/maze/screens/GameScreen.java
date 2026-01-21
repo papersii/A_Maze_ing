@@ -22,7 +22,6 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import de.tum.cit.fop.maze.MazeRunnerGame;
-import de.tum.cit.fop.maze.config.GameConfig;
 import de.tum.cit.fop.maze.config.GameSettings;
 import de.tum.cit.fop.maze.effects.FloatingText;
 import de.tum.cit.fop.maze.model.*;
@@ -467,10 +466,18 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         }
 
         // 3. Render Enemies with Health Bars
-        // 优化：只渲染玩家附近的敌人（使用空间索引查询）
-        float renderRadius = GameConfig.ENTITY_RENDER_RADIUS;
-        List<Enemy> nearbyEnemies = gameWorld.getEnemiesNear(player.getX(), player.getY(), renderRadius);
-        for (Enemy e : nearbyEnemies) {
+        // Note: Now using boar animations with directional support
+        float renderRadius = de.tum.cit.fop.maze.config.GameConfig.ENTITY_RENDER_RADIUS;
+        float renderRadiusSq = renderRadius * renderRadius;
+        float pX = gameWorld.getPlayer().getX();
+        float pY = gameWorld.getPlayer().getY();
+        for (Enemy e : gameWorld.getEnemies()) {
+            // 距离过滤：只渲染玩家渲染半径内的敌人
+            float dx = e.getX() - pX;
+            float dy = e.getY() - pY;
+            if (dx * dx + dy * dy > renderRadiusSq)
+                continue;
+
             // Get directional animation based on enemy velocity
             float vx = e.getVelocityX();
             float vy = e.getVelocityY();
@@ -617,9 +624,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         }
 
         // 4. Mobile Traps (use legacy slime animation)
-        // 优化：只渲染玩家附近的陷阱（使用空间索引查询）
-        List<MobileTrap> nearbyTraps = gameWorld.getTrapsNear(player.getX(), player.getY(), renderRadius);
-        for (MobileTrap trap : nearbyTraps) {
+        for (MobileTrap trap : gameWorld.getMobileTraps()) {
             TextureRegion trapFrame = textureManager.enemyWalk.getKeyFrame(stateTime, true);
             game.getSpriteBatch().draw(trapFrame, trap.getX() * UNIT_SCALE, trap.getY() * UNIT_SCALE);
         }
@@ -638,10 +643,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         renderPlayer(player);
 
         // 6.5 Render Projectiles (队友功能: 弹道渲染)
-        // 优化：只渲染玩家附近的投射物（使用空间索引查询）
-        List<de.tum.cit.fop.maze.model.Projectile> nearbyProjectiles = gameWorld.getProjectilesNear(player.getX(),
-                player.getY(), renderRadius);
-        for (de.tum.cit.fop.maze.model.Projectile p : nearbyProjectiles) {
+        for (de.tum.cit.fop.maze.model.Projectile p : gameWorld.getProjectiles()) {
             TextureRegion projRegion = null;
             String key = p.getTextureKey();
 

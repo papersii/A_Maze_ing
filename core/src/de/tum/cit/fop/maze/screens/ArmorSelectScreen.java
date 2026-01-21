@@ -426,7 +426,7 @@ public class ArmorSelectScreen implements Screen {
     }
 
     private void startGame(DamageType selectedArmorType) {
-        // 通过 LoadingScreen 进入游戏，显示加载进度条
+        // 通过 LoadingScreen 进入游戏，显示加载进度条并预加载所有动画
         game.setScreen(new LoadingScreen(game, mapPath, selectedArmorType, levelConfig.damageType));
     }
 

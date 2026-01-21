@@ -17,7 +17,6 @@ import de.tum.cit.fop.maze.utils.AchievementManager;
 import de.tum.cit.fop.maze.utils.AudioManager;
 import de.tum.cit.fop.maze.utils.GameLogger;
 import de.tum.cit.fop.maze.utils.LootTable;
-import de.tum.cit.fop.maze.utils.SpatialIndex;
 
 import java.util.*;
 
@@ -42,11 +41,6 @@ public class GameWorld {
     private DamageType levelDamageType = DamageType.PHYSICAL; // Default level damage type
     private int levelNumber = 1;
     private List<String> newAchievements = new ArrayList<>(); // Track newly unlocked achievements
-
-    // === 实时渲染优化：空间索引 ===
-    private final SpatialIndex<Enemy> enemyIndex;
-    private final SpatialIndex<MobileTrap> trapIndex;
-    private final SpatialIndex<Projectile> projectileIndex;
 
     private int killCount = 0;
     private int coinsCollected = 0; // Track coins collected this session
@@ -117,11 +111,6 @@ public class GameWorld {
         this.projectiles = new ArrayList<>();
         this.droppedItems = new ArrayList<>();
 
-        // 初始化空间索引
-        this.enemyIndex = new SpatialIndex<>();
-        this.trapIndex = new SpatialIndex<>();
-        this.projectileIndex = new SpatialIndex<>();
-
         // Populate lists from map
         for (GameObject obj : gameMap.getDynamicObjects()) {
             if (obj instanceof Enemy) {
@@ -136,11 +125,8 @@ public class GameWorld {
                     }
                 }
                 enemies.add(enemy);
-                enemyIndex.insert(enemy); // 添加到空间索引
-            } else if (obj instanceof MobileTrap) {
+            } else if (obj instanceof MobileTrap)
                 mobileTraps.add((MobileTrap) obj);
-                trapIndex.insert((MobileTrap) obj); // 添加到空间索引
-            }
         }
 
         // Parse level number from path for scaling
@@ -585,19 +571,24 @@ public class GameWorld {
             }
 
             // Logic moved from GameScreen (Melee)
+            float attackRange = currentWeapon.getRange();
+            float attackRangeSq = attackRange * attackRange; // 用于快速预过滤
             Iterator<Enemy> iter = enemies.iterator();
             while (iter.hasNext()) {
                 Enemy e = iter.next();
                 if (e.isDead())
                     continue;
 
-                float attackRange = currentWeapon.getRange();
-                float dist = Vector2.dst(player.getX(), player.getY(), e.getX(), e.getY());
+                // 快速预过滤：用平方距离跳过明显远的敌人
+                float dx = e.getX() - player.getX();
+                float dy = e.getY() - player.getY();
+                if (dx * dx + dy * dy > attackRangeSq)
+                    continue;
+
+                float dist = (float) Math.sqrt(dx * dx + dy * dy);
 
                 if (dist < attackRange) {
-                    // Angle check
-                    float dx = e.getX() - player.getX();
-                    float dy = e.getY() - player.getY();
+                    // Angle check (复用已计算的 dx/dy)
                     float angle = MathUtils.atan2(dy, dx) * MathUtils.radDeg;
                     if (angle < 0)
                         angle += 360;
@@ -662,32 +653,15 @@ public class GameWorld {
     // --- Private Update Helpers ---
 
     private void updateEnemies(float delta) {
-        // 保留原版逻辑：只更新附近敌人（原版 dst2 > 1600 等效于 40 格距离）
         for (Enemy enemy : enemies) {
             float dst2 = Vector2.dst2(player.getX(), player.getY(), enemy.getX(), enemy.getY());
             if (dst2 > 1600)
                 continue; // Optimization: Don't update far enemies
-
-            float oldX = enemy.getX();
-            float oldY = enemy.getY();
             enemy.update(delta, player, collisionManager, safeGrid);
-
-            // 同步更新空间索引（用于渲染优化）
-            if (oldX != enemy.getX() || oldY != enemy.getY()) {
-                enemyIndex.update(enemy, oldX, oldY);
-            }
         }
+        enemies.removeIf(Enemy::isRemovable);
 
-        // 移除可清除的敌人，同时从索引中删除
-        enemies.removeIf(enemy -> {
-            if (enemy.isRemovable()) {
-                enemyIndex.remove(enemy);
-                return true;
-            }
-            return false;
-        });
-
-        // 恢复原版：碰撞检测遍历所有敌人
+        // Collision with Player
         for (Enemy enemy : enemies) {
             if (Vector2.dst(player.getX(), player.getY(), enemy.getX(), enemy.getY()) < GameSettings.hitDistance) {
                 if (enemy.isDead())
@@ -702,17 +676,8 @@ public class GameWorld {
     }
 
     private void updateTraps(float delta) {
-        // 恢复原版：遍历所有陷阱更新
         for (MobileTrap trap : mobileTraps) {
-            float oldX = trap.getX();
-            float oldY = trap.getY();
             trap.update(delta, collisionManager);
-
-            // 同步更新空间索引（用于渲染优化）
-            if (oldX != trap.getX() || oldY != trap.getY()) {
-                trapIndex.update(trap, oldX, oldY);
-            }
-
             if (Vector2.dst(player.getX(), player.getY(), trap.getX(), trap.getY()) < 0.8f) {
                 if (player.damage(1)) {
                     playerTookDamage = true; // Track for flawless victory
@@ -1035,22 +1000,13 @@ public class GameWorld {
         while (iter.hasNext()) {
             Projectile p = iter.next();
 
-            float oldX = p.getX();
-            float oldY = p.getY();
-
             // Update projectile position
             if (p.update(delta, collisionManager)) {
-                projectileIndex.remove(p); // 从索引中移除
                 iter.remove();
                 continue;
             }
 
-            // 同步更新空间索引（用于渲染优化）
-            if (oldX != p.getX() || oldY != p.getY()) {
-                projectileIndex.update(p, oldX, oldY);
-            }
-
-            // 恢复原版：碰撞检测遍历所有敌人
+            // Check collision with enemies (player projectiles only)
             if (p.isPlayerOwned()) {
                 for (Enemy e : enemies) {
                     if (e.isDead())
@@ -1084,7 +1040,6 @@ public class GameWorld {
 
             // Remove if hit something
             if (p.isExpired()) {
-                projectileIndex.remove(p); // 从索引中移除
                 iter.remove();
             }
         }
@@ -1222,7 +1177,6 @@ public class GameWorld {
     public void spawnEnemy(float x, float y) {
         Enemy newEnemy = new Enemy(x, y);
         enemies.add(newEnemy);
-        enemyIndex.insert(newEnemy); // 添加到空间索引
         GameLogger.info("GameWorld", "Spawned enemy at (" + x + ", " + y + ")");
     }
 
@@ -1298,7 +1252,6 @@ public class GameWorld {
                 textureKey);
 
         projectiles.add(p);
-        projectileIndex.insert(p); // 添加到空间索引
         AudioManager.getInstance().playSound("spell_shoot");
     }
 
@@ -1309,43 +1262,5 @@ public class GameWorld {
                 return true;
         }
         return false;
-    }
-
-    // ==================== 实时渲染优化：区域查询方法 ====================
-
-    /**
-     * 获取指定位置附近的敌人
-     * 
-     * @param x      中心点 X
-     * @param y      中心点 Y
-     * @param radius 查询半径
-     * @return 半径内的敌人列表
-     */
-    public List<Enemy> getEnemiesNear(float x, float y, float radius) {
-        return new ArrayList<>(enemyIndex.queryRadius(x, y, radius));
-    }
-
-    /**
-     * 获取指定位置附近的移动陷阱
-     * 
-     * @param x      中心点 X
-     * @param y      中心点 Y
-     * @param radius 查询半径
-     * @return 半径内的陷阱列表
-     */
-    public List<MobileTrap> getTrapsNear(float x, float y, float radius) {
-        return new ArrayList<>(trapIndex.queryRadius(x, y, radius));
-    }
-
-    /**
-     * 获取指定位置附近的投射物
-     * 
-     * @param x      中心点 X
-     * @param y      中心点 Y
-     * @param radius 查询半径
-     * @return 半径内的投射物列表
-     */
-    public List<Projectile> getProjectilesNear(float x, float y, float radius) {
-        return new ArrayList<>(projectileIndex.queryRadius(x, y, radius));
     }
 }

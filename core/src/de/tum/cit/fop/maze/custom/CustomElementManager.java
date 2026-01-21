@@ -373,7 +373,7 @@ public class CustomElementManager {
                 }
 
                 if (file.exists()) {
-                    // 使用纹理缓存避免重复加载
+                    // 使用纹理缓存避免重复加载和 Auto-padding
                     TextureRegion region = textureCache.get(path);
                     if (region == null) {
                         Texture tex = new Texture(file);
