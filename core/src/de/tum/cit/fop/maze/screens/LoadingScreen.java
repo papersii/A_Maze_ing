@@ -53,6 +53,8 @@ public class LoadingScreen implements Screen {
     private Texture barFillTexture;
     private Texture bgTexture;
 
+    private boolean isEndlessMode = false;
+
     public LoadingScreen(MazeRunnerGame game, String saveFilePath) {
         this.game = game;
         this.saveFilePath = saveFilePath;
@@ -63,7 +65,16 @@ public class LoadingScreen implements Screen {
         createUI();
     }
 
+    /**
+     * Constructor for Endless Mode loading
+     */
+    public LoadingScreen(MazeRunnerGame game) {
+        this(game, null);
+        this.isEndlessMode = true;
+    }
+
     private void createUI() {
+        // ... existing UI creation code ...
         Table root = new Table();
         root.setFillParent(true);
 
@@ -197,7 +208,11 @@ public class LoadingScreen implements Screen {
 
     private void onLoadingComplete() {
         GameLogger.info("LoadingScreen", "Preloading complete, entering game");
-        game.setScreen(new GameScreen(game, saveFilePath));
+        if (isEndlessMode) {
+            game.setScreen(new EndlessGameScreen(game));
+        } else {
+            game.setScreen(new GameScreen(game, saveFilePath));
+        }
     }
 
     @Override

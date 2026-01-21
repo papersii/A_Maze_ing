@@ -81,7 +81,8 @@ public class MenuScreen implements Screen {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 GameLogger.info("MenuScreen", "Endless Mode clicked");
-                game.setScreen(new EndlessGameScreen(game));
+                // Use LoadingScreen for endless mode too
+                game.setScreen(new LoadingScreen(game));
             }
         });
 
