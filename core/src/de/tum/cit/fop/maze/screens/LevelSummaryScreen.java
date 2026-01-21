@@ -669,15 +669,54 @@ public class LevelSummaryScreen implements Screen {
         Gdx.gl.glClearColor(0.05f, 0.05f, 0.05f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Draw background image
+        // Draw background image using Cover mode (same as MenuScreen)
         if (backgroundTexture != null) {
-            game.getSpriteBatch().begin();
-            game.getSpriteBatch().setColor(0.6f, 0.6f, 0.6f, 1f); // Dim it down
-            game.getSpriteBatch().draw(backgroundTexture, 0, 0, stage.getWidth(), stage.getHeight());
-            game.getSpriteBatch().setColor(Color.WHITE);
-            game.getSpriteBatch().end();
+            com.badlogic.gdx.graphics.g2d.SpriteBatch batch = game.getSpriteBatch();
+
+            // Get actual screen size - use backbuffer size for correctness
+            int screenWidth = Gdx.graphics.getBackBufferWidth();
+            int screenHeight = Gdx.graphics.getBackBufferHeight();
+
+            // Reset GL Viewport to full screen
+            Gdx.gl.glViewport(0, 0, screenWidth, screenHeight);
+
+            // Set projection matrix to screen pixel coordinate system
+            batch.getProjectionMatrix().setToOrtho2D(0, 0, screenWidth, screenHeight);
+            batch.begin();
+            batch.setColor(0.6f, 0.6f, 0.6f, 1f); // Dim it down
+
+            // Background texture original size
+            float texWidth = backgroundTexture.getWidth();
+            float texHeight = backgroundTexture.getHeight();
+
+            // Calculate Cover mode scale ratio
+            float screenRatio = (float) screenWidth / screenHeight;
+            float textureRatio = texWidth / texHeight;
+
+            float drawWidth, drawHeight;
+            float drawX, drawY;
+
+            if (screenRatio > textureRatio) {
+                // Screen is wider, fit to width
+                drawWidth = screenWidth;
+                drawHeight = screenWidth / textureRatio;
+                drawX = 0;
+                drawY = (screenHeight - drawHeight) / 2;
+            } else {
+                // Screen is taller, fit to height
+                drawHeight = screenHeight;
+                drawWidth = screenHeight * textureRatio;
+                drawX = (screenWidth - drawWidth) / 2;
+                drawY = 0;
+            }
+
+            batch.draw(backgroundTexture, drawX, drawY, drawWidth, drawHeight);
+            batch.setColor(Color.WHITE);
+            batch.end();
         }
 
+        // Restore Stage's Viewport
+        stage.getViewport().apply();
         stage.act(delta);
         stage.draw();
     }

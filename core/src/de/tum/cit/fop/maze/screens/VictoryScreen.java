@@ -264,18 +264,51 @@ public class VictoryScreen implements Screen {
         Gdx.gl.glClearColor(0, 0.2f, 0, 1); // Dark Green Background (Fallback)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Draw Background
-        game.getSpriteBatch().begin();
-        // Crop bottom-right 10% by using UV coordinates 0.0 to 0.9
-        game.getSpriteBatch().draw(backgroundTexture,
-                0, 0, stage.getViewport().getScreenWidth(), stage.getViewport().getScreenHeight(),
-                0, 0.9f, 0.9f, 0);
-        game.getSpriteBatch().end();
+        // Draw Background using Cover mode (same as MenuScreen)
+        com.badlogic.gdx.graphics.g2d.SpriteBatch batch = game.getSpriteBatch();
 
-        // Render Particles
-        // particleSystem.updateAndDrawRefactored(delta,
-        // stage.getViewport().getScreenWidth(), stage.getViewport().getScreenHeight());
+        // Get actual screen size - use backbuffer size for correctness
+        int screenWidth = Gdx.graphics.getBackBufferWidth();
+        int screenHeight = Gdx.graphics.getBackBufferHeight();
 
+        // Reset GL Viewport to full screen
+        Gdx.gl.glViewport(0, 0, screenWidth, screenHeight);
+
+        // Set projection matrix to screen pixel coordinate system
+        batch.getProjectionMatrix().setToOrtho2D(0, 0, screenWidth, screenHeight);
+        batch.begin();
+
+        // Background texture original size
+        float texWidth = backgroundTexture.getWidth();
+        float texHeight = backgroundTexture.getHeight();
+
+        // Calculate Cover mode scale ratio
+        // Cover: maintain aspect ratio, ensure image covers entire screen (may crop)
+        float screenRatio = (float) screenWidth / screenHeight;
+        float textureRatio = texWidth / texHeight;
+
+        float drawWidth, drawHeight;
+        float drawX, drawY;
+
+        if (screenRatio > textureRatio) {
+            // Screen is wider, fit to width, height may overflow
+            drawWidth = screenWidth;
+            drawHeight = screenWidth / textureRatio;
+            drawX = 0;
+            drawY = (screenHeight - drawHeight) / 2; // Center vertically
+        } else {
+            // Screen is taller, fit to height, width may overflow
+            drawHeight = screenHeight;
+            drawWidth = screenHeight * textureRatio;
+            drawX = (screenWidth - drawWidth) / 2; // Center horizontally
+            drawY = 0;
+        }
+
+        batch.draw(backgroundTexture, drawX, drawY, drawWidth, drawHeight);
+        batch.end();
+
+        // Restore Stage's Viewport (this will reset the correct glViewport)
+        stage.getViewport().apply();
         stage.act(delta);
         stage.draw();
     }
