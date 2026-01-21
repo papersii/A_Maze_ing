@@ -35,7 +35,7 @@
 		"class": "java.util.HashMap",
 		"damage": {
 			"class": "java.lang.Integer",
-			"value": 10
+			"value": 1
 		},
 		"effect": {
 			"class": "java.lang.String",
