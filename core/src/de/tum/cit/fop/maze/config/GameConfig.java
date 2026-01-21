@@ -83,7 +83,7 @@ public class GameConfig {
     public static final float ENTITY_UPDATE_RADIUS = 25f;
 
     /** 实体渲染半径（格子单位）- 与相机无关，约等于屏幕对角线一半 */
-    public static final float ENTITY_RENDER_RADIUS = 15f;
+    public static final float ENTITY_RENDER_RADIUS = 10f;
 
     /** 敌人追踪激活半径（格子单位） */
     public static final float ENEMY_CHASE_RADIUS = 15f;

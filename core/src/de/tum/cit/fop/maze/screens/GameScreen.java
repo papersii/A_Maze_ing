@@ -1048,10 +1048,15 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         float viewW = camera.viewportWidth * camera.zoom;
         float viewH = camera.viewportHeight * camera.zoom;
 
-        if (mapW > viewW) {
+        // 当视野大于地图时居中相机，否则 clamp 到地图边界
+        if (mapW <= viewW) {
+            camera.position.x = mapW / 2;
+        } else {
             camera.position.x = MathUtils.clamp(camera.position.x, viewW / 2, mapW - viewW / 2);
         }
-        if (mapH > viewH) {
+        if (mapH <= viewH) {
+            camera.position.y = mapH / 2;
+        } else {
             camera.position.y = MathUtils.clamp(camera.position.y, viewH / 2, mapH - viewH / 2);
         }
 

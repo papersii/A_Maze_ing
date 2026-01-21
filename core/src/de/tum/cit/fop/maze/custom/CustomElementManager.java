@@ -31,9 +31,14 @@ public class CustomElementManager {
     // Cache for loaded animations: Key = "elementId:action"
     private Map<String, Animation<TextureRegion>> animationCache;
 
+    // Cache for loaded textures: Key = file path, prevents duplicate loading and
+    // padding
+    private Map<String, TextureRegion> textureCache;
+
     private CustomElementManager() {
         elements = new HashMap<>();
         animationCache = new HashMap<>();
+        textureCache = new HashMap<>();
         json = new Json();
         json.setOutputType(JsonWriter.OutputType.json);
         loadElements();
@@ -368,8 +373,14 @@ public class CustomElementManager {
                 }
 
                 if (file.exists()) {
-                    Texture tex = new Texture(file);
-                    frames.add(createCroppedRegion(tex));
+                    // 使用纹理缓存避免重复加载
+                    TextureRegion region = textureCache.get(path);
+                    if (region == null) {
+                        Texture tex = new Texture(file);
+                        region = createCroppedRegion(tex);
+                        textureCache.put(path, region);
+                    }
+                    frames.add(region);
                 } else {
                     GameLogger.error("CustomElementManager", "Texture not found: " + path);
                 }

@@ -51,8 +51,8 @@ public class ArmorSelectScreen implements Screen {
     public ArmorSelectScreen(MazeRunnerGame game, String mapPath) {
         this.game = game;
         this.mapPath = mapPath;
-        this.stage = new Stage(new FitViewport(UIConstants.VIEWPORT_WIDTH, UIConstants.VIEWPORT_HEIGHT), 
-                               game.getSpriteBatch());
+        this.stage = new Stage(new FitViewport(UIConstants.VIEWPORT_WIDTH, UIConstants.VIEWPORT_HEIGHT),
+                game.getSpriteBatch());
 
         // Load level config to get suggested armor
         MapLoader.LoadResult result = MapLoader.loadMapWithConfig(mapPath);
@@ -107,8 +107,8 @@ public class ArmorSelectScreen implements Screen {
         warningBanner.pad(12, 30, 12, 30);
 
         String dangerType = levelConfig.damageType == DamageType.MAGICAL ? "MAGICAL" : "PHYSICAL";
-        Color dangerColor = levelConfig.damageType == DamageType.MAGICAL 
-                ? UIConstants.DANGER_MAGICAL 
+        Color dangerColor = levelConfig.damageType == DamageType.MAGICAL
+                ? UIConstants.DANGER_MAGICAL
                 : UIConstants.DANGER_PHYSICAL;
 
         Label warningIcon = new Label("⚠", game.getSkin());
@@ -124,8 +124,8 @@ public class ArmorSelectScreen implements Screen {
         root.add(warningBanner).padBottom(15).row();
 
         // Recommendation Label
-        String suggestedName = levelConfig.suggestedArmor == DamageType.MAGICAL 
-                ? "Arcane Robe (Magical)" 
+        String suggestedName = levelConfig.suggestedArmor == DamageType.MAGICAL
+                ? "Arcane Robe (Magical)"
                 : "Iron Shield (Physical)";
         Label suggestionLabel = new Label("Recommended: " + suggestedName, game.getSkin());
         suggestionLabel.setColor(UIConstants.ARMOR_RECOMMENDED_GLOW);
@@ -170,10 +170,10 @@ public class ArmorSelectScreen implements Screen {
 
     private Table createArmorCard(String name, String type, String description,
             String icon, Color themeColor, DamageType armorType, boolean isRecommended) {
-        
+
         final Table card = new Table();
         card.pad(15, 25, 15, 25);
-        
+
         // Apply glassmorphism background with gradient border
         if (isRecommended) {
             card.setBackground(createGlowingCardBackground(themeColor, UIConstants.ARMOR_RECOMMENDED_GLOW));
@@ -208,12 +208,12 @@ public class ArmorSelectScreen implements Screen {
             Table badgeContainer = new Table();
             badgeContainer.setBackground(createBadgeBackground());
             badgeContainer.pad(5, 12, 5, 12);
-            
+
             Label badgeLabel = new Label("★ RECOMMENDED", game.getSkin());
             badgeLabel.setColor(UIConstants.ARMOR_RECOMMENDED_GLOW);
             badgeLabel.setFontScale(0.6f);
             badgeContainer.add(badgeLabel);
-            
+
             card.add(badgeContainer).padBottom(10).row();
         }
 
@@ -329,8 +329,8 @@ public class ArmorSelectScreen implements Screen {
         Texture texture = new Texture(pm);
         pm.dispose();
 
-        NinePatch patch = new NinePatch(texture, borderThickness + 2, borderThickness + 2, 
-                                        borderThickness + 2, borderThickness + 2);
+        NinePatch patch = new NinePatch(texture, borderThickness + 2, borderThickness + 2,
+                borderThickness + 2, borderThickness + 2);
         return new NinePatchDrawable(patch);
     }
 
@@ -356,23 +356,23 @@ public class ArmorSelectScreen implements Screen {
 
         // Draw inner border (gradient effect - top/left lighter)
         pm.setColor(new Color(glowColor.r, glowColor.g, glowColor.b, 0.7f));
-        pm.fillRectangle(glowThickness, glowThickness, size - 2*glowThickness, borderThickness);
-        pm.fillRectangle(glowThickness, glowThickness, borderThickness, size - 2*glowThickness);
+        pm.fillRectangle(glowThickness, glowThickness, size - 2 * glowThickness, borderThickness);
+        pm.fillRectangle(glowThickness, glowThickness, borderThickness, size - 2 * glowThickness);
 
         // Bottom/right slightly darker
         pm.setColor(new Color(borderColor.r, borderColor.g, borderColor.b, 0.6f));
-        pm.fillRectangle(glowThickness, size - glowThickness - borderThickness, 
-                         size - 2*glowThickness, borderThickness);
-        pm.fillRectangle(size - glowThickness - borderThickness, glowThickness, 
-                         borderThickness, size - 2*glowThickness);
+        pm.fillRectangle(glowThickness, size - glowThickness - borderThickness,
+                size - 2 * glowThickness, borderThickness);
+        pm.fillRectangle(size - glowThickness - borderThickness, glowThickness,
+                borderThickness, size - 2 * glowThickness);
 
         Texture texture = new Texture(pm);
         pm.dispose();
 
-        NinePatch patch = new NinePatch(texture, glowThickness + borderThickness + 2, 
-                                        glowThickness + borderThickness + 2,
-                                        glowThickness + borderThickness + 2, 
-                                        glowThickness + borderThickness + 2);
+        NinePatch patch = new NinePatch(texture, glowThickness + borderThickness + 2,
+                glowThickness + borderThickness + 2,
+                glowThickness + borderThickness + 2,
+                glowThickness + borderThickness + 2);
         return new NinePatchDrawable(patch);
     }
 
@@ -413,9 +413,9 @@ public class ArmorSelectScreen implements Screen {
         pm.fill();
 
         // Golden border
-        pm.setColor(new Color(UIConstants.ARMOR_RECOMMENDED_GLOW.r, 
-                              UIConstants.ARMOR_RECOMMENDED_GLOW.g, 
-                              UIConstants.ARMOR_RECOMMENDED_GLOW.b, 0.5f));
+        pm.setColor(new Color(UIConstants.ARMOR_RECOMMENDED_GLOW.r,
+                UIConstants.ARMOR_RECOMMENDED_GLOW.g,
+                UIConstants.ARMOR_RECOMMENDED_GLOW.b, 0.5f));
         pm.drawRectangle(0, 0, size, size);
 
         Texture texture = new Texture(pm);
@@ -426,22 +426,8 @@ public class ArmorSelectScreen implements Screen {
     }
 
     private void startGame(DamageType selectedArmorType) {
-        // Create GameScreen with armor pre-equipped
-        GameScreen gameScreen = new GameScreen(game, mapPath, true);
-
-        // Equip armor if selected
-        if (selectedArmorType != null) {
-            if (selectedArmorType == DamageType.PHYSICAL) {
-                gameScreen.getGameWorld().getPlayer().equipArmor(new PhysicalArmor(0, 0));
-            } else {
-                gameScreen.getGameWorld().getPlayer().equipArmor(new MagicalArmor(0, 0));
-            }
-        }
-
-        // Apply level damage type to enemies
-        gameScreen.getGameWorld().setLevelDamageType(levelConfig.damageType);
-
-        game.setScreen(gameScreen);
+        // 通过 LoadingScreen 进入游戏，显示加载进度条
+        game.setScreen(new LoadingScreen(game, mapPath, selectedArmorType, levelConfig.damageType));
     }
 
     @Override
@@ -466,13 +452,13 @@ public class ArmorSelectScreen implements Screen {
             float screenHeight = stage.getHeight();
             float texWidth = backgroundTexture.getWidth();
             float texHeight = backgroundTexture.getHeight();
-            
+
             float scale = Math.max(screenWidth / texWidth, screenHeight / texHeight);
             float drawWidth = texWidth * scale;
             float drawHeight = texHeight * scale;
             float drawX = (screenWidth - drawWidth) / 2f;
             float drawY = (screenHeight - drawHeight) / 2f;
-            
+
             game.getSpriteBatch().setColor(0.7f, 0.7f, 0.7f, 1f); // Slightly dimmed
             game.getSpriteBatch().draw(backgroundTexture, drawX, drawY, drawWidth, drawHeight);
             game.getSpriteBatch().setColor(Color.WHITE);

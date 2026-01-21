@@ -37,187 +37,185 @@ public class GameWorldTest {
 
     @BeforeEach
     public void setup() {
-        // Mock Gdx.files if null
-        if (Gdx.files == null) {
-            Gdx.files = new Files() {
-                @Override
-                public FileHandle getFileHandle(String path, FileType type) {
-                    return new FileHandle(path);
-                }
+        // Always mock Gdx.files to ensure isolation
+        Gdx.files = new Files() {
+            @Override
+            public FileHandle getFileHandle(String path, FileType type) {
+                return new FileHandle(path);
+            }
 
-                @Override
-                public FileHandle classpath(String path) {
-                    return new FileHandle(path);
-                }
+            @Override
+            public FileHandle classpath(String path) {
+                return new FileHandle(path);
+            }
 
-                @Override
-                public FileHandle internal(String path) {
-                    return new FileHandle(path);
-                }
+            @Override
+            public FileHandle internal(String path) {
+                return new FileHandle(path);
+            }
 
-                @Override
-                public FileHandle external(String path) {
-                    return new FileHandle(path);
-                }
+            @Override
+            public FileHandle external(String path) {
+                return new FileHandle(path);
+            }
 
-                @Override
-                public FileHandle absolute(String path) {
-                    return new FileHandle(path);
-                }
+            @Override
+            public FileHandle absolute(String path) {
+                return new FileHandle(path);
+            }
 
-                @Override
-                public FileHandle local(String path) {
-                    return new FileHandle(path);
-                }
+            @Override
+            public FileHandle local(String path) {
+                return new FileHandle(path);
+            }
 
-                @Override
-                public String getExternalStoragePath() {
-                    return "";
-                }
+            @Override
+            public String getExternalStoragePath() {
+                return "";
+            }
 
-                @Override
-                public boolean isExternalStorageAvailable() {
-                    return true;
-                }
+            @Override
+            public boolean isExternalStorageAvailable() {
+                return true;
+            }
 
-                @Override
-                public String getLocalStoragePath() {
-                    return "";
-                }
+            @Override
+            public String getLocalStoragePath() {
+                return "";
+            }
 
-                @Override
-                public boolean isLocalStorageAvailable() {
-                    return true;
-                }
-            };
-        }
+            @Override
+            public boolean isLocalStorageAvailable() {
+                return true;
+            }
+        };
 
-        // Mock Gdx.app if null
-        if (Gdx.app == null) {
-            Gdx.app = (Application) java.lang.reflect.Proxy.newProxyInstance(
-                    Application.class.getClassLoader(),
-                    new Class[] { Application.class },
-                    (proxy, method, args) -> {
-                        if (method.getName().equals("getPreferences")) {
-                            return new Preferences() {
+        // Always mock Gdx.app
+        Gdx.app = (Application) java.lang.reflect.Proxy.newProxyInstance(
+                Application.class.getClassLoader(),
+                new Class[] { Application.class },
+                (proxy, method, args) -> {
+                    if (method.getName().equals("getPreferences")) {
+                        return new Preferences() {
 
-                                @Override
-                                public Preferences putBoolean(String key, boolean val) {
-                                    return this;
-                                }
+                            @Override
+                            public Preferences putBoolean(String key, boolean val) {
+                                return this;
+                            }
 
-                                @Override
-                                public Preferences putInteger(String key, int val) {
-                                    return this;
-                                }
+                            @Override
+                            public Preferences putInteger(String key, int val) {
+                                return this;
+                            }
 
-                                @Override
-                                public Preferences putLong(String key, long val) {
-                                    return this;
-                                }
+                            @Override
+                            public Preferences putLong(String key, long val) {
+                                return this;
+                            }
 
-                                @Override
-                                public Preferences putFloat(String key, float val) {
-                                    return this;
-                                }
+                            @Override
+                            public Preferences putFloat(String key, float val) {
+                                return this;
+                            }
 
-                                @Override
-                                public Preferences putString(String key, String val) {
-                                    return this;
-                                }
+                            @Override
+                            public Preferences putString(String key, String val) {
+                                return this;
+                            }
 
-                                @Override
-                                public Preferences put(Map<String, ?> vals) {
-                                    return this;
-                                }
+                            @Override
+                            public Preferences put(Map<String, ?> vals) {
+                                return this;
+                            }
 
-                                @Override
-                                public boolean getBoolean(String key) {
-                                    return false;
-                                }
+                            @Override
+                            public boolean getBoolean(String key) {
+                                return false;
+                            }
 
-                                @Override
-                                public int getInteger(String key) {
-                                    return 0;
-                                }
+                            @Override
+                            public int getInteger(String key) {
+                                return 0;
+                            }
 
-                                @Override
-                                public long getLong(String key) {
-                                    return 0;
-                                }
+                            @Override
+                            public long getLong(String key) {
+                                return 0;
+                            }
 
-                                @Override
-                                public float getFloat(String key) {
-                                    return 0;
-                                }
+                            @Override
+                            public float getFloat(String key) {
+                                return 0;
+                            }
 
-                                @Override
-                                public String getString(String key) {
-                                    return "";
-                                }
+                            @Override
+                            public String getString(String key) {
+                                return "";
+                            }
 
-                                @Override
-                                public boolean getBoolean(String key, boolean def) {
-                                    return def;
-                                }
+                            @Override
+                            public boolean getBoolean(String key, boolean def) {
+                                return def;
+                            }
 
-                                @Override
-                                public int getInteger(String key, int def) {
-                                    return def;
-                                }
+                            @Override
+                            public int getInteger(String key, int def) {
+                                return def;
+                            }
 
-                                @Override
-                                public long getLong(String key, long def) {
-                                    return def;
-                                }
+                            @Override
+                            public long getLong(String key, long def) {
+                                return def;
+                            }
 
-                                @Override
-                                public float getFloat(String key, float def) {
-                                    return def;
-                                }
+                            @Override
+                            public float getFloat(String key, float def) {
+                                return def;
+                            }
 
-                                @Override
-                                public String getString(String key, String def) {
-                                    return def;
-                                }
+                            @Override
+                            public String getString(String key, String def) {
+                                return def;
+                            }
 
-                                @Override
-                                public Map<String, ?> get() {
-                                    return new HashMap<>();
-                                }
+                            @Override
+                            public Map<String, ?> get() {
+                                return new HashMap<>();
+                            }
 
-                                @Override
-                                public boolean contains(String key) {
-                                    return false;
-                                }
+                            @Override
+                            public boolean contains(String key) {
+                                return false;
+                            }
 
-                                @Override
-                                public void clear() {
-                                }
+                            @Override
+                            public void clear() {
+                            }
 
-                                @Override
-                                public void remove(String key) {
-                                }
+                            @Override
+                            public void remove(String key) {
+                            }
 
-                                @Override
-                                public void flush() {
-                                }
-                            };
-                        }
-                        if (method.getName().equals("log") || method.getName().equals("error")
-                                || method.getName().equals("debug")) {
-                            return null;
-                        }
-                        if (method.getReturnType().equals(int.class))
-                            return 0;
-                        if (method.getReturnType().equals(boolean.class))
-                            return false;
+                            @Override
+                            public void flush() {
+                            }
+                        };
+                    }
+                    if (method.getName().equals("log") || method.getName().equals("error")
+                            || method.getName().equals("debug")) {
                         return null;
-                    });
-        }
+                    }
+                    if (method.getReturnType().equals(int.class))
+                        return 0;
+                    if (method.getReturnType().equals(boolean.class))
+                        return false;
+                    return null;
+                });
 
         // Clear singleton to ensure clean state
-        try {
+        try
+
+        {
             CustomElementManager.getInstance().clearAll();
         } catch (
 

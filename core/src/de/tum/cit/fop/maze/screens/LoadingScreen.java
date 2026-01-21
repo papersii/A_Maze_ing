@@ -55,6 +55,10 @@ public class LoadingScreen implements Screen {
 
     private boolean isEndlessMode = false;
 
+    // 护甲选择相关字段
+    private de.tum.cit.fop.maze.model.DamageType selectedArmorType = null;
+    private de.tum.cit.fop.maze.model.DamageType levelDamageType = null;
+
     public LoadingScreen(MazeRunnerGame game, String saveFilePath) {
         this.game = game;
         this.saveFilePath = saveFilePath;
@@ -71,6 +75,17 @@ public class LoadingScreen implements Screen {
     public LoadingScreen(MazeRunnerGame game) {
         this(game, null);
         this.isEndlessMode = true;
+    }
+
+    /**
+     * Constructor with armor selection (from ArmorSelectScreen)
+     */
+    public LoadingScreen(MazeRunnerGame game, String mapPath,
+            de.tum.cit.fop.maze.model.DamageType selectedArmorType,
+            de.tum.cit.fop.maze.model.DamageType levelDamageType) {
+        this(game, mapPath);
+        this.selectedArmorType = selectedArmorType;
+        this.levelDamageType = levelDamageType;
     }
 
     private void createUI() {
@@ -211,7 +226,25 @@ public class LoadingScreen implements Screen {
         if (isEndlessMode) {
             game.setScreen(new EndlessGameScreen(game));
         } else {
-            game.setScreen(new GameScreen(game, saveFilePath));
+            GameScreen gameScreen = new GameScreen(game, saveFilePath, true);
+
+            // 应用护甲选择
+            if (selectedArmorType != null) {
+                if (selectedArmorType == de.tum.cit.fop.maze.model.DamageType.PHYSICAL) {
+                    gameScreen.getGameWorld().getPlayer().equipArmor(
+                            new de.tum.cit.fop.maze.model.items.PhysicalArmor(0, 0));
+                } else {
+                    gameScreen.getGameWorld().getPlayer().equipArmor(
+                            new de.tum.cit.fop.maze.model.items.MagicalArmor(0, 0));
+                }
+            }
+
+            // 应用关卡伤害类型
+            if (levelDamageType != null) {
+                gameScreen.getGameWorld().setLevelDamageType(levelDamageType);
+            }
+
+            game.setScreen(gameScreen);
         }
     }
 
