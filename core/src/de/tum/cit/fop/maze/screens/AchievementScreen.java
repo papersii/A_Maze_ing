@@ -113,13 +113,14 @@ public class AchievementScreen implements Screen {
 
         // === Back Button ===
         TextButton backBtn = new TextButton("Back to Menu", skin);
+        backBtn.getLabel().setFontScale(0.9f); // 缩小字体确保不超出边框
         backBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 game.goToMenu();
             }
         });
-        rootTable.add(backBtn).width(200).height(50).pad(20);
+        rootTable.add(backBtn).width(280).height(50).pad(20);
     }
 
     private void buildHeader() {
@@ -155,12 +156,13 @@ public class AchievementScreen implements Screen {
 
         // Calculate button width: 1600px total width / 7 buttons - padding
         // Need to fit: ALL + 6 categories = 7 buttons
-        float buttonWidth = 180f; // Compact width for each button
+        // 7 buttons * 200 + 6 gaps * 5 = 1430, fits within 1600
+        float buttonWidth = 200f; // Generous width to ensure text fits
         float buttonHeight = 45f;
 
         // ALL tab
         TextButton allBtn = createCategoryButton("ALL", null);
-        tabsTable.add(allBtn).width(buttonWidth).height(buttonHeight).padRight(8);
+        tabsTable.add(allBtn).width(buttonWidth).height(buttonHeight).padRight(5);
 
         // Category tabs - use shorter labels to fit
         for (AchievementCategory cat : AchievementCategory.values()) {
@@ -169,7 +171,7 @@ public class AchievementScreen implements Screen {
                     Math.min(4, cat.getDisplayName().length()));
             String label = cat.getIcon() + " " + abbrev;
             TextButton catBtn = createCategoryButton(label, cat);
-            tabsTable.add(catBtn).width(buttonWidth).height(buttonHeight).padRight(8);
+            tabsTable.add(catBtn).width(buttonWidth).height(buttonHeight).padRight(5);
         }
 
         // Wrap in a horizontal scroll pane as fallback for very small screens
@@ -183,6 +185,8 @@ public class AchievementScreen implements Screen {
 
     private TextButton createCategoryButton(String label, AchievementCategory category) {
         TextButton btn = new TextButton(label, skin);
+        // Scale down font to ensure text fits within button bounds
+        btn.getLabel().setFontScale(0.85f);
         btn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {

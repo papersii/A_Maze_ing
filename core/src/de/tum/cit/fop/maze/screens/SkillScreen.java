@@ -18,12 +18,20 @@ public class SkillScreen implements Screen {
 
     private final MazeRunnerGame game;
     private final String currentLevel;
+    private final boolean isVictory; // 追踪玩家是胜利还是失败进入的
     private Stage stage;
     private GameState gameState;
 
-    public SkillScreen(MazeRunnerGame game, String currentLevel) {
+    /**
+     * 构造函数 - 需要知道玩家是胜利还是失败进入 Skill Tree
+     * @param game 游戏实例
+     * @param currentLevel 当前关卡路径
+     * @param isVictory true=胜利后进入, false=失败后进入
+     */
+    public SkillScreen(MazeRunnerGame game, String currentLevel, boolean isVictory) {
         this.game = game;
         this.currentLevel = currentLevel;
+        this.isVictory = isVictory;
 
         // Load the victory state
         this.gameState = SaveManager.loadGame("auto_save_victory.json");
@@ -156,14 +164,27 @@ public class SkillScreen implements Screen {
 
         rootTable.add(scrollPane).expand().fill().pad(40).row();
 
-        // 4. Done Button
+        // 4. Done Button - 根据isVictory返回正确界面
         TextButton doneBtn = new TextButton("Done / Continue", skin);
         doneBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 SaveManager.saveGame(gameState, "auto_save_victory");
                 SaveManager.saveGame(gameState, "auto_save");
-                game.setScreen(new VictoryScreen(game, currentLevel));
+                
+                // 根据进入时的状态返回正确界面
+                if (isVictory) {
+                    // 胜利后返回 VictoryScreen
+                    game.setScreen(new VictoryScreen(game, currentLevel));
+                } else {
+                    // 失败后返回 LevelSummaryScreen (Defeat 模式)
+                    de.tum.cit.fop.maze.model.LevelSummaryData defeatData = 
+                        new de.tum.cit.fop.maze.model.LevelSummaryData(
+                            de.tum.cit.fop.maze.model.LevelSummaryData.Result.DEFEAT, 
+                            currentLevel
+                        );
+                    game.setScreen(new LevelSummaryScreen(game, defeatData));
+                }
             }
         });
         rootTable.add(doneBtn).width(300).height(60).padBottom(20);
@@ -185,7 +206,7 @@ public class SkillScreen implements Screen {
                 onBuy.run();
             }
         });
-        table.add(buyBtn).width(200).height(60).padBottom(40); // Increased height and bottom padding
+        table.add(buyBtn).width(260).height(60).padBottom(40); // 增加宽度确保文字不超出
         table.row();
     }
 

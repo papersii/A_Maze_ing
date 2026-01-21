@@ -141,7 +141,7 @@ public class VictoryScreen implements Screen {
         skillBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                game.setScreen(new SkillScreen(game, lastMapPath));
+                game.setScreen(new SkillScreen(game, lastMapPath, true));
             }
         });
         table.add(skillBtn).width(300).height(60).padBottom(15).row();

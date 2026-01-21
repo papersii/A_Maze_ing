@@ -476,7 +476,7 @@ public class LevelSummaryScreen implements Screen {
         skillBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                game.setScreen(new SkillScreen(game, data.getMapPath()));
+                game.setScreen(new SkillScreen(game, data.getMapPath(), data.isVictory()));
             }
         });
         secondary.add(skillBtn).width(130).height(50).padRight(12);
