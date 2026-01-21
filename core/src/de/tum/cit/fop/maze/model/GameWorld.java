@@ -115,15 +115,8 @@ public class GameWorld {
         for (GameObject obj : gameMap.getDynamicObjects()) {
             if (obj instanceof Enemy) {
                 Enemy enemy = (Enemy) obj;
-                // Assign type based on map theme
-                String theme = gameMap.getTheme();
-                if (theme != null) {
-                    if ("Grassland".equalsIgnoreCase(theme)) {
-                        enemy.setEnemyType(Enemy.EnemyType.BOAR);
-                    } else if ("Desert".equalsIgnoreCase(theme)) {
-                        enemy.setEnemyType(Enemy.EnemyType.SCORPION);
-                    }
-                }
+                // 统一使用第一关的怪物素材 (BOAR)
+                enemy.setEnemyType(Enemy.EnemyType.BOAR);
                 enemies.add(enemy);
             } else if (obj instanceof MobileTrap)
                 mobileTraps.add((MobileTrap) obj);

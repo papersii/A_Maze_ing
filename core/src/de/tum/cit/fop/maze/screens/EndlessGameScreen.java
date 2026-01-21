@@ -27,9 +27,11 @@ import de.tum.cit.fop.maze.effects.FloatingText;
 import de.tum.cit.fop.maze.model.*;
 import de.tum.cit.fop.maze.model.items.Potion;
 import de.tum.cit.fop.maze.model.weapons.Weapon;
+import de.tum.cit.fop.maze.model.weapons.WeaponEffect;
 import de.tum.cit.fop.maze.ui.EndlessHUD;
 import de.tum.cit.fop.maze.ui.ChestInteractUI;
 import de.tum.cit.fop.maze.utils.*;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -112,6 +114,9 @@ public class EndlessGameScreen implements Screen {
 
     // === 敌人刷新 ===
     private Random spawnRandom;
+
+    // === 灰度Shader (对齐关卡模式死亡效果) ===
+    private ShaderProgram grayscaleShader;
 
     public EndlessGameScreen(MazeRunnerGame game) {
         this(game, null);
@@ -784,34 +789,145 @@ public class EndlessGameScreen implements Screen {
             renderChunk(chunk, floor);
         }
 
-        // 渲染敌人 (使用主题敌人动画)
+        // 渲染敌人 (对齐关卡模式: 自定义元素 + 状态特效 + 血条 + 灰度Shader)
         for (Enemy e : enemies) {
-            // 获取敌人类型对应的方向性动画
-            com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> enemyAnim = textureManager
-                    .getEnemyAnimation(e.getType(), e.getVelocityX(), e.getVelocityY());
-            TextureRegion enemyFrame = enemyAnim.getKeyFrame(stateTime, true);
+            // === 1. 自定义元素支持 ===
+            com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> enemyAnim = null;
+            boolean isCustom = false;
 
-            if (e.isDead()) {
+            if (e.getCustomElementId() != null) {
+                String action = e.isDead() ? "Death" : "Move";
+                enemyAnim = de.tum.cit.fop.maze.custom.CustomElementManager.getInstance()
+                        .getAnimation(e.getCustomElementId(), action);
+                if (enemyAnim != null)
+                    isCustom = true;
+            }
+
+            if (enemyAnim == null) {
+                enemyAnim = textureManager.getEnemyAnimation(e.getType(), e.getVelocityX(), e.getVelocityY());
+            }
+
+            // === 2. 状态特效渲染 ===
+            TextureRegion currentFrame;
+            if (isCustom && e.isDead()) {
+                currentFrame = enemyAnim.getKeyFrame(stateTime, false);
+                game.getSpriteBatch().setColor(Color.WHITE);
+            } else if (e.isDead()) {
+                currentFrame = enemyAnim.getKeyFrame(0); // 死亡时静态帧
                 game.getSpriteBatch().setColor(Color.GRAY);
             } else if (e.isHurt()) {
-                game.getSpriteBatch().setColor(Color.RED);
-            }
-
-            // 渲染敌人 (与关卡模式渲染方式一致)
-            float drawWidth = 16f;
-            float drawHeight = 16f;
-            float drawX = e.getX() * UNIT_SCALE - (drawWidth - UNIT_SCALE) / 2;
-            float drawY = e.getY() * UNIT_SCALE - (drawHeight - UNIT_SCALE) / 2;
-
-            // 移动方向向左时翻转
-            boolean flipX = e.getVelocityX() < 0;
-            if (flipX) {
-                game.getSpriteBatch().draw(enemyFrame, drawX + drawWidth, drawY, -drawWidth, drawHeight);
+                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
+                game.getSpriteBatch().setColor(1f, 0f, 0f, 1f); // 受伤红闪
+            } else if (e.getCurrentEffect() == WeaponEffect.FREEZE) {
+                currentFrame = enemyAnim.getKeyFrame(0); // 冰冻静止
+                game.getSpriteBatch().setColor(0.5f, 0.5f, 1f, 1f); // 蓝色
+            } else if (e.getCurrentEffect() == WeaponEffect.BURN) {
+                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
+                game.getSpriteBatch().setColor(1f, 0.5f, 0.5f, 1f); // 红色
+            } else if (e.getCurrentEffect() == WeaponEffect.POISON) {
+                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
+                game.getSpriteBatch().setColor(0.5f, 1f, 0.5f, 1f); // 绿色
             } else {
-                game.getSpriteBatch().draw(enemyFrame, drawX, drawY, drawWidth, drawHeight);
+                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
             }
 
+            if (e.getHealth() > 0 || e.isDead()) {
+                // === 3. 灰度Shader死亡效果 ===
+                if (e.isDead()) {
+                    if (grayscaleShader == null) {
+                        String vertexShader = "attribute vec4 "
+                                + com.badlogic.gdx.graphics.glutils.ShaderProgram.POSITION_ATTRIBUTE + ";\n"
+                                + "attribute vec4 " + com.badlogic.gdx.graphics.glutils.ShaderProgram.COLOR_ATTRIBUTE
+                                + ";\n"
+                                + "attribute vec2 " + com.badlogic.gdx.graphics.glutils.ShaderProgram.TEXCOORD_ATTRIBUTE
+                                + "0;\n"
+                                + "uniform mat4 u_projTrans;\n"
+                                + "varying vec4 v_color;\n"
+                                + "varying vec2 v_texCoords;\n"
+                                + "\n"
+                                + "void main()\n"
+                                + "{\n"
+                                + "   v_color = " + com.badlogic.gdx.graphics.glutils.ShaderProgram.COLOR_ATTRIBUTE
+                                + ";\n"
+                                + "   v_color.a = v_color.a * (255.0/254.0);\n"
+                                + "   v_texCoords = "
+                                + com.badlogic.gdx.graphics.glutils.ShaderProgram.TEXCOORD_ATTRIBUTE + "0;\n"
+                                + "   gl_Position =  u_projTrans * "
+                                + com.badlogic.gdx.graphics.glutils.ShaderProgram.POSITION_ATTRIBUTE + ";\n"
+                                + "}\n";
+                        String fragmentShader = "#ifdef GL_ES\n"
+                                + "precision mediump float;\n"
+                                + "#endif\n"
+                                + "varying vec4 v_color;\n"
+                                + "varying vec2 v_texCoords;\n"
+                                + "uniform sampler2D u_texture;\n"
+                                + "void main()\n"
+                                + "{\n"
+                                + "  vec4 c = v_color * texture2D(u_texture, v_texCoords);\n"
+                                + "  float gray = dot(c.rgb, vec3(0.299, 0.587, 0.114));\n"
+                                + "  gl_FragColor = vec4(gray, gray, gray, c.a);\n"
+                                + "}";
+                        grayscaleShader = new ShaderProgram(vertexShader, fragmentShader);
+                        if (!grayscaleShader.isCompiled()) {
+                            GameLogger.error("EndlessGameScreen", "Shader compile failed: " + grayscaleShader.getLog());
+                        }
+                    }
+                    if (grayscaleShader.isCompiled()) {
+                        game.getSpriteBatch().setShader(grayscaleShader);
+                    }
+                }
+
+                // 渲染敌人 (与关卡模式渲染方式一致)
+                float drawWidth = 16f;
+                float drawHeight = 16f;
+                float drawX = e.getX() * UNIT_SCALE - (drawWidth - UNIT_SCALE) / 2;
+                float drawY = e.getY() * UNIT_SCALE - (drawHeight - UNIT_SCALE) / 2;
+
+                // 移动方向向左时翻转，但自定义元素有方向性动画时不翻转
+                boolean flipX = isCustom && e.getVelocityX() < 0;
+                if (flipX) {
+                    game.getSpriteBatch().draw(currentFrame, drawX + drawWidth, drawY, -drawWidth, drawHeight);
+                } else {
+                    game.getSpriteBatch().draw(currentFrame, drawX, drawY, drawWidth, drawHeight);
+                }
+
+                if (e.isDead()) {
+                    game.getSpriteBatch().setShader(null);
+                }
+            }
             game.getSpriteBatch().setColor(Color.WHITE);
+
+            // === 4. 血条/护盾条渲染 (核心功能) ===
+            if (!e.isDead() && e.getHealth() > 0) {
+                float barWidth = 14f;
+                float barHeight = 2f;
+                float barX = e.getX() * UNIT_SCALE + 1f;
+                float barY = e.getY() * UNIT_SCALE + 17f; // 敌人头顶
+
+                // 背景 (深灰)
+                game.getSpriteBatch().setColor(0.2f, 0.2f, 0.2f, 0.8f);
+                game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY, barWidth, barHeight);
+
+                // 护盾条 (如果有护盾)
+                if (e.hasShield()) {
+                    float shieldPercent = e.getShieldPercentage();
+                    if (e.getShieldType() == DamageType.PHYSICAL) {
+                        game.getSpriteBatch().setColor(0.3f, 0.5f, 0.8f, 1f); // 物理护盾蓝色
+                    } else {
+                        game.getSpriteBatch().setColor(0.7f, 0.3f, 0.9f, 1f); // 魔法护盾紫色
+                    }
+                    game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY + barHeight,
+                            barWidth * shieldPercent, barHeight);
+                }
+
+                // 血条 (绿→黄→红渐变)
+                float healthPercent = e.getHealthPercentage();
+                game.getSpriteBatch().setColor(1f - healthPercent * 0.5f, healthPercent, 0.2f, 1f);
+                game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY,
+                        barWidth * healthPercent, barHeight);
+
+                game.getSpriteBatch().setColor(Color.WHITE);
+            }
         }
 
         // 渲染药水掉落物
@@ -1582,23 +1698,11 @@ public class EndlessGameScreen implements Screen {
     // === 辅助方法 ===
 
     /**
-     * 根据主题获取对应的敌人类型
+     * 根据主题获取对应的敌人类型 - 统一使用第一关怪物素材
      */
     private Enemy.EnemyType getEnemyTypeForTheme(String theme) {
-        switch (theme) {
-            case "Grassland":
-                return Enemy.EnemyType.BOAR;
-            case "Desert":
-                return Enemy.EnemyType.SCORPION;
-            case "Jungle":
-                return Enemy.EnemyType.JUNGLE_CREATURE;
-            case "Ice":
-                return Enemy.EnemyType.YETI;
-            case "Space":
-                return Enemy.EnemyType.SPACE_DRONE;
-            default:
-                return Enemy.EnemyType.SLIME;
-        }
+        // 统一使用第一关的怪物素材 (BOAR)
+        return Enemy.EnemyType.BOAR;
     }
 
     // === Screen生命周期 ===
@@ -1634,5 +1738,8 @@ public class EndlessGameScreen implements Screen {
         uiStage.dispose();
         hud.dispose();
         chunkManager.dispose();
+        if (grayscaleShader != null) {
+            grayscaleShader.dispose();
+        }
     }
 }
