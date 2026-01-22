@@ -25,6 +25,8 @@ import de.tum.cit.fop.maze.model.weapons.Weapon;
 import de.tum.cit.fop.maze.utils.AchievementRarity;
 import de.tum.cit.fop.maze.utils.AchievementUnlockInfo;
 import de.tum.cit.fop.maze.utils.TextureManager;
+import de.tum.cit.fop.maze.ui.widgets.HealthBarWidget;
+import de.tum.cit.fop.maze.ui.widgets.WeaponSlotBarWidget;
 
 import java.util.List;
 
@@ -52,13 +54,13 @@ public class EndlessHUD implements Disposable {
     private RageSystem rageSystem;
     private WaveSystem waveSystem;
 
-    // === 基础HUD元素（复用自GameHUD） ===
-    private Table livesTable;
+    // === 基础HUD元素（使用共享Widget） ===
+    private HealthBarWidget healthBarWidget;
+    private WeaponSlotBarWidget weaponSlotBarWidget;
     private TextButton menuButton;
     private Label fpsLabel;
     private Label coinLabel;
     private Label armorLabel;
-    private Table weaponSlotsTable;
     private ProgressBar reloadBar;
 
     // === 无尽模式专用元素 ===
@@ -73,13 +75,7 @@ public class EndlessHUD implements Disposable {
     private Label scoreLabel; // 当前得分
     private Label waveLabel; // 当前波次
 
-    // === 缓存UI元素 ===
-    private Array<Image> cachedHearts = new Array<>();
-    private int lastRenderedLiveCount = -1;
-    private int lastWeaponIndex = -1;
-    private int lastInventorySize = -1;
-    private com.badlogic.gdx.scenes.scene2d.utils.Drawable selectedSlotBg;
-    private com.badlogic.gdx.scenes.scene2d.utils.Drawable normalSlotBg;
+    // === 缓存UI元素（已移至共享Widget） ===
 
     // === FPS计时器 ===
     private float fpsUpdateTimer = 0f;
@@ -131,8 +127,8 @@ public class EndlessHUD implements Disposable {
         Table topLeft = new Table();
         topBar.add(topLeft).left().expandX();
 
-        livesTable = new Table();
-        topLeft.add(livesTable).left().row();
+        healthBarWidget = new HealthBarWidget(player, textureManager);
+        topLeft.add(healthBarWidget).left().row();
 
         // Zone Indicator
         Label.LabelStyle zoneStyle = new Label.LabelStyle(skin.getFont("font"), Color.CYAN);
@@ -247,10 +243,9 @@ public class EndlessHUD implements Disposable {
 
         rootTable.row();
 
-        // Weapon Slots
-        weaponSlotsTable = new Table();
-        weaponSlotsTable.pad(5);
-        rootTable.add(weaponSlotsTable).bottom().padBottom(10);
+        // Weapon Slots (using shared widget)
+        weaponSlotBarWidget = new WeaponSlotBarWidget(player, skin);
+        rootTable.add(weaponSlotBarWidget).bottom().padBottom(10);
 
         // Reload Bar
         ProgressBar.ProgressBarStyle reloadStyle = new ProgressBar.ProgressBarStyle();
@@ -273,8 +268,8 @@ public class EndlessHUD implements Disposable {
             fpsUpdateTimer = 0f;
         }
 
-        // === 生命条 ===
-        updateLivesDisplay();
+        // === 生命条 (using shared widget) ===
+        healthBarWidget.update(delta);
 
         // === 金币 ===
         coinLabel.setText("Coins: " + player.getCoins());
@@ -381,8 +376,8 @@ public class EndlessHUD implements Disposable {
             armorLabel.setVisible(false);
         }
 
-        // === 武器栏 ===
-        updateWeaponSlots();
+        // === 武器栏 (using shared widget) ===
+        weaponSlotBarWidget.update();
 
         // === 装弹进度条 ===
         Weapon currentWeapon = player.getCurrentWeapon();
@@ -397,56 +392,7 @@ public class EndlessHUD implements Disposable {
         stage.act(delta);
     }
 
-    private void updateLivesDisplay() {
-        int lives = player.getLives();
-        if (lives != lastRenderedLiveCount && textureManager.heartRegion != null) {
-            livesTable.clearChildren();
-            cachedHearts.clear();
-
-            for (int i = 0; i < lives; i++) {
-                Image heart = new Image(textureManager.heartRegion);
-                cachedHearts.add(heart);
-                livesTable.add(heart).size(50, 50).pad(4);
-            }
-            lastRenderedLiveCount = lives;
-        }
-    }
-
-    private void updateWeaponSlots() {
-        int currentWeaponIdx = player.getCurrentWeaponIndex();
-        List<Weapon> inventory = player.getInventory();
-
-        boolean needRebuild = lastInventorySize != inventory.size() || weaponSlotsTable.getChildren().isEmpty();
-
-        if (selectedSlotBg == null) {
-            selectedSlotBg = skin.newDrawable("white", new Color(0.3f, 0.5f, 0.8f, 0.8f));
-            normalSlotBg = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.2f, 0.6f));
-        }
-
-        if (needRebuild) {
-            weaponSlotsTable.clearChildren();
-            for (int i = 0; i < inventory.size(); i++) {
-                Weapon w = inventory.get(i);
-                Table slot = new Table();
-                slot.setBackground(i == currentWeaponIdx ? selectedSlotBg : normalSlotBg);
-
-                Label slotLabel = new Label(
-                        (i + 1) + ": " + w.getName().substring(0, Math.min(3, w.getName().length())), skin);
-                slotLabel.setFontScale(0.7f);
-                slot.add(slotLabel).pad(5);
-
-                weaponSlotsTable.add(slot).width(70).height(40).pad(3);
-            }
-            lastInventorySize = inventory.size();
-            lastWeaponIndex = currentWeaponIdx;
-        } else if (currentWeaponIdx != lastWeaponIndex) {
-            for (int i = 0; i < weaponSlotsTable.getChildren().size; i++) {
-                Table slot = (Table) weaponSlotsTable.getChildren().get(i);
-                slot.setBackground(i == currentWeaponIdx ? selectedSlotBg : normalSlotBg);
-            }
-            lastWeaponIndex = currentWeaponIdx;
-        }
-    }
+    // Deprecated methods removed - now using shared widgets
 
     // === 游戏状态更新方法 ===
 

@@ -73,6 +73,7 @@ public class EndlessGameScreen implements Screen {
     // === 游戏对象 ===
     private Player player;
     private List<Enemy> enemies;
+    private SpatialHashGrid<Enemy> enemyGrid; // Spatial hash for O(1) neighbor queries
     private List<Trap> traps;
     private List<FloatingText> floatingTexts;
     private List<Potion> potions; // 掉落的药水
@@ -103,6 +104,7 @@ public class EndlessGameScreen implements Screen {
     private de.tum.cit.fop.maze.ui.ConsoleUI consoleUI;
     private boolean isConsoleOpen = false;
     private boolean consoleJustClosed = false;
+    private boolean consoleJustOpened = false; // Prevents double-toggle in same frame
 
     // === 常量 ===
     private static final float UNIT_SCALE = 16f;
@@ -164,6 +166,7 @@ public class EndlessGameScreen implements Screen {
 
         // 游戏对象
         enemies = new ArrayList<>();
+        enemyGrid = new SpatialHashGrid<>(16f); // Cell size matches typical view radius
         traps = new ArrayList<>();
         floatingTexts = new ArrayList<>();
         potions = new ArrayList<>();
@@ -305,26 +308,184 @@ public class EndlessGameScreen implements Screen {
         consoleUI.setConsole(developerConsole);
         // 无尽模式没有GameWorld，设置为null
         developerConsole.setGameWorld(null);
+
+        // 注册无尽模式数据提供器
+        developerConsole.setEndlessMode(true, new DeveloperConsole.EndlessModeData() {
+            @Override
+            public int getTotalKills() {
+                return totalKills;
+            }
+
+            @Override
+            public int getCurrentScore() {
+                return currentScore;
+            }
+
+            @Override
+            public float getSurvivalTime() {
+                return stateTime;
+            }
+
+            @Override
+            public int getCurrentCombo() {
+                return comboSystem != null ? comboSystem.getCurrentCombo() : 0;
+            }
+
+            @Override
+            public int getCurrentWave() {
+                return waveSystem != null ? waveSystem.getCurrentWave() : 0;
+            }
+
+            @Override
+            public String getCurrentZone() {
+                return EndlessModeConfig.getThemeForPosition((int) player.getX(), (int) player.getY());
+            }
+
+            @Override
+            public void setScore(int score) {
+                currentScore = score;
+                hud.setCurrentScore(score);
+            }
+
+            @Override
+            public void setCombo(int combo) {
+                if (comboSystem != null)
+                    comboSystem.setCurrentCombo(combo);
+            }
+
+            @Override
+            public void addKills(int kills) {
+                totalKills += kills;
+                hud.setTotalKills(totalKills);
+            }
+
+            // === Rage System ===
+            @Override
+            public float getRageProgress() {
+                return rageSystem != null ? rageSystem.getProgress() * 100f : 0;
+            }
+
+            @Override
+            public int getRageLevel() {
+                return rageSystem != null ? rageSystem.getCurrentLevel() : 0;
+            }
+
+            @Override
+            public void setRageProgress(float progress) {
+                if (rageSystem != null)
+                    rageSystem.setProgress(progress / 100f);
+            }
+
+            @Override
+            public void maxRage() {
+                if (rageSystem != null)
+                    rageSystem.maxOut();
+            }
+
+            // === Enemy Control ===
+            @Override
+            public void spawnEnemies(int count) {
+                for (int i = 0; i < count; i++) {
+                    spawnEnemyNearPlayer();
+                }
+            }
+
+            @Override
+            public void spawnBoss() {
+                spawnBossNearPlayer();
+            }
+
+            @Override
+            public int clearAllEnemies() {
+                int count = enemies.size();
+                for (Enemy e : enemies) {
+                    enemyGrid.remove(e);
+                }
+                enemies.clear();
+                return count;
+            }
+
+            @Override
+            public int getEnemyCount() {
+                return enemies.size();
+            }
+
+            // === Teleport ===
+            @Override
+            public void teleportPlayer(float x, float y) {
+                x = com.badlogic.gdx.math.MathUtils.clamp(x, 5, EndlessModeConfig.MAP_WIDTH - 5);
+                y = com.badlogic.gdx.math.MathUtils.clamp(y, 5, EndlessModeConfig.MAP_HEIGHT - 5);
+                player.setPosition(x, y);
+            }
+
+            @Override
+            public float getPlayerX() {
+                return player.getX();
+            }
+
+            @Override
+            public float getPlayerY() {
+                return player.getY();
+            }
+        });
     }
 
     private void setInputProcessors() {
-        Gdx.input.setInputProcessor(new com.badlogic.gdx.InputMultiplexer(
-                uiStage, hud.getStage()));
+        // Gameplay Mode Input Chain (Aligned with GameScreen)
+        com.badlogic.gdx.InputMultiplexer multiplexer = new com.badlogic.gdx.InputMultiplexer();
+
+        // 1. Global Keys (Console Toggle) - HIGHEST PRIORITY
+        multiplexer.addProcessor(getConsoleKeyProcessor());
+
+        // 2. UI Stage (Popups, Menus)
+        multiplexer.addProcessor(uiStage);
+
+        // 3. HUD Stage (On-screen controls)
+        multiplexer.addProcessor(hud.getStage());
+
+        Gdx.input.setInputProcessor(multiplexer);
+    }
+
+    /**
+     * Shared InputProcessor for toggling the console.
+     * Uses keyDown (Physical Key) for reliability across OS/keyboard layouts.
+     */
+    private com.badlogic.gdx.InputProcessor getConsoleKeyProcessor() {
+        return new com.badlogic.gdx.InputAdapter() {
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode == GameSettings.KEY_CONSOLE || keycode == GameSettings.KEY_CONSOLE_ALT) {
+                    toggleConsole();
+                    return true; // Consume event
+                }
+                return false;
+            }
+        };
     }
 
     // === 主循环 ===
 
     @Override
     public void render(float delta) {
-        // 控制台切换
-        if (Gdx.input.isKeyJustPressed(Input.Keys.GRAVE) || Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
+        // Developer Console Toggle - handled in InputProcessor for '~'/'`'
+        // (GameSettings.KEY_CONSOLE)
+        // F3 here as backup/alternative (aligned with GameScreen)
+        if (Gdx.input.isKeyJustPressed(GameSettings.KEY_CONSOLE_ALT)) {
             toggleConsole();
         }
 
         if (isConsoleOpen) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-                toggleConsole();
-                consoleJustClosed = true;
+            // Clear the "just opened" flag after one frame
+            if (consoleJustOpened) {
+                consoleJustOpened = false;
+            } else {
+                // Allow closing with ESC, `, or F3 (only after first frame)
+                if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) ||
+                        Gdx.input.isKeyJustPressed(GameSettings.KEY_CONSOLE) ||
+                        Gdx.input.isKeyJustPressed(GameSettings.KEY_CONSOLE_ALT)) {
+                    toggleConsole();
+                    consoleJustClosed = true;
+                }
             }
             renderConsole(delta);
             return;
@@ -455,8 +616,13 @@ public class EndlessGameScreen implements Screen {
 
         // 攻击
         if (Gdx.input.isKeyJustPressed(GameSettings.KEY_ATTACK)) {
-            player.attack();
-            performAttack();
+            if (player.canAttack()) {
+                GameLogger.debug("EndlessGameScreen", "Attack input detected. Cooldown ready.");
+                player.attack();
+                performAttack();
+            } else {
+                // GameLogger.debug("EndlessGameScreen", "Attack cooldown active.");
+            }
         }
     }
 
@@ -511,7 +677,15 @@ public class EndlessGameScreen implements Screen {
             float dist = Vector2.dst(player.getX(), player.getY(), enemy.getX(), enemy.getY());
             if (dist <= attackRange) {
                 int damage = (int) attackDamage;
-                boolean killed = enemy.takeDamage(damage, weapon.getDamageType());
+                // Apply damage with damage type consideration
+                int oldHealth = enemy.getHealth();
+                enemy.takeDamage(damage, weapon.getDamageType());
+                int newHealth = enemy.getHealth();
+
+                GameLogger.debug("EndlessGameScreen",
+                        "Hit Enemy! Damage: " + damage + " HP: " + oldHealth + " -> " + newHealth);
+
+                boolean killed = enemy.isDead(); // Fix: takeDamage returns false, check isDead() instead
 
                 // === Hit Feedback: Damage Number (伤害数值显示) ===
                 floatingTexts.add(new FloatingText(enemy.getX(), enemy.getY(), "-" + damage, Color.RED));
@@ -527,6 +701,8 @@ public class EndlessGameScreen implements Screen {
                 if (killed) {
                     onEnemyKilled(enemy);
                 }
+            } else {
+                // GameLogger.debug("EndlessGameScreen", "Enemy out of range: " + dist);
             }
         }
     }
@@ -591,8 +767,14 @@ public class EndlessGameScreen implements Screen {
     }
 
     private void updateEnemies(float delta) {
-        // 移除死亡敌人
-        enemies.removeIf(e -> e.isDead() && e.isRemovable());
+        // 移除死亡敌人（同时从空间网格中移除）
+        enemies.removeIf(e -> {
+            if (e.isDead() && e.isRemovable()) {
+                enemyGrid.remove(e);
+                return true;
+            }
+            return false;
+        });
 
         // 更新存活敌人 - 使用带碰撞检测的寻路逻辑
         for (Enemy enemy : enemies) {
@@ -643,12 +825,16 @@ public class EndlessGameScreen implements Screen {
 
                     // 应用移动（只有在可以移动时才更新位置）
                     if (moveX != 0 || moveY != 0) {
-                        enemy.setPosition(enemy.getX() + moveX, enemy.getY() + moveY);
+                        float newX = enemy.getX() + moveX;
+                        float newY = enemy.getY() + moveY;
+                        enemy.setPosition(newX, newY);
+                        // 更新空间网格
+                        enemyGrid.update(enemy, newX, newY);
                     }
                 }
 
                 // 攻击玩家
-                if (dist < 1.5f) {
+                if (dist < 0.8f) {
                     int baseDamage = 1;
                     int damage = (int) (baseDamage * rageSystem.getEnemyDamageMultiplier());
                     if (player.damage(damage, enemy.getAttackDamageType())) {
@@ -697,7 +883,7 @@ public class EndlessGameScreen implements Screen {
             return;
 
         // 使用正确的构造函数：Enemy(x, y, health, attackType, shieldType, shieldAmount)
-        int baseHealth = 50 + (int) (waveSystem.getEnemyHealthMultiplier() * 20);
+        int baseHealth = 30 + (int) (waveSystem.getEnemyHealthMultiplier() * 20);
         Enemy enemy = new Enemy(spawnX, spawnY, baseHealth, DamageType.PHYSICAL, null, 0);
 
         // 根据生成位置的主题分配敌人类型
@@ -705,6 +891,7 @@ public class EndlessGameScreen implements Screen {
         enemy.setType(getEnemyTypeForTheme(theme));
 
         enemies.add(enemy);
+        enemyGrid.insert(enemy, spawnX, spawnY); // 插入空间网格
     }
 
     private void spawnBossNearPlayer() {
@@ -730,6 +917,7 @@ public class EndlessGameScreen implements Screen {
         boss.setType(getEnemyTypeForTheme(theme));
 
         enemies.add(boss);
+        enemyGrid.insert(boss, spawnX, spawnY); // 插入空间网格
 
         floatingTexts.add(new FloatingText(
                 spawnX, spawnY + 1, "BOSS!", Color.RED));
@@ -1462,6 +1650,7 @@ public class EndlessGameScreen implements Screen {
         if (isConsoleOpen) {
             consoleUI.show();
             Gdx.input.setInputProcessor(uiStage);
+            consoleJustOpened = true;
         } else {
             consoleUI.hide();
             consoleJustClosed = true;
@@ -1572,6 +1761,7 @@ public class EndlessGameScreen implements Screen {
 
         final ScrollPane sp = scrollPane;
         scrollPane.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+
             @Override
             public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer,
                     Actor fromActor) {

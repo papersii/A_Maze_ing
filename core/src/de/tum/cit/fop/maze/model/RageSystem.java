@@ -143,4 +143,34 @@ public class RageSystem {
         this.rageLevel = Math.max(0, Math.min(100, rageLevel));
         this.rageLevelIndex = EndlessModeConfig.getRageLevel(this.rageLevel);
     }
+
+    // ========== Console Command Support ==========
+
+    /**
+     * 获取RAGE进度 (0-1, 用于控制台)
+     */
+    public float getProgress() {
+        return rageLevel / 100f;
+    }
+
+    /**
+     * 设置RAGE进度 (0-1)
+     */
+    public void setProgress(float progress) {
+        setRageLevel(progress * 100f);
+    }
+
+    /**
+     * 最大化RAGE (直接设置到100)
+     */
+    public void maxOut() {
+        setRageLevel(100f);
+    }
+
+    /**
+     * 获取当前RAGE等级索引 (用于控制台显示)
+     */
+    public int getCurrentLevel() {
+        return rageLevelIndex;
+    }
 }

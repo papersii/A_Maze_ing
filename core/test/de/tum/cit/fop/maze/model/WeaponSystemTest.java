@@ -48,7 +48,7 @@ public class WeaponSystemTest {
         Weapon bow = new Bow(0, 0);
         Weapon staff = new MagicStaff(0, 0);
 
-        assertEquals(1, sword.getDamage());
+        assertEquals(10, sword.getDamage());
         assertEquals(WeaponEffect.NONE, sword.getEffect());
 
         assertEquals(1, bow.getDamage());

@@ -60,6 +60,10 @@ public class CustomElementManager {
      * Copies sprites to local storage ("image" folder) if they are external.
      */
     public void saveElement(CustomElementDefinition element) {
+        if (Gdx.files == null) {
+            elements.put(element.getId(), element);
+            return;
+        }
         // Process sprite paths to localize them
         FileHandle localImgDir = Gdx.files.local(LOCAL_IMAGE_DIR + element.getId() + "/");
         if (!localImgDir.exists()) {
@@ -190,6 +194,8 @@ public class CustomElementManager {
      */
     @SuppressWarnings("unchecked")
     private void loadElements() {
+        if (Gdx.files == null)
+            return; // Skip loading in headless tests
         try {
             // 优先尝试从 internal (assets目录) 加载
             FileHandle file = Gdx.files.internal(SAVE_DIR + ELEMENTS_FILE);
@@ -218,6 +224,8 @@ public class CustomElementManager {
      * Save all elements to disk
      */
     private void persistToFile() {
+        if (Gdx.files == null)
+            return;
         try {
             FileHandle dir = Gdx.files.local(SAVE_DIR);
             if (!dir.exists()) {

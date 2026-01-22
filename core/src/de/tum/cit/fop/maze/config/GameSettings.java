@@ -19,13 +19,13 @@ import com.badlogic.gdx.Preferences;
  */
 public class GameSettings {
 
-    private static final String PREFS_NAME = "maze_runner_settings_v1";
+    private static final String PREFS_NAME = "maze_runner_settings_v2";
 
     // ==================== 硬编码默认值 (不可修改) ====================
 
     private static final float DEFAULT_PLAYER_WALK_SPEED = 3.5f;
     private static final float DEFAULT_PLAYER_RUN_SPEED = 7.0f;
-    private static final int DEFAULT_PLAYER_MAX_LIVES = 3;
+    private static final int DEFAULT_PLAYER_MAX_LIVES = 8;
     private static final float DEFAULT_PLAYER_INVINCIBILITY_DURATION = 1.0f;
 
     private static final float DEFAULT_ENEMY_PATROL_SPEED = 1.5f;

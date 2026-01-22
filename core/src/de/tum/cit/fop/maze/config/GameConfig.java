@@ -39,7 +39,7 @@ public class GameConfig {
     // ==================== Default Stats ====================
 
     public static final int PLAYER_DEFAULT_MAX_LIVES = 3;
-    public static final int ENEMY_DEFAULT_HEALTH = 3;
+    public static final int ENEMY_DEFAULT_HEALTH = 20;
     public static final int KEY_DEFAULT_SKILL_POINTS = 10;
 
     // ==================== Weapon Type IDs ====================

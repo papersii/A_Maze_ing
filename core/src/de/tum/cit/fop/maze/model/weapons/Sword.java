@@ -6,7 +6,7 @@ package de.tum.cit.fop.maze.model.weapons;
 public class Sword extends Weapon {
 
     public Sword(float x, float y) {
-        super(x, y, "Iron Sword", 1, 2.2f, 0.3f, WeaponEffect.NONE);
+        super(x, y, "Iron Sword", 10, 2.2f, 0.3f, WeaponEffect.NONE);
 
         // Override with custom values if available
         de.tum.cit.fop.maze.custom.CustomElementManager manager = de.tum.cit.fop.maze.custom.CustomElementManager
