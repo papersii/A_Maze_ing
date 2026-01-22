@@ -139,7 +139,8 @@ public class ChestReward {
                 return true;
 
             case HEALTH:
-                player.restoreHealth(value);
+                // 提升最大生命值并增加当前生命（突破上限）
+                player.upgradeMaxHealth(value);
                 return true;
 
             case INVINCIBILITY:
