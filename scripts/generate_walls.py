@@ -48,17 +48,43 @@ def generate_walls(top_path, body_path, output_dir, theme_name, visual_height_li
         # let's map the image to the full canvas.
         
         if is_structure_mode:
-             # Structure Mode: Resize source image to fill the wall dimensions
-             # We use h_tiles * 16 (strict grid) to avoid floating tops if the image is grounded.
-             # If the image has a top part, it should be part of the h_tiles.
+             # Structure Mode (Object Tiling):
+             # User Request: "Larger trees, overlapping, exceed bounds"
+             
+             SCALE_FACTOR = 1.35  # Make tree ~35% larger
+             TREE_SIZE = int(TILE_SIZE * SCALE_FACTOR) # ~21px
+             
+             # Increase canvas height to accommodate the "sticking out" top of the trees
+             # (Tree Height - Tile Height) is the extra overlap needed at the top
+             top_padding = max(0, TREE_SIZE - TILE_SIZE)
+             
              img_w = w_tiles * TILE_SIZE
-             img_h = h_tiles * TILE_SIZE 
+             img_h = (h_tiles * TILE_SIZE) + top_padding 
              
-             # Resize body_img (assumed to be the full source) to fit
-             # Using LANCZOS for better downscaling/upscaling quality
-             resized_img = body_img.resize((img_w, img_h), Image.LANCZOS)
+             canvas = Image.new("RGBA", (img_w, img_h))
              
-             canvas = resized_img
+             # Resize source 
+             tile_img = body_img.resize((TREE_SIZE, TREE_SIZE), Image.LANCZOS)
+             
+             # Draw loop (Painter's Algo: Top row first, then lower rows overlap)
+             for y in range(h_tiles):
+                 for x in range(w_tiles):
+                     # Center horizontally
+                     dest_x = (x * TILE_SIZE) + (TILE_SIZE - TREE_SIZE) // 2
+                     
+                     # Align Bottom: The bottom of the tree should align with the bottom of the tile
+                     # Tile Bottom Y relative to Grid = (y + 1) * TILE_SIZE
+                     # Shifted by top_padding in canvas
+                     # Canvas Tile Bottom = (y + 1) * TILE_SIZE + top_padding
+                     # Tree Top Y = Canvas Tile Bottom - TREE_SIZE
+                     dest_y = ((y + 1) * TILE_SIZE + top_padding) - TREE_SIZE
+                     
+                     # Add slight random offset to prevent perfect grid look? 
+                     # User didn't strictly ask for random, but "overlapping" implies organic.
+                     # Let's stick to strict grid first to ensure alignment, overlap comes from size > tile.
+                     
+                     canvas.paste(tile_img, (dest_x, dest_y), tile_img) # Use itself as mask for transparency
+                     
         else:
             # Tiling Mode (Standard)
             img_w = w_tiles * TILE_SIZE
