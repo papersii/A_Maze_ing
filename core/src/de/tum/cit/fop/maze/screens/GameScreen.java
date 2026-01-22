@@ -406,7 +406,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         // For now, let's keep it clean since we are generating a specific texture.
         game.getSpriteBatch().setColor(Color.WHITE);
 
-        mazeRenderer.render(gameMap, camera, currentFloor, stateTime);
+        mazeRenderer.renderFloor(gameMap, camera, currentFloor);
         game.getSpriteBatch().setColor(Color.WHITE); // Reset
 
         // 2. Render Static Dynamic Objects
@@ -593,37 +593,6 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             }
             game.getSpriteBatch().setColor(Color.WHITE);
 
-            // === Render Health Bar (OPTIMIZED) ===
-            if (!e.isDead() && e.getHealth() > 0) {
-                float barWidth = 14f;
-                float barHeight = 2f;
-                float barX = e.getX() * UNIT_SCALE + 1f;
-                float barY = e.getY() * UNIT_SCALE + 17f; // Above enemy
-
-                // Background (dark gray)
-                game.getSpriteBatch().setColor(0.2f, 0.2f, 0.2f, 0.8f);
-                game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY, barWidth, barHeight);
-
-                // Shield bar (if has shield) - avoid new Color() allocation
-                if (e.hasShield()) {
-                    float shieldPercent = e.getShieldPercentage();
-                    if (e.getShieldType() == DamageType.PHYSICAL) {
-                        game.getSpriteBatch().setColor(0.3f, 0.5f, 0.8f, 1f); // Blue for physical
-                    } else {
-                        game.getSpriteBatch().setColor(0.7f, 0.3f, 0.9f, 1f); // Purple for magical
-                    }
-                    game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY + barHeight,
-                            barWidth * shieldPercent, barHeight);
-                }
-
-                // Health bar - avoid new Color() allocation
-                float healthPercent = e.getHealthPercentage();
-                game.getSpriteBatch().setColor(1f - healthPercent * 0.5f, healthPercent, 0.2f, 1f);
-                game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY,
-                        barWidth * healthPercent, barHeight);
-
-                game.getSpriteBatch().setColor(Color.WHITE);
-            }
         }
 
         // 4. Mobile Traps (use legacy slime animation)
@@ -632,33 +601,24 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             game.getSpriteBatch().draw(trapFrame, trap.getX() * UNIT_SCALE, trap.getY() * UNIT_SCALE);
         }
 
-        // 5. Floating Texts
-        com.badlogic.gdx.graphics.g2d.BitmapFont font = game.getSkin().getFont("font");
-        font.getData().setScale(0.5f);
-        for (FloatingText ft : gameWorld.getFloatingTexts()) {
-            font.setColor(ft.color);
-            font.draw(game.getSpriteBatch(), ft.text, ft.x * UNIT_SCALE, ft.y * UNIT_SCALE + 16);
-        }
-        font.setColor(Color.WHITE);
-        font.getData().setScale(1f);
-
         // 6. Render Player
         renderPlayer(player);
 
         // 6.1 Render Attack Range Indicator (攻击范围可视化)
         if (player.isAttacking() && GameSettings.isShowAttackRange()) {
-            game.getSpriteBatch().end();  // 暂停 SpriteBatch 以使用 ShapeRenderer
+            game.getSpriteBatch().end(); // 暂停 SpriteBatch 以使用 ShapeRenderer
             Weapon currentWeapon = player.getCurrentWeapon();
             if (currentWeapon != null && !currentWeapon.isRanged()) {
                 float total = player.getAttackAnimTotalDuration();
-                if (total <= 0) total = 0.2f;
+                if (total <= 0)
+                    total = 0.2f;
                 float elapsed = total - player.getAttackAnimTimer();
                 float progress = elapsed / total;
                 attackRangeRenderer.render(camera, player.getX(), player.getY(),
                         gameWorld.getPlayerDirection(), currentWeapon.getRange(),
                         currentWeapon.isRanged(), progress);
             }
-            game.getSpriteBatch().begin();  // 恢复 SpriteBatch
+            game.getSpriteBatch().begin(); // 恢复 SpriteBatch
             game.getSpriteBatch().setProjectionMatrix(camera.combined);
         }
 
@@ -705,6 +665,59 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
                 game.getSpriteBatch().setColor(Color.WHITE);
             }
         }
+
+        // 6.8 Render Walls (Strict Layering: Always above players)
+        game.getSpriteBatch().setColor(Color.WHITE); // Defensive reset
+        game.getSpriteBatch().setShader(null); // Defensive reset
+        mazeRenderer.renderWalls(gameMap, camera, stateTime);
+
+        // 6.9 UI Overlay Pass (Health Bars & Floating Texts - Always on top of Walls)
+        // 1. Health Bars
+        for (Enemy e : gameWorld.getEnemies()) {
+            renderRadius = de.tum.cit.fop.maze.config.GameConfig.ENTITY_RENDER_RADIUS;
+            float dx = e.getX() - gameWorld.getPlayer().getX();
+            float dy = e.getY() - gameWorld.getPlayer().getY();
+            if (dx * dx + dy * dy > renderRadius * renderRadius)
+                continue;
+
+            if (!e.isDead() && e.getHealth() > 0) {
+                float barWidth = 14f;
+                float barHeight = 2f;
+                float barX = e.getX() * UNIT_SCALE + 1f;
+                float barY = e.getY() * UNIT_SCALE + 17f; // Above enemy
+
+                game.getSpriteBatch().setColor(0.2f, 0.2f, 0.2f, 0.8f);
+                game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY, barWidth, barHeight);
+
+                if (e.hasShield()) {
+                    float shieldPercent = e.getShieldPercentage();
+                    if (e.getShieldType() == DamageType.PHYSICAL) {
+                        game.getSpriteBatch().setColor(0.3f, 0.5f, 0.8f, 1f);
+                    } else {
+                        game.getSpriteBatch().setColor(0.7f, 0.3f, 0.9f, 1f);
+                    }
+                    game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY + barHeight,
+                            barWidth * shieldPercent, barHeight);
+                }
+
+                float healthPercent = e.getHealthPercentage();
+                game.getSpriteBatch().setColor(1f - healthPercent * 0.5f, healthPercent, 0.2f, 1f);
+                game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY,
+                        barWidth * healthPercent, barHeight);
+
+                game.getSpriteBatch().setColor(Color.WHITE);
+            }
+        }
+
+        // 2. Floating Texts
+        com.badlogic.gdx.graphics.g2d.BitmapFont font = game.getSkin().getFont("font");
+        font.getData().setScale(0.5f);
+        for (FloatingText ft : gameWorld.getFloatingTexts()) {
+            font.setColor(ft.color);
+            font.draw(game.getSpriteBatch(), ft.text, ft.x * UNIT_SCALE, ft.y * UNIT_SCALE + 16);
+        }
+        font.setColor(Color.WHITE);
+        font.getData().setScale(1f);
 
         // 7. Render Fog of War (渐变迷雾效果)
         // 必须在所有游戏元素渲染完成后、batch.end() 之前渲染
@@ -860,7 +873,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             }
         }
 
-        Color oldC = game.getSpriteBatch().getColor();
+        Color oldC = game.getSpriteBatch().getColor().cpy();
         if (player.isDead())
             game.getSpriteBatch().setColor(0.5f, 0.5f, 0.5f, 1f);
         else if (player.isHurt())

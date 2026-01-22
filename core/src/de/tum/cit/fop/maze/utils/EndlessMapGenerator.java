@@ -195,7 +195,14 @@ public class EndlessMapGenerator {
             // 检查是否可以放置
             if (canPlaceWall(occupied, localX, localY, width, height, chunkSize)) {
                 int typeId = getTypeIdForSize(width, height);
-                WallEntity wall = new WallEntity(worldX, worldY, width, height, typeId, false);
+
+                // [MODIFIED] Determine collision height based on theme
+                int collisionHeight = height;
+                if ("grassland".equalsIgnoreCase(chunk.getTheme())) {
+                    collisionHeight = 1;
+                }
+
+                WallEntity wall = new WallEntity(worldX, worldY, width, height, typeId, false, collisionHeight);
                 chunk.addWall(wall);
 
                 // 标记占用

@@ -119,6 +119,7 @@ public class EndlessGameScreen implements Screen {
 
     // === 灰度Shader (对齐关卡模式死亡效果) ===
     private ShaderProgram grayscaleShader;
+    private com.badlogic.gdx.graphics.glutils.ShapeRenderer shapeRenderer;
 
     public EndlessGameScreen(MazeRunnerGame game) {
         this(game, null);
@@ -136,6 +137,7 @@ public class EndlessGameScreen implements Screen {
         textureManager = new TextureManager(game.getAtlas());
         mazeRenderer = new MazeRenderer(game.getSpriteBatch(), textureManager);
         fogRenderer = new FogRenderer(game.getSpriteBatch());
+        shapeRenderer = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
 
         initializeSystems();
 
@@ -957,8 +959,11 @@ public class EndlessGameScreen implements Screen {
      */
     private boolean isWallAtInChunk(MapChunk chunk, int worldX, int worldY) {
         for (WallEntity wall : chunk.getWalls()) {
+            // [FIX] Use collision height, not visual grid height, to determine if this tile
+            // should stand as a "wall base". This allows visuals to extend over walkable
+            // floor.
             if (worldX >= wall.getOriginX() && worldX < wall.getOriginX() + wall.getGridWidth() &&
-                    worldY >= wall.getOriginY() && worldY < wall.getOriginY() + wall.getGridHeight()) {
+                    worldY >= wall.getOriginY() && worldY < wall.getOriginY() + wall.getCollisionHeight()) {
                 return true;
             }
         }
@@ -986,153 +991,36 @@ public class EndlessGameScreen implements Screen {
         game.getSpriteBatch().setProjectionMatrix(camera.combined);
         game.getSpriteBatch().begin();
 
-        // 渲染地板（基于当前区域主题）
+        // 1. 渲染地板 (背景层)
         String currentTheme = EndlessModeConfig.getThemeForPosition((int) player.getX(), (int) player.getY());
         TextureRegion floor = getFloorTextureForTheme(currentTheme);
 
-        // 渲染已加载区块的墙
         for (MapChunk chunk : chunkManager.getLoadedChunks()) {
-            renderChunk(chunk, floor);
+            int startX = chunk.getWorldStartX();
+            int startY = chunk.getWorldStartY();
+            int endX = startX + chunk.getSize();
+            int endY = startY + chunk.getSize();
+
+            for (int y = startY; y < endY; y++) {
+                for (int x = startX; x < endX; x++) {
+                    game.getSpriteBatch().draw(floor, x * UNIT_SCALE, y * UNIT_SCALE, UNIT_SCALE, UNIT_SCALE);
+                }
+            }
         }
 
-        // 渲染敌人 (对齐关卡模式: 自定义元素 + 状态特效 + 血条 + 灰度Shader)
+        // 2. 渲染实体 (Entities) - 玩家和敌人都在墙下层
+        // 敌人
         for (Enemy e : enemies) {
-            // === 1. 自定义元素支持 ===
-            com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> enemyAnim = null;
-            boolean isCustom = false;
+            renderEnemy(e);
+        }
+        // 玩家
+        renderPlayer();
 
-            if (e.getCustomElementId() != null) {
-                String action = e.isDead() ? "Death" : "Move";
-                enemyAnim = de.tum.cit.fop.maze.custom.CustomElementManager.getInstance()
-                        .getAnimation(e.getCustomElementId(), action);
-                if (enemyAnim != null)
-                    isCustom = true;
-            }
-
-            if (enemyAnim == null) {
-                enemyAnim = textureManager.getEnemyAnimation(e.getType(), e.getVelocityX(), e.getVelocityY());
-            }
-
-            // === 2. 状态特效渲染 ===
-            TextureRegion currentFrame;
-            if (isCustom && e.isDead()) {
-                currentFrame = enemyAnim.getKeyFrame(stateTime, false);
-                game.getSpriteBatch().setColor(Color.WHITE);
-            } else if (e.isDead()) {
-                currentFrame = enemyAnim.getKeyFrame(0); // 死亡时静态帧
-                game.getSpriteBatch().setColor(Color.GRAY);
-            } else if (e.isHurt()) {
-                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
-                game.getSpriteBatch().setColor(1f, 0f, 0f, 1f); // 受伤红闪
-            } else if (e.getCurrentEffect() == WeaponEffect.FREEZE) {
-                currentFrame = enemyAnim.getKeyFrame(0); // 冰冻静止
-                game.getSpriteBatch().setColor(0.5f, 0.5f, 1f, 1f); // 蓝色
-            } else if (e.getCurrentEffect() == WeaponEffect.BURN) {
-                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
-                game.getSpriteBatch().setColor(1f, 0.5f, 0.5f, 1f); // 红色
-            } else if (e.getCurrentEffect() == WeaponEffect.POISON) {
-                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
-                game.getSpriteBatch().setColor(0.5f, 1f, 0.5f, 1f); // 绿色
-            } else {
-                currentFrame = enemyAnim.getKeyFrame(stateTime, true);
-            }
-
-            if (e.getHealth() > 0 || e.isDead()) {
-                // === 3. 灰度Shader死亡效果 ===
-                if (e.isDead()) {
-                    if (grayscaleShader == null) {
-                        String vertexShader = "attribute vec4 "
-                                + com.badlogic.gdx.graphics.glutils.ShaderProgram.POSITION_ATTRIBUTE + ";\n"
-                                + "attribute vec4 " + com.badlogic.gdx.graphics.glutils.ShaderProgram.COLOR_ATTRIBUTE
-                                + ";\n"
-                                + "attribute vec2 " + com.badlogic.gdx.graphics.glutils.ShaderProgram.TEXCOORD_ATTRIBUTE
-                                + "0;\n"
-                                + "uniform mat4 u_projTrans;\n"
-                                + "varying vec4 v_color;\n"
-                                + "varying vec2 v_texCoords;\n"
-                                + "\n"
-                                + "void main()\n"
-                                + "{\n"
-                                + "   v_color = " + com.badlogic.gdx.graphics.glutils.ShaderProgram.COLOR_ATTRIBUTE
-                                + ";\n"
-                                + "   v_color.a = v_color.a * (255.0/254.0);\n"
-                                + "   v_texCoords = "
-                                + com.badlogic.gdx.graphics.glutils.ShaderProgram.TEXCOORD_ATTRIBUTE + "0;\n"
-                                + "   gl_Position =  u_projTrans * "
-                                + com.badlogic.gdx.graphics.glutils.ShaderProgram.POSITION_ATTRIBUTE + ";\n"
-                                + "}\n";
-                        String fragmentShader = "#ifdef GL_ES\n"
-                                + "precision mediump float;\n"
-                                + "#endif\n"
-                                + "varying vec4 v_color;\n"
-                                + "varying vec2 v_texCoords;\n"
-                                + "uniform sampler2D u_texture;\n"
-                                + "void main()\n"
-                                + "{\n"
-                                + "  vec4 c = v_color * texture2D(u_texture, v_texCoords);\n"
-                                + "  float gray = dot(c.rgb, vec3(0.299, 0.587, 0.114));\n"
-                                + "  gl_FragColor = vec4(gray, gray, gray, c.a);\n"
-                                + "}";
-                        grayscaleShader = new ShaderProgram(vertexShader, fragmentShader);
-                        if (!grayscaleShader.isCompiled()) {
-                            GameLogger.error("EndlessGameScreen", "Shader compile failed: " + grayscaleShader.getLog());
-                        }
-                    }
-                    if (grayscaleShader.isCompiled()) {
-                        game.getSpriteBatch().setShader(grayscaleShader);
-                    }
-                }
-
-                // 渲染敌人 (与关卡模式渲染方式一致)
-                float drawWidth = 16f;
-                float drawHeight = 16f;
-                float drawX = e.getX() * UNIT_SCALE - (drawWidth - UNIT_SCALE) / 2;
-                float drawY = e.getY() * UNIT_SCALE - (drawHeight - UNIT_SCALE) / 2;
-
-                // 移动方向向左时翻转，但自定义元素有方向性动画时不翻转
-                boolean flipX = isCustom && e.getVelocityX() < 0;
-                if (flipX) {
-                    game.getSpriteBatch().draw(currentFrame, drawX + drawWidth, drawY, -drawWidth, drawHeight);
-                } else {
-                    game.getSpriteBatch().draw(currentFrame, drawX, drawY, drawWidth, drawHeight);
-                }
-
-                if (e.isDead()) {
-                    game.getSpriteBatch().setShader(null);
-                }
-            }
-            game.getSpriteBatch().setColor(Color.WHITE);
-
-            // === 4. 血条/护盾条渲染 (核心功能) ===
-            if (!e.isDead() && e.getHealth() > 0) {
-                float barWidth = 14f;
-                float barHeight = 2f;
-                float barX = e.getX() * UNIT_SCALE + 1f;
-                float barY = e.getY() * UNIT_SCALE + 17f; // 敌人头顶
-
-                // 背景 (深灰)
-                game.getSpriteBatch().setColor(0.2f, 0.2f, 0.2f, 0.8f);
-                game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY, barWidth, barHeight);
-
-                // 护盾条 (如果有护盾)
-                if (e.hasShield()) {
-                    float shieldPercent = e.getShieldPercentage();
-                    if (e.getShieldType() == DamageType.PHYSICAL) {
-                        game.getSpriteBatch().setColor(0.3f, 0.5f, 0.8f, 1f); // 物理护盾蓝色
-                    } else {
-                        game.getSpriteBatch().setColor(0.7f, 0.3f, 0.9f, 1f); // 魔法护盾紫色
-                    }
-                    game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY + barHeight,
-                            barWidth * shieldPercent, barHeight);
-                }
-
-                // 血条 (绿→黄→红渐变)
-                float healthPercent = e.getHealthPercentage();
-                game.getSpriteBatch().setColor(1f - healthPercent * 0.5f, healthPercent, 0.2f, 1f);
-                game.getSpriteBatch().draw(textureManager.whitePixel, barX, barY,
-                        barWidth * healthPercent, barHeight);
-
-                game.getSpriteBatch().setColor(Color.WHITE);
+        // 3. 渲染墙体 (Foreground/Cover)
+        // 用户要求：玩家全程在墙图层下方 (被墙遮挡)
+        for (MapChunk chunk : chunkManager.getLoadedChunks()) {
+            for (WallEntity wall : chunk.getWalls()) {
+                renderWall(wall);
             }
         }
 
@@ -1156,8 +1044,16 @@ public class EndlessGameScreen implements Screen {
         font.setColor(Color.WHITE);
         font.getData().setScale(1f);
 
-        // 渲染玩家
-        renderPlayer();
+        // 6. Overlay Pass: Health Bars (Always on top of walls)
+        for (Enemy e : enemies) {
+            if (!e.isDead()) {
+                float x = e.getX() * UNIT_SCALE;
+                float y = e.getY() * UNIT_SCALE;
+                float w = e.getWidth() * UNIT_SCALE;
+                float h = e.getHeight() * UNIT_SCALE;
+                renderHealthBar(e, x, y, w, h);
+            }
+        }
 
         // 迷雾效果
         game.getSpriteBatch().setColor(Color.WHITE);
@@ -1168,109 +1064,130 @@ public class EndlessGameScreen implements Screen {
         game.getSpriteBatch().end();
     }
 
-    private void renderChunk(MapChunk chunk, TextureRegion floor) {
-        int startX = chunk.getWorldStartX();
-        int startY = chunk.getWorldStartY();
-        int size = chunk.getSize();
+    // [Helper] Render a single wall (Full render)
+    private void renderWall(WallEntity wall) {
+        String theme = EndlessModeConfig.getThemeForPosition(wall.getOriginX(), wall.getOriginY());
+        TextureRegion region = textureManager.getWallRegion(
+                theme,
+                wall.getGridWidth(),
+                wall.getGridHeight(),
+                wall.getOriginX(),
+                wall.getOriginY());
 
-        // 获取区块主题对应的地砖纹理 - 双层地砖系统
-        TextureRegion chunkFloor = getFloorTextureForTheme(chunk.getTheme());
-        TextureRegion wallBaseFloor = textureManager.getWallBaseFloor(chunk.getTheme());
+        if (region != null) {
+            float drawX = wall.getOriginX() * UNIT_SCALE;
+            float drawY = wall.getOriginY() * UNIT_SCALE;
+            float wallW = wall.getGridWidth() * UNIT_SCALE;
+            float wallH = wall.getGridHeight() * UNIT_SCALE;
 
-        // 渲染地砖 - 只渲染可见范围内的地砖以优化性能
-        float camX = camera.position.x / UNIT_SCALE;
-        float camY = camera.position.y / UNIT_SCALE;
-        float viewW = camera.viewportWidth * camera.zoom / UNIT_SCALE / 2 + 2;
-        float viewH = camera.viewportHeight * camera.zoom / UNIT_SCALE / 2 + 2;
+            boolean isGrassland = "grassland".equalsIgnoreCase(theme);
 
-        int minLX = Math.max(0, (int) (camX - viewW - startX));
-        int maxLX = Math.min(size, (int) (camX + viewW - startX));
-        int minLY = Math.max(0, (int) (camY - viewH - startY));
-        int maxLY = Math.min(size, (int) (camY + viewH - startY));
+            if (isGrassland && region.getRegionHeight() >= 32) {
+                // Split Rendering: Draw Body then Top (Visual correctness)
+                int topH = 16;
+                int bodyH = region.getRegionHeight() - topH;
+                TextureRegion bodyReg = new TextureRegion(region, 0, topH, region.getRegionWidth(), bodyH);
+                TextureRegion topReg = new TextureRegion(region, 0, 0, region.getRegionWidth(), topH);
 
-        for (int lx = minLX; lx < maxLX; lx++) {
-            for (int ly = minLY; ly < maxLY; ly++) {
-                int worldX = startX + lx;
-                int worldY = startY + ly;
-
-                // 检查该格子是否被墙体占用 - 使用区块内的墙体列表进行检查
-                boolean isWallTile = isWallAtInChunk(chunk, worldX, worldY);
-                TextureRegion tileRegion = isWallTile ? wallBaseFloor : chunkFloor;
-
-                game.getSpriteBatch().draw(tileRegion, worldX * UNIT_SCALE, worldY * UNIT_SCALE, UNIT_SCALE,
-                        UNIT_SCALE);
-            }
-        }
-
-        // 渲染墙壁
-        for (WallEntity wall : chunk.getWalls()) {
-            TextureRegion wallTex = textureManager.getWallRegion(chunk.getTheme(),
-                    wall.getGridWidth(), wall.getGridHeight(), wall.getOriginX(), wall.getOriginY());
-            game.getSpriteBatch().draw(wallTex,
-                    wall.getOriginX() * UNIT_SCALE,
-                    wall.getOriginY() * UNIT_SCALE,
-                    wall.getGridWidth() * UNIT_SCALE,
-                    wall.getGridHeight() * UNIT_SCALE);
-        }
-
-        // 渲染陷阱
-        for (Vector2 trapPos : chunk.getTraps()) {
-            // 尝试获取动画
-            com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> trapAnim = textureManager
-                    .getTrapAnimation(chunk.getTheme());
-            if (trapAnim != null) {
-                // 绘制静态底座
-                TextureRegion base = textureManager.getTrapRegion(chunk.getTheme());
-                if (base != null) {
-                    game.getSpriteBatch().draw(base, trapPos.x * UNIT_SCALE, trapPos.y * UNIT_SCALE,
-                            UNIT_SCALE, UNIT_SCALE);
-                }
-                // 绘制动画覆盖层
-                TextureRegion currentFrame = trapAnim.getKeyFrame(stateTime, true);
-                float overlayY = trapPos.y * UNIT_SCALE + (UNIT_SCALE / 2f);
-                game.getSpriteBatch().draw(currentFrame, trapPos.x * UNIT_SCALE, overlayY,
-                        UNIT_SCALE, UNIT_SCALE);
+                // Draw Body
+                game.getSpriteBatch().draw(bodyReg, drawX, drawY, wallW, wallH);
+                // Draw Top (at wallY + wallH)
+                game.getSpriteBatch().draw(topReg, drawX, drawY + wallH, wallW, UNIT_SCALE);
             } else {
-                // 无动画时使用静态纹理
-                TextureRegion trapTex = textureManager.getTrapRegion(chunk.getTheme());
-                if (trapTex != null) {
-                    game.getSpriteBatch().draw(trapTex, trapPos.x * UNIT_SCALE, trapPos.y * UNIT_SCALE,
-                            UNIT_SCALE, UNIT_SCALE);
+                // Standard Rendering
+                float drawHeight = wallH;
+                if (region.getRegionWidth() > 0) {
+                    drawHeight = region.getRegionHeight() * (wallW / region.getRegionWidth());
                 }
+                game.getSpriteBatch().draw(region, drawX, drawY, wallW, drawHeight);
             }
+        }
+    }
+
+    // [Added Helper Method] Render a single enemy
+    private void renderEnemy(Enemy e) {
+        float x = e.getX() * UNIT_SCALE;
+        float y = e.getY() * UNIT_SCALE;
+        float w = e.getWidth() * UNIT_SCALE;
+        float h = e.getHeight() * UNIT_SCALE;
+
+        // 1. Custom Element Support
+        com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> enemyAnim = null;
+        boolean isCustom = false;
+
+        if (e.getCustomElementId() != null) {
+            String action = e.isDead() ? "Death" : "Move";
+            enemyAnim = de.tum.cit.fop.maze.custom.CustomElementManager.getInstance()
+                    .getAnimation(e.getCustomElementId(), action);
+            if (enemyAnim != null)
+                isCustom = true;
         }
 
-        // 渲染宝箱 (底部对齐)
-        String chunkId = chunk.getId();
-        if (!chunkChests.containsKey(chunkId)) {
-            // 按需创建该区块的宝箱对象
-            List<TreasureChest> chests = new ArrayList<>();
-            for (Vector2 pos : chunk.getChestPositions()) {
-                TreasureChest chest = TreasureChest.createRandom(
-                        pos.x, pos.y, spawnRandom,
-                        de.tum.cit.fop.maze.config.GameConfig.CHEST_PUZZLE_PROBABILITY);
-                // 设置奖励（无尽模式使用无尽模式奖励）
-                chest.setReward(ChestRewardGenerator.generateEndlessModeReward(spawnRandom));
-                // 如果是谜题宝箱，设置谜题
-                if (chest.getType() == TreasureChest.ChestType.PUZZLE) {
-                    chest.setPuzzle(PuzzleGenerator.generateRandom(spawnRandom));
-                }
-                chests.add(chest);
-            }
-            chunkChests.put(chunkId, chests);
+        if (enemyAnim == null) {
+            enemyAnim = textureManager.getEnemyAnimation(e.getType(), e.getVelocityX(), e.getVelocityY());
         }
 
-        for (TreasureChest chest : chunkChests.getOrDefault(chunkId, java.util.Collections.emptyList())) {
-            TextureRegion chestTex = textureManager.getChestFrame(chest.getState());
-            if (chestTex != null) {
-                // 底部对齐渲染：宝箱底边与格子底边对齐
-                float renderHeight = textureManager.getChestRenderHeight(chest.getState(), UNIT_SCALE);
-                float drawX = chest.getX() * UNIT_SCALE;
-                float drawY = chest.getY() * UNIT_SCALE; // 底边对齐
-                game.getSpriteBatch().draw(chestTex, drawX, drawY,
-                        UNIT_SCALE, UNIT_SCALE * renderHeight);
-            }
+        TextureRegion enemyFrame = enemyAnim.getKeyFrame(stateTime, true);
+
+        // 2. Grayscale Shader for Dead Enemies
+        if (e.isDead()) {
+            game.getSpriteBatch().setShader(grayscaleShader);
         }
+
+        // 3. Color Tint for Status Effects (Hurt, Poison, Freeze, Burn)
+        com.badlogic.gdx.graphics.Color oldColor = game.getSpriteBatch().getColor();
+        if (e.isHurt()) {
+            game.getSpriteBatch().setColor(1, 0, 0, 1); // Red flash
+        } else if (e.getCurrentEffect() == WeaponEffect.POISON) {
+            game.getSpriteBatch().setColor(0, 1, 0, 1); // Green tint
+        } else if (e.getCurrentEffect() == WeaponEffect.FREEZE) {
+            game.getSpriteBatch().setColor(0, 0.5f, 1, 1); // Blue tint
+        } else if (e.getCurrentEffect() == WeaponEffect.BURN) {
+            game.getSpriteBatch().setColor(1, 0.5f, 0, 1); // Orange tint
+        }
+
+        if (isCustom) {
+            game.getSpriteBatch().draw(enemyFrame, x, y, w, h);
+        } else {
+            // Standard Enemies might need flipping/sizing adjustments?
+            game.getSpriteBatch().draw(enemyFrame, x - w / 2, y - h / 2, w * 2, h * 2);
+        }
+
+        game.getSpriteBatch().setColor(oldColor);
+        game.getSpriteBatch().setShader(null);
+
+    }
+
+    // [Helper] Render Health Bar
+    private void renderHealthBar(Enemy e, float x, float y, float w, float h) {
+        if (e.getHealth() < e.getMaxHealth()) {
+            float barWidth = w;
+            float barHeight = 4;
+            float barX = x + (isCustom(e) ? 0 : -w / 2);
+            float barY = y + h + 5;
+
+            game.getSpriteBatch().end();
+            shapeRenderer.setProjectionMatrix(camera.combined);
+            shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+
+            // Background
+            shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.RED);
+            shapeRenderer.rect(barX, barY, barWidth, barHeight);
+
+            // Health
+            float healthPercent = e.getHealth() / e.getMaxHealth();
+            shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.GREEN);
+            shapeRenderer.rect(barX, barY, barWidth * healthPercent, barHeight);
+
+            shapeRenderer.end();
+            game.getSpriteBatch().begin();
+        }
+    }
+
+    private boolean isCustom(Enemy e) {
+        return e.getCustomElementId() != null &&
+                de.tum.cit.fop.maze.custom.CustomElementManager.getInstance()
+                        .getAnimation(e.getCustomElementId(), "Move") != null;
     }
 
     private TextureRegion getFloorTextureForTheme(String theme) {
