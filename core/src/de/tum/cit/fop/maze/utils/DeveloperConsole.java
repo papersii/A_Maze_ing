@@ -1069,6 +1069,31 @@ public class DeveloperConsole {
         void setCombo(int combo);
 
         void addKills(int kills);
+
+        // === NEW: Rage System ===
+        float getRageProgress();
+
+        int getRageLevel();
+
+        void setRageProgress(float progress);
+
+        void maxRage();
+
+        // === NEW: Enemy Control ===
+        void spawnEnemies(int count);
+
+        void spawnBoss();
+
+        int clearAllEnemies();
+
+        int getEnemyCount();
+
+        // === NEW: Teleport ===
+        void teleportPlayer(float x, float y);
+
+        float getPlayerX();
+
+        float getPlayerY();
     }
 
     /**
@@ -1138,6 +1163,65 @@ public class DeveloperConsole {
             case "zone":
                 log("[INFO] Current Zone: " + endlessModeData.getCurrentZone());
                 break;
+
+            // === NEW: Rage System Commands ===
+            case "rage":
+                if (parts.length > 2) {
+                    float rageVal = parseFloatSafe(parts[2], 0);
+                    rageVal = Math.max(0, Math.min(100, rageVal));
+                    endlessModeData.setRageProgress(rageVal);
+                    log("[OK] Rage progress set to " + rageVal + "%");
+                } else {
+                    log("[INFO] Rage Level: " + endlessModeData.getRageLevel());
+                    log("  Progress: " + String.format("%.1f", endlessModeData.getRageProgress()) + "%");
+                }
+                break;
+            case "maxrage":
+                endlessModeData.maxRage();
+                log("[OK] RAGE MAXED! Level: " + endlessModeData.getRageLevel());
+                break;
+
+            // === NEW: Enemy Control Commands ===
+            case "spawn":
+                if (parts.length > 2) {
+                    String spawnType = parts[2].toLowerCase();
+                    if (spawnType.equals("boss")) {
+                        endlessModeData.spawnBoss();
+                        log("[OK] Boss spawned!");
+                    } else {
+                        int spawnCount = parseIntSafe(parts[2], 5);
+                        spawnCount = Math.max(1, Math.min(50, spawnCount));
+                        endlessModeData.spawnEnemies(spawnCount);
+                        log("[OK] Spawned " + spawnCount + " enemies");
+                    }
+                } else {
+                    endlessModeData.spawnEnemies(5);
+                    log("[OK] Spawned 5 enemies (default)");
+                }
+                break;
+            case "clear":
+            case "clearall":
+                int cleared = endlessModeData.clearAllEnemies();
+                log("[OK] Cleared " + cleared + " enemies");
+                break;
+            case "enemies":
+                log("[INFO] Current enemy count: " + endlessModeData.getEnemyCount());
+                break;
+
+            // === NEW: Teleport ===
+            case "tp":
+                if (parts.length > 3) {
+                    float tpX = parseFloatSafe(parts[2], 0);
+                    float tpY = parseFloatSafe(parts[3], 0);
+                    endlessModeData.teleportPlayer(tpX, tpY);
+                    log("[OK] Teleported to (" + (int) tpX + ", " + (int) tpY + ")");
+                } else {
+                    log("[INFO] Current position: (" + (int) endlessModeData.getPlayerX() +
+                            ", " + (int) endlessModeData.getPlayerY() + ")");
+                    log("  Usage: endless tp <x> <y>");
+                }
+                break;
+
             default:
                 log("[ERROR] Unknown endless command: " + subCmd);
                 showHelpEndless();
@@ -1149,12 +1233,28 @@ public class DeveloperConsole {
         log("║                  ENDLESS MODE COMMANDS                    ║");
         log("╚═══════════════════════════════════════════════════════════╝");
         log("");
+        log("【状态查看】");
         log("endless status        Show full endless mode stats");
+        log("endless wave          View current wave info");
+        log("endless zone          View current zone");
+        log("endless enemies       View current enemy count");
+        log("");
+        log("【分数系统】");
         log("endless score [n]     View/Set current score");
         log("endless combo [n]     View/Set current combo");
         log("endless kill [n]      Add kills (debug)");
-        log("endless wave          View current wave info");
-        log("endless zone          View current zone");
+        log("");
+        log("【RAGE系统】");
+        log("endless rage [0-100]  View/Set rage progress");
+        log("endless maxrage       Instantly max out rage");
+        log("");
+        log("【敌人控制】");
+        log("endless spawn [n]     Spawn n enemies (default 5)");
+        log("endless spawn boss    Spawn a boss enemy");
+        log("endless clear         Kill all enemies");
+        log("");
+        log("【移动】");
+        log("endless tp <x> <y>    Teleport to coordinates");
         log("");
         log("NOTE: 'level', 'skip', 'win' are disabled in Endless Mode.");
     }
