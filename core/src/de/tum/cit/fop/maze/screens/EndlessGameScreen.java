@@ -1512,7 +1512,7 @@ public class EndlessGameScreen implements Screen {
                 settingsTable.setVisible(false);
                 pauseTable.setVisible(true);
             });
-            settingsTable = settingsUI.build();
+            settingsTable = settingsUI.buildWithBackground();
             settingsTable.setVisible(false);
             settingsTable.setFillParent(true);
             uiStage.addActor(settingsTable);

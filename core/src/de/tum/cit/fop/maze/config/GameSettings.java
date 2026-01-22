@@ -47,7 +47,9 @@ public class GameSettings {
     private static float userEnemyChaseSpeed = DEFAULT_ENEMY_CHASE_SPEED;
     private static float userEnemyDetectRange = DEFAULT_ENEMY_DETECT_RANGE;
     private static float userHitDistance = DEFAULT_HIT_DISTANCE;
+
     private static float userCameraZoom = DEFAULT_CAMERA_ZOOM;
+    private static boolean userShowAttackRange = true;
 
     // ==================== 当前值 (本局游戏使用) ====================
 
@@ -59,7 +61,9 @@ public class GameSettings {
     public static float enemyChaseSpeed = DEFAULT_ENEMY_CHASE_SPEED;
     public static float enemyDetectRange = DEFAULT_ENEMY_DETECT_RANGE;
     public static float hitDistance = DEFAULT_HIT_DISTANCE;
+
     public static float cameraZoom = DEFAULT_CAMERA_ZOOM;
+    public static boolean showAttackRange = true;
 
     // Keys (Default WASD/ARROWS logic handled in game, but here is preferred
     // primary)
@@ -92,10 +96,11 @@ public class GameSettings {
         userEnemyChaseSpeed = prefs.getFloat("enemyChaseSpeed", DEFAULT_ENEMY_CHASE_SPEED);
         userEnemyDetectRange = prefs.getFloat("enemyDetectRange", DEFAULT_ENEMY_DETECT_RANGE);
         userHitDistance = prefs.getFloat("hitDistance", DEFAULT_HIT_DISTANCE);
-        userHitDistance = prefs.getFloat("hitDistance", DEFAULT_HIT_DISTANCE);
-        userHitDistance = prefs.getFloat("hitDistance", DEFAULT_HIT_DISTANCE);
+
         userCameraZoom = prefs.getFloat("cameraZoom", DEFAULT_CAMERA_ZOOM);
+
         userFogEnabled = prefs.getBoolean("fogEnabled", false);
+        userShowAttackRange = prefs.getBoolean("showAttackRange", true);
 
         KEY_UP = prefs.getInteger("key_up", com.badlogic.gdx.Input.Keys.UP);
         KEY_DOWN = prefs.getInteger("key_down", com.badlogic.gdx.Input.Keys.DOWN);
@@ -127,7 +132,9 @@ public class GameSettings {
         userEnemyDetectRange = enemyDetectRange;
         userHitDistance = hitDistance;
         userCameraZoom = cameraZoom;
+
         userFogEnabled = fogEnabled;
+        userShowAttackRange = showAttackRange;
 
         // 保存到文件
         Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
@@ -141,6 +148,7 @@ public class GameSettings {
         prefs.putFloat("hitDistance", userHitDistance);
         prefs.putFloat("cameraZoom", userCameraZoom);
         prefs.putBoolean("fogEnabled", userFogEnabled);
+        prefs.putBoolean("showAttackRange", userShowAttackRange);
         prefs.flush();
     }
 
@@ -176,6 +184,8 @@ public class GameSettings {
         enemyDetectRange = userEnemyDetectRange;
         hitDistance = userHitDistance;
         fogEnabled = userFogEnabled;
+
+        showAttackRange = userShowAttackRange;
         cameraZoom = DEFAULT_CAMERA_ZOOM; // Force new default zoom (0.67 for 15x15 view)
     }
 
@@ -192,6 +202,16 @@ public class GameSettings {
         return fogEnabled;
     }
 
+    // ==================== 攻击范围显示 (Attack Range) ====================
+    public static void setShowAttackRange(boolean enabled) {
+        showAttackRange = enabled;
+        userShowAttackRange = enabled;
+    }
+
+    public static boolean isShowAttackRange() {
+        return showAttackRange;
+    }
+
     /**
      * 重置用户默认值为硬编码默认值，并保存。
      */
@@ -204,7 +224,9 @@ public class GameSettings {
         userEnemyChaseSpeed = DEFAULT_ENEMY_CHASE_SPEED;
         userEnemyDetectRange = DEFAULT_ENEMY_DETECT_RANGE;
         userHitDistance = DEFAULT_HIT_DISTANCE;
+
         userFogEnabled = false;
+        userShowAttackRange = true;
 
         // 同时更新当前值
         resetToUserDefaults();

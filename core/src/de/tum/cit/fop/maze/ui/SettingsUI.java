@@ -1,7 +1,10 @@
 package de.tum.cit.fop.maze.ui;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -9,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import de.tum.cit.fop.maze.MazeRunnerGame;
 import de.tum.cit.fop.maze.config.GameSettings;
 import de.tum.cit.fop.maze.utils.AudioManager;
@@ -27,13 +31,16 @@ public class SettingsUI {
 
     private Table contentTable;
     private Label statusLabel;
+    
+    // Background for in-game overlay
+    private Texture backgroundTexture;
 
     // Key remap buttons
     private TextButton btnUp, btnDown, btnLeft, btnRight, btnAttack, btnSwitchWeapon;
     private String remappingKeyName = null;
 
     // 关键！标签列宽度要足够大，避免被控件覆盖
-    private static final float LABEL_WIDTH = 160f;
+    private static final float LABEL_WIDTH = 230f;
     private static final float SLIDER_WIDTH = 160f;
     private static final float VALUE_WIDTH = 50f;
     private static final float BTN_WIDTH = 100f;
@@ -48,11 +55,59 @@ public class SettingsUI {
         setupInputProcessor();
     }
 
+    /**
+     * Build settings UI without background (for SettingsScreen which handles its own background).
+     */
     public Table build() {
         contentTable = new Table();
-        // 无背景！让 SettingsScreen 的 glClearColor 统一背景色
         contentTable.pad(50, 40, 20, 40); // 上50 左右40 下20
 
+        buildContent();
+        return contentTable;
+    }
+    
+    /**
+     * Build settings UI with background (for in-game settings overlay).
+     * Uses the same background as SettingsScreen with dim effect.
+     */
+    public Table buildWithBackground() {
+        // Load background texture for in-game overlay
+        try {
+            backgroundTexture = new Texture(Gdx.files.internal("settings_bg.png"));
+        } catch (Exception e) {
+            backgroundTexture = null;
+        }
+        
+        contentTable = new Table();
+        
+        // 设置带暗化的背景图片
+        if (backgroundTexture != null) {
+            // 创建暗化的背景
+            TextureRegionDrawable bgDrawable = new TextureRegionDrawable(new TextureRegion(backgroundTexture));
+            contentTable.setBackground(bgDrawable);
+            contentTable.setColor(0.4f, 0.4f, 0.4f, 1f); // Dim to match shop
+        } else {
+            // Fallback to dark semi-transparent background
+            contentTable.setBackground(skin.newDrawable("white", 0.04f, 0.04f, 0.06f, 0.95f));
+        }
+        
+        contentTable.pad(50, 40, 20, 40); // 上50 左右40 下20
+        
+        buildContent();
+        return contentTable;
+    }
+    
+    /**
+     * Dispose of background texture resources.
+     */
+    public void dispose() {
+        if (backgroundTexture != null) {
+            backgroundTexture.dispose();
+            backgroundTexture = null;
+        }
+    }
+    
+    private void buildContent() {
         // ===== Title =====
         Label title = new Label("Settings", skin, "title");
         title.setFontScale(1.2f);
@@ -69,6 +124,7 @@ public class SettingsUI {
         addRunSpeedRow();
         addCameraRow();
         addFogRow();
+        addAttackRangeRow();
         addHint();
 
         // ===== Controls Section =====
@@ -77,8 +133,6 @@ public class SettingsUI {
 
         // ===== Back Button =====
         addBackButton();
-
-        return contentTable;
     }
 
     private void addSectionHeader(String text) {
@@ -113,7 +167,7 @@ public class SettingsUI {
                 AudioManager.getInstance().setVolume(slider.getValue());
             }
         });
-        contentTable.add(slider).width(SLIDER_WIDTH).height(18).colspan(2).left();
+        contentTable.add(slider).width(SLIDER_WIDTH).height(12).colspan(2).left();
         contentTable.row().padBottom(10);
     }
 
@@ -157,7 +211,7 @@ public class SettingsUI {
                 valueLabel.setText(String.format("%.1f", v));
             }
         });
-        contentTable.add(slider).width(SLIDER_WIDTH).height(18);
+        contentTable.add(slider).width(SLIDER_WIDTH).height(12);
         contentTable.add(valueLabel).width(VALUE_WIDTH).padLeft(10);
         contentTable.row().padBottom(10);
     }
@@ -180,7 +234,7 @@ public class SettingsUI {
                 valueLabel.setText(String.format("%.1f", v));
             }
         });
-        contentTable.add(slider).width(SLIDER_WIDTH).height(18);
+        contentTable.add(slider).width(SLIDER_WIDTH).height(12);
         contentTable.add(valueLabel).width(VALUE_WIDTH).padLeft(10);
         contentTable.row().padBottom(10);
     }
@@ -203,7 +257,7 @@ public class SettingsUI {
                 valueLabel.setText(String.format("%.2f", v));
             }
         });
-        contentTable.add(slider).width(SLIDER_WIDTH).height(18);
+        contentTable.add(slider).width(SLIDER_WIDTH).height(12);
         contentTable.add(valueLabel).width(VALUE_WIDTH).padLeft(10);
         contentTable.row().padBottom(10);
     }
@@ -220,6 +274,25 @@ public class SettingsUI {
             public void changed(ChangeEvent e, Actor a) {
                 boolean on = !GameSettings.isFogEnabled();
                 GameSettings.setFogEnabled(on);
+                btn.setText(on ? "ON" : "OFF");
+            }
+        });
+        contentTable.add(btn).width(BTN_WIDTH).height(32).colspan(2).left();
+        contentTable.row().padBottom(6);
+    }
+
+    private void addAttackRangeRow() {
+        Label label = new Label("Attack Range:", skin);
+        label.setFontScale(1.0f);
+        contentTable.add(label).width(LABEL_WIDTH).right().padRight(30);
+
+        final TextButton btn = new TextButton(GameSettings.isShowAttackRange() ? "ON" : "OFF", skin);
+        btn.getLabel().setFontScale(0.9f);
+        btn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent e, Actor a) {
+                boolean on = !GameSettings.isShowAttackRange();
+                GameSettings.setShowAttackRange(on);
                 btn.setText(on ? "ON" : "OFF");
             }
         });

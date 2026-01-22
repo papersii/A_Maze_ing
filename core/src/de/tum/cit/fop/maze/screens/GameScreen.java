@@ -646,7 +646,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         renderPlayer(player);
 
         // 6.1 Render Attack Range Indicator (攻击范围可视化)
-        if (player.isAttacking()) {
+        if (player.isAttacking() && GameSettings.isShowAttackRange()) {
             game.getSpriteBatch().end();  // 暂停 SpriteBatch 以使用 ShapeRenderer
             Weapon currentWeapon = player.getCurrentWeapon();
             if (currentWeapon != null && !currentWeapon.isRanged()) {
@@ -1246,7 +1246,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
                 settingsTable.setVisible(false);
                 pauseTable.setVisible(true);
             });
-            settingsTable = settingsUI.build();
+            settingsTable = settingsUI.buildWithBackground();
             settingsTable.setVisible(false);
             // Center it
             settingsTable.setFillParent(true);
