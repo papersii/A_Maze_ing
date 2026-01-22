@@ -27,7 +27,7 @@ public class MazeRenderer {
         this.groutRenderer = new GroutRenderer(textureManager);
     }
 
-    public void render(GameMap gameMap, OrthographicCamera camera, TextureRegion floorTexture, float stateTime) {
+    public void renderFloor(GameMap gameMap, OrthographicCamera camera, TextureRegion floorTexture) {
         float zoom = camera.zoom;
         float viewW = camera.viewportWidth * zoom;
         float viewH = camera.viewportHeight * zoom;
@@ -78,36 +78,92 @@ public class MazeRenderer {
 
         // Reset color to avoid tinting walls
         batch.setColor(Color.WHITE);
+    }
+
+    public void renderWalls(GameMap gameMap, OrthographicCamera camera, float stateTime) {
+        float zoom = camera.zoom;
+        float viewW = camera.viewportWidth * zoom;
+        float viewH = camera.viewportHeight * zoom;
+        float viewX = camera.position.x - viewW / 2;
+        float viewY = camera.position.y - viewH / 2;
 
         // Pass 3: Walls - 使用 WallEntity 列表渲染
-        // 按Y坐标从高到低排序，实现正确的Z-ordering
-        List<WallEntity> walls = gameMap.getWalls();
+        // 按Y坐标从高到低排序，实现正确的Z-ordering (Back to Front)
+        List<WallEntity> walls = new java.util.ArrayList<>(gameMap.getWalls());
+        walls.sort((w1, w2) -> Integer.compare(w2.getOriginY(), w1.getOriginY()));
 
-        // 简化：直接遍历，渲染可见的墙体
+        // 延迟渲染列表：用于存储墙顶部的渲染指令 (Grassland specific)
+        List<Runnable> deferredTops = new java.util.ArrayList<>();
+
+        boolean isGrassland = "grassland".equalsIgnoreCase(gameMap.getTheme());
+
         for (WallEntity wall : walls) {
             float wallX = wall.getOriginX() * UNIT_SCALE;
             float wallY = wall.getOriginY() * UNIT_SCALE;
             float wallW = wall.getGridWidth() * UNIT_SCALE;
             float wallH = wall.getGridHeight() * UNIT_SCALE;
 
-            // 视锥体剔除
+            // 视锥体剔除 (Expanded bounds for tall walls)
             if (wallX + wallW < viewX || wallX > viewX + viewW)
                 continue;
-            if (wallY + wallH < viewY || wallY > viewY + viewH)
+            if (wallY + wallH + UNIT_SCALE * 2 < viewY || wallY > viewY + viewH)
                 continue;
 
             // 获取贴图
             TextureRegion reg = getWallRegion(wall, gameMap.getTheme(), stateTime);
+            if (reg == null)
+                continue;
 
-            // 渲染尺寸（可以有视觉延伸）
-            float drawHeight = wallH;
+            // Grassland Special Handling: Split Body and Top
+            if (isGrassland && reg.getRegionHeight() >= 32) { // 至少由Top(16)+Body(16)组成
+                int topH = 16;
+                int bodyH = reg.getRegionHeight() - topH;
 
-            // 孤立墙体增加视觉高度
-            if (isWallIsolated(gameMap, wall) && !hasWallAbove(gameMap, wall)) {
-                drawHeight = wallH + 0.5f * UNIT_SCALE;
+                // TextureRegion(region, x, y, w, h) - relative to region
+                // Top Part (0, 0, W, 16)
+                TextureRegion topReg = new TextureRegion(reg, 0, 0, reg.getRegionWidth(), topH);
+
+                // Body Part (0, 16, W, BodyH)
+                TextureRegion bodyReg = new TextureRegion(reg, 0, topH, reg.getRegionWidth(), bodyH);
+
+                // Draw Body immediately
+                // Note: bodyH pixels should map to wallH world units?
+                // Visual Ratio: bodyH is H * 16. wallH is H * 16. Match 1:1.
+                batch.draw(bodyReg, wallX, wallY, wallW, wallH);
+
+                // Defer Top Draw
+                // Top is drawn at wallY + wallH. Height = 1 unit (16px)
+                deferredTops.add(() -> {
+                    batch.draw(topReg, wallX, wallY + wallH, wallW, UNIT_SCALE);
+                });
+
+            } else {
+                // Standard Rendering (Other themes or fallback)
+                float drawWidth = wallW;
+                float drawHeight = wallH;
+
+                // Dynamic Height for single-sprite walls
+                float texW = reg.getRegionWidth();
+                float texH = reg.getRegionHeight();
+                if (texW > 0) {
+                    drawHeight = texH * (wallW / texW);
+                }
+
+                // 孤立墙体增加视觉高度
+                if (drawHeight <= wallH && isWallIsolated(gameMap, wall) && !hasWallAbove(gameMap, wall)) {
+                    drawHeight = wallH + 0.5f * UNIT_SCALE;
+                }
+
+                batch.draw(reg, wallX, wallY, drawWidth, drawHeight);
             }
+        }
 
-            batch.draw(reg, wallX, wallY, wallW, drawHeight);
+        // Render all deferred tops (sorted indirectly by insertion order, which is
+        // Back-to-Front)
+        // Back-to-Front Tops ensures Top(Front) covers Top(Back) if overlap.
+        // And importantly, Tops are drawn AFTER all Bodies (implicit in this step).
+        for (Runnable task : deferredTops) {
+            task.run();
         }
 
         batch.setColor(Color.WHITE);

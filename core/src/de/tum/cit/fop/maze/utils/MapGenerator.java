@@ -321,10 +321,17 @@ public class MapGenerator {
      */
     private void addWall(int x, int y, int w, int h, boolean isBorder) {
         int typeId = getTypeIdForSize(w, h);
-        WallEntity wall = new WallEntity(x, y, w, h, typeId, isBorder);
+
+        // [MODIFIED] Determine collision height based on theme
+        int collisionHeight = h;
+        if (!isBorder && "grassland".equalsIgnoreCase(config.theme)) {
+            collisionHeight = 1;
+        }
+
+        WallEntity wall = new WallEntity(x, y, w, h, typeId, isBorder, collisionHeight);
         walls.add(wall);
 
-        // 标记格子被占用
+        // 标记格子被占用 (Using full visual height 'h' to prevent overlapping generation)
         for (int dx = 0; dx < w; dx++) {
             for (int dy = 0; dy < h; dy++) {
                 if (x + dx < totalWidth && y + dy < totalHeight) {
