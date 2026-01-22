@@ -48,7 +48,8 @@ public class HelpScreen implements Screen {
     private static final float CONTENT_WIDTH = 1200f;
 
     // Navigation sections
-    private static final String[] NAV_ITEMS = { "Controls", "Weapons", "Armor", "World", "Console", "Tips" };
+    private static final String[] NAV_ITEMS = { "Controls", "Game Modes", "Combat", "Equipment", "World", "Console",
+            "Tips" };
 
     // Weapon data
     private static final String[][] WEAPONS = {
@@ -96,6 +97,17 @@ public class HelpScreen implements Screen {
             { "Teleporter", "Zone 4", "-", "Teleport player" },
             { "Electric Floor", "Zone 5", "2 HP", "Periodic discharge" },
             { "Laser Gate", "Zone 5", "Instant", "Needs switch" }
+    };
+
+    // Enemies
+    private static final String[][] ENEMIES = {
+            { "Slime", "Zone 1", "Physical", "Splits into smaller slimes on death." },
+            { "Boar", "Zone 1", "Physical", "Charges in straight lines. High knockback." },
+            { "Scorpion", "Zone 2", "Physical", "Fast movement. Poisons on contact." },
+            { "Yeti", "Zone 3", "Physical", "High health. Immune to Freeze." },
+            { "Jungle Mutant", "Zone 4", "Magical", "Leaves poison trails." },
+            { "Space Drone", "Zone 5", "Magical", "Ranged laser attacks. Explodes." },
+            { "Dark Mage", "Zone 3+", "Magical", "Casts Fireballs (Burn) and Teleports." }
     };
 
     private final List<Texture> managedTextures = new ArrayList<>();
@@ -249,18 +261,21 @@ public class HelpScreen implements Screen {
                 buildControlsContent();
                 break;
             case 1:
-                buildWeaponsContent();
+                buildGameModesContent();
                 break;
             case 2:
-                buildArmorContent();
+                buildCombatContent();
                 break;
             case 3:
-                buildWorldContent();
+                buildEquipmentContent();
                 break;
             case 4:
-                buildConsoleContent();
+                buildWorldContent();
                 break;
             case 5:
+                buildConsoleContent();
+                break;
+            case 6:
                 buildTipsContent();
                 break;
         }
@@ -326,26 +341,113 @@ public class HelpScreen implements Screen {
         card.add(row).width(CONTENT_WIDTH - 60).left().padBottom(12).row();
     }
 
-    // ==================== Weapons Section ====================
+    // ==================== Game Modes Section ====================
 
-    private void buildWeaponsContent() {
-        addSectionTitle("WEAPON ARSENAL");
-        addTip("Match weapon damage type to enemy weaknesses.");
+    private void buildGameModesContent() {
+        addSectionTitle("GAME MODES");
 
+        // Adventure Mode
+        addSubTitle("Adventure Mode");
+        Table adventureCard = createCard();
+        adventureCard.add(new Label("The classic dungeon crawler experience.", skin)).left().padBottom(10).row();
+        adventureCard.add(new Label("- GOAL: Find the Key, then find the Exit to advance.", skin)).left().padBottom(5)
+                .row();
+        adventureCard.add(new Label("- PROGRESSION: 5 Zones, 20 Levels total.", skin)).left().padBottom(5).row();
+        adventureCard.add(new Label("- LIVES: You have 3 Hearts. Lose them all and it's Game Over.", skin)).left();
+        contentTable.add(adventureCard).width(CONTENT_WIDTH).padBottom(20).row();
+
+        // Endless Mode
+        addSubTitle("Endless Mode");
+        Table endlessCard = createCard();
+        endlessCard.add(new Label("Test your limits against infinite waves of enemies.", skin)).left().padBottom(10)
+                .row();
+        endlessCard.add(new Label("- GOAL: Survive as long as possible. High score wins.", skin)).left().padBottom(15)
+                .row();
+
+        // Combo System
+        Label comboTitle = new Label("COMBO SYSTEM:", skin);
+        comboTitle.setColor(Color.ORANGE);
+        endlessCard.add(comboTitle).left().padBottom(5).row();
+        endlessCard.add(new Label("Kill enemies quickly to build COMBO. Higher COMBO = More Score.", skin)).left()
+                .padBottom(5).row();
+        endlessCard.add(new Label("NOTE: Combo resets if you don't kill anything for 5 seconds!", skin)).left()
+                .padBottom(15).row();
+
+        // Rage System
+        Label rageTitle = new Label("ENEMY RAGE:", skin);
+        rageTitle.setColor(Color.RED);
+        endlessCard.add(rageTitle).left().padBottom(5).row();
+        endlessCard.add(new Label("Killing TOO fast angers the dungeon...", skin)).left().padBottom(5).row();
+        endlessCard.add(new Label("High Kill Rate -> High Rage -> Enemies get Faster & Stronger.", skin)).left()
+                .padBottom(5).row();
+        endlessCard.add(new Label("STRATEGY: Balance your killing speed to manage difficulty.", skin)).left();
+
+        contentTable.add(endlessCard).width(CONTENT_WIDTH).padBottom(20).row();
+    }
+
+    // ==================== Combat Section ====================
+
+    private void buildCombatContent() {
+        addSectionTitle("COMBAT MECHANICS");
+
+        // Damage Types
+        addSubTitle("Damage Types");
+        Table typeCard = createCard();
+        typeCard.add(new Label("There are two types of damage in the world:", skin)).left().padBottom(15).row();
+
+        // Physical
+        Label physL = new Label("PHYSICAL DAMAGE (Sword, Bow, Crossbow, Shield)", skin);
+        physL.setColor(Color.ORANGE);
+        typeCard.add(physL).left().padBottom(5).row();
+        typeCard.add(new Label("Standard damage. Blocked by Physical Armor.", skin)).left().padBottom(15).row();
+
+        // Magical
+        Label magL = new Label("MAGICAL DAMAGE (Wand, Staff, Robes)", skin);
+        magL.setColor(new Color(0.8f, 0.4f, 1f, 1f));
+        typeCard.add(magL).left().padBottom(5).row();
+        typeCard.add(new Label("Elemental damage. Blocked by Arcane Armor.", skin)).left().padBottom(5).row();
+
+        addWarning("Physical Armor ignores Magic Damage, and vice versa!");
+        contentTable.add(typeCard).width(CONTENT_WIDTH).padBottom(20).row();
+
+        // Status Effects
+        addSubTitle("Status Effects");
+        Table statusCard = createCard();
+
+        addStatusRow(statusCard, "BURN", "Fire Damage over time. Prevents regeneration.", Color.ORANGE);
+        addStatusRow(statusCard, "FREEZE", "Movement speed slowed by 50%.", Color.CYAN);
+        addStatusRow(statusCard, "POISON", "True damage over time. Ignores armor.", Color.GREEN);
+
+        contentTable.add(statusCard).width(CONTENT_WIDTH).row();
+    }
+
+    private void addStatusRow(Table card, String name, String desc, Color color) {
+        Table row = new Table();
+        row.left();
+        Label l = new Label(name, skin);
+        l.setColor(color);
+        row.add(l).width(150).left();
+        row.add(new Label(desc, skin)).expandX().left();
+        card.add(row).width(CONTENT_WIDTH - 40).padBottom(10).row();
+    }
+
+    // ==================== Equipment Section ====================
+
+    private void buildEquipmentContent() {
+        addSectionTitle("EQUIPMENT DATABASE");
+
+        // Weapons
+        addSubTitle("Weapons");
         for (String[] w : WEAPONS) {
             Table card = createCard();
-
-            // Name
             Label nameLabel = new Label(w[0], skin);
             nameLabel.setColor(UIConstants.HELP_TITLE_GOLD);
             card.add(nameLabel).left().padBottom(8).row();
 
-            // Type info
             Label typeLabel = new Label("Type: " + w[1] + "  |  Damage Type: " + w[2], skin);
             typeLabel.setColor(Color.LIGHT_GRAY);
             card.add(typeLabel).left().padBottom(8).row();
 
-            // Stats row
             Table stats = new Table();
             stats.left();
             stats.add(new Label("Damage: " + w[3], skin)).padRight(50);
@@ -359,39 +461,19 @@ public class HelpScreen implements Screen {
             card.add(stats).left();
             contentTable.add(card).width(CONTENT_WIDTH).padBottom(15).row();
         }
-    }
 
-    // ==================== Armor Section ====================
-
-    private void buildArmorContent() {
-        addSectionTitle("ARMOR PROTECTION SYSTEM");
-
-        // Mechanism
-        Table mechCard = createCard();
-        mechCard.add(new Label("DAMAGE FLOW:", skin)).left().padBottom(10).row();
-        mechCard.add(new Label("1. Enemy attacks with PHYSICAL or MAGICAL damage", skin)).left().padBottom(5).row();
-        mechCard.add(new Label("2. If armor matches damage type, shield absorbs it", skin)).left().padBottom(5).row();
-        mechCard.add(new Label("3. Remaining or unmatched damage hits your HP", skin)).left();
-        contentTable.add(mechCard).width(CONTENT_WIDTH).padBottom(20).row();
-
-        addWarning("Physical armor does NOT block magic damage!");
-
-        addSubTitle("Available Armors");
-
+        // Armor
+        addSubTitle("Armors");
         for (String[] a : ARMORS) {
             Table card = createCard();
-
-            // Name
             Label nameLabel = new Label(a[0], skin);
             nameLabel.setColor(UIConstants.HELP_TITLE_GOLD);
             card.add(nameLabel).left().padBottom(8).row();
 
-            // Resist type
             Label resistLabel = new Label("Resists: " + a[1], skin);
             resistLabel.setColor(a[1].equals("PHYSICAL") ? Color.ORANGE : new Color(0.8f, 0.4f, 1f, 1f));
             card.add(resistLabel).left().padBottom(8).row();
 
-            // Stats
             Table stats = new Table();
             stats.left();
             stats.add(new Label("Shield: " + a[2], skin)).padRight(60);
@@ -496,6 +578,29 @@ public class HelpScreen implements Screen {
             row.add(r).expandX().fillX();
             contentTable.add(row).width(CONTENT_WIDTH).padBottom(5).row();
         }
+
+        // Bestiary (Enemies)
+        addSubTitle("Bestiary (Threats)");
+
+        for (String[] e : ENEMIES) {
+            Table card = createCard();
+
+            Label nameL = new Label(e[0], skin);
+            nameL.setColor(UIConstants.HELP_WARN);
+            card.add(nameL).width(200).left().padBottom(8).row();
+
+            Table info = new Table();
+            info.left();
+            info.add(new Label("Habitat: " + e[1], skin)).width(200).left();
+            info.add(new Label("Damage: " + e[2], skin)).width(200).left();
+            card.add(info).left().padBottom(5).row();
+
+            Label desc = new Label(e[3], skin);
+            desc.setColor(Color.LIGHT_GRAY);
+            card.add(desc).left();
+
+            contentTable.add(card).width(CONTENT_WIDTH).padBottom(10).row();
+        }
     }
 
     private Label createHeaderLabel(String text) {
@@ -542,6 +647,8 @@ public class HelpScreen implements Screen {
         addCommandRow(essentialCard, "give key", "Get the exit key instantly");
         addCommandRow(essentialCard, "tp 10 15", "Teleport to coordinates (10, 15)");
         addCommandRow(essentialCard, "heal", "Restore health to full");
+        addCommandRow(essentialCard, "combo 50", "Set combo count to 50");
+        addCommandRow(essentialCard, "rage 100", "Set enemy rage to 100 (Max)");
         addCommandRow(essentialCard, "win", "Complete current level");
         contentTable.add(essentialCard).width(CONTENT_WIDTH).padBottom(20).row();
 
@@ -564,8 +671,8 @@ public class HelpScreen implements Screen {
         Label worldTitle = new Label("WORLD", skin);
         worldTitle.setColor(UIConstants.HELP_TITLE_GOLD);
         worldCat.add(worldTitle).left().padBottom(8).row();
-        worldCat.add(new Label("tp, spawn, kill, time", skin)).left().padBottom(4).row();
-        Label worldDesc = new Label("Teleport, spawn entities, kill enemies, control time", skin);
+        worldCat.add(new Label("tp, spawn, kill, time, rage, combo", skin)).left().padBottom(4).row();
+        Label worldDesc = new Label("Teleport, spawn/kill entities, control time/rage/combo", skin);
         worldDesc.setColor(Color.LIGHT_GRAY);
         worldCat.add(worldDesc).left();
         contentTable.add(worldCat).width(CONTENT_WIDTH).padBottom(10).row();
