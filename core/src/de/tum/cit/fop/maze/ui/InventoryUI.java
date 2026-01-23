@@ -51,11 +51,11 @@ public class InventoryUI {
     private TextureRegionDrawable normalSlotBg;
     private TextureRegionDrawable emptySlotBg;
 
-    // Constants
-    private static final float WINDOW_WIDTH = 600f;
-    private static final float WINDOW_HEIGHT = 500f;
-    private static final float SLOT_SIZE = 64f;
-    private static final float SLOT_PADDING = 8f;
+    // Constants - 放大1.5倍以确保文字不会与边框切到
+    private static final float WINDOW_WIDTH = 1125f;  // 750 * 1.5
+    private static final float WINDOW_HEIGHT = 930f;  // 620 * 1.5
+    private static final float SLOT_SIZE = 96f;   // 放大槽位格子
+    private static final float SLOT_PADDING = 12f; // 增加间距
 
     public InventoryUI(Stage stage, Skin skin, TextureManager textureManager, InventorySystem inventorySystem) {
         this.stage = stage;
@@ -98,7 +98,7 @@ public class InventoryUI {
         windowStyle.titleFontColor = Color.WHITE;
         windowStyle.background = skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.95f));
 
-        inventoryWindow = new Window("Inventory / 背包", windowStyle);
+        inventoryWindow = new Window("Bag", windowStyle);
         inventoryWindow.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
         inventoryWindow.setPosition(
             (stage.getWidth() - WINDOW_WIDTH) / 2,
@@ -110,7 +110,7 @@ public class InventoryUI {
 
         // Main content table
         Table contentTable = new Table();
-        contentTable.pad(15);
+        contentTable.pad(25).padTop(40);
 
         // === Weapons Section ===
         Label weaponsLabel = new Label("Weapons / 武器", skin);
@@ -142,7 +142,7 @@ public class InventoryUI {
         detailLabel = new Label("Select an item to view details\n选择物品查看详情", skin);
         detailLabel.setWrap(true);
         detailLabel.setAlignment(Align.topLeft);
-        detailSection.add(detailLabel).width(WINDOW_WIDTH - 60).minHeight(60);
+        detailSection.add(detailLabel).width(WINDOW_WIDTH - 80).minHeight(90);
 
         contentTable.add(detailSection).growX().padBottom(15);
         contentTable.row();
@@ -168,7 +168,7 @@ public class InventoryUI {
             }
         });
 
-        closeButton = new TextButton("Close / 关闭", skin);
+        closeButton = new TextButton("Close", skin);
         closeButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -176,9 +176,9 @@ public class InventoryUI {
             }
         });
 
-        buttonRow.add(useButton).width(120).height(40).padRight(10);
-        buttonRow.add(dropButton).width(120).height(40).padRight(10);
-        buttonRow.add(closeButton).width(120).height(40);
+        buttonRow.add(useButton).width(200).height(70).padRight(15);
+        buttonRow.add(dropButton).width(200).height(70).padRight(15);
+        buttonRow.add(closeButton).width(240).height(70);
 
         contentTable.add(buttonRow).right();
 

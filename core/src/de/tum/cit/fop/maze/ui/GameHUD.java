@@ -146,7 +146,7 @@ public class GameHUD implements Disposable {
         armorLabel = new Label("", armorStyle);
         topTable.add(armorLabel).right().padRight(20);
 
-        // Inventory Button (NEW) - 背包按钮
+        // Inventory Button - 背包按钮 - 使用文字按钮 "Bag"
         inventoryButton = new TextButton("Bag", skin);
         inventoryButton.addListener(new ChangeListener() {
             @Override
@@ -155,7 +155,7 @@ public class GameHUD implements Disposable {
                     onInventoryClicked.run();
             }
         });
-        topTable.add(inventoryButton).right().width(80).height(70).padRight(10);
+        topTable.add(inventoryButton).right().width(100).height(70).padRight(10);
 
         // Menu Button (Right) - ENLARGED
         settingsButton = new TextButton("Menu", skin);

@@ -299,12 +299,18 @@ public class LevelSelectScreen implements Screen {
 
     private void showUnlockDialog(int level) {
         Dialog dialog = new Dialog("LOCKED ACCESS", game.getSkin());
-        dialog.text("Enter Override Code (Dev):");
+        
+        // Add padding to the content table to prevent title overlap
+        dialog.getContentTable().padTop(60).padLeft(40).padRight(40).padBottom(20);
+
+        // Manually add label and textfield to control alignment
+        Label promptLabel = new Label("Enter Override Code (Dev):", game.getSkin());
+        dialog.getContentTable().add(promptLabel).padRight(15);
 
         final TextField passwordField = new TextField("", game.getSkin());
         passwordField.setPasswordMode(true);
         passwordField.setPasswordCharacter('*');
-        dialog.getContentTable().add(passwordField).width(200).pad(10);
+        dialog.getContentTable().add(passwordField).width(200);
 
         TextButton unlockBtn = new TextButton("AUTHORIZE", game.getSkin());
         unlockBtn.addListener(new ChangeListener() {
@@ -330,8 +336,10 @@ public class LevelSelectScreen implements Screen {
             }
         });
 
-        dialog.getButtonTable().add(unlockBtn).width(120).pad(5);
-        dialog.getButtonTable().add(cancelBtn).width(120).pad(5);
+        // Adjust button layouts
+        dialog.getButtonTable().padBottom(30);
+        dialog.getButtonTable().add(unlockBtn).width(130).padRight(20);
+        dialog.getButtonTable().add(cancelBtn).width(130);
 
         dialog.show(stage);
     }

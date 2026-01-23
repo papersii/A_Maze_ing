@@ -56,6 +56,7 @@ public class TextureManager implements Disposable {
         public TextureRegion heartRegion;
         public Animation<TextureRegion> heartBreak;
         public TextureRegion arrowRegion;
+        public TextureRegion bagIconRegion;
 
         // Treasure Chest Textures
         public TextureRegion chestClosedRegion;
@@ -285,6 +286,9 @@ public class TextureManager implements Disposable {
                 if (loadedArrow != fallbackRegion) {
                         arrowRegion = loadedArrow;
                 }
+
+                // 6.5 Load Bag Icon (Inventory Button)
+                bagIconRegion = loadTextureSafe("images/items/bag_icon.png");
 
                 // 7. Load Dynamic Wall Assets
                 loadWallAssets();
