@@ -24,7 +24,7 @@ public class SettingsScreen implements Screen {
 
     // UI Component
     private SettingsUI settingsUI;
-    
+
     // Background texture
     private Texture backgroundTexture;
 
@@ -37,7 +37,7 @@ public class SettingsScreen implements Screen {
 
         // Load background
         try {
-            backgroundTexture = new Texture(Gdx.files.internal("settings_bg.png"));
+            backgroundTexture = new Texture(Gdx.files.internal("settings_bg.jpg"));
         } catch (Exception e) {
             backgroundTexture = null;
         }
