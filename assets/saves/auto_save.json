@@ -1,11 +1,11 @@
 {
-"playerX": 43.576008,
-"playerY": 26.96249,
-"currentLevel": "maps/level-6.properties",
-"lives": 28,
+"playerX": 64.44457,
+"playerY": 38.859524,
+"currentLevel": "maps/level-3.properties",
+"lives": 39,
 "hasKey": true,
-"skillPoints": 60,
-"maxHealthBonus": 20,
+"skillPoints": 10,
+"maxHealthBonus": 31,
 "cooldownReduction": 0.5,
 "speedBonus": 0.45000005,
 "inventoryWeaponTypes": [

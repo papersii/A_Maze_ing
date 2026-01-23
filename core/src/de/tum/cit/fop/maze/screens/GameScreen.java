@@ -708,8 +708,10 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             }
 
             if (projRegion != null) {
-                float width = 8f;
-                float height = 8f;
+                float baseWidth = 8f;
+                float baseHeight = 8f;
+                float width = baseWidth * p.getSize();
+                float height = baseHeight * p.getSize();
                 float rotation = p.getRotation() * com.badlogic.gdx.math.MathUtils.radDeg;
 
                 game.getSpriteBatch().draw(projRegion,

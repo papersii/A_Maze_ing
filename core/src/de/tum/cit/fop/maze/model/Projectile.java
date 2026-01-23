@@ -32,6 +32,7 @@ public class Projectile extends GameObject {
     // 视觉效果
     private String textureKey;
     private float rotation; // 旋转角度（弧度）
+    private float size = 1.0f; // 渲染缩放系数 (Render scale multiplier)
 
     /**
      * 创建投射物
@@ -45,10 +46,11 @@ public class Projectile extends GameObject {
      * @param effect      附加效果
      * @param playerOwned 是否为玩家发射
      * @param textureKey  纹理键名
+     * @param size        渲染缩放系数
      */
     public Projectile(float x, float y, float vx, float vy,
             int damage, DamageType damageType, WeaponEffect effect,
-            boolean playerOwned, String textureKey) {
+            boolean playerOwned, String textureKey, float size) {
         super(x, y);
         this.vx = vx;
         this.vy = vy;
@@ -57,6 +59,7 @@ public class Projectile extends GameObject {
         this.effect = effect;
         this.playerOwned = playerOwned;
         this.textureKey = textureKey;
+        this.size = size;
         this.lifeTime = maxLifeTime;
 
         // 投射物碰撞体积较小
@@ -69,6 +72,13 @@ public class Projectile extends GameObject {
 
         // 计算旋转角度（指向飞行方向）
         this.rotation = (float) Math.atan2(vy, vx);
+    }
+
+    // Backward compatible constructor
+    public Projectile(float x, float y, float vx, float vy,
+            int damage, DamageType damageType, WeaponEffect effect,
+            boolean playerOwned, String textureKey) {
+        this(x, y, vx, vy, damage, damageType, effect, playerOwned, textureKey, 1.0f);
     }
 
     private final float startX;
@@ -183,5 +193,12 @@ public class Projectile extends GameObject {
      */
     public float getSpeed() {
         return (float) Math.sqrt(vx * vx + vy * vy);
+    }
+
+    /**
+     * 获取渲染缩放系数 (Render scale multiplier)
+     */
+    public float getSize() {
+        return size;
     }
 }

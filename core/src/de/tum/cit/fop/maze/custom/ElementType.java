@@ -12,7 +12,8 @@ public enum ElementType {
             new String[] { "Idle", "Move", "Death" }),
 
     WEAPON("Weapon",
-            new String[] { "damage", "cooldown", "range", "effect", "energyCost", "isRanged", "projectileSpeed" },
+            new String[] { "damage", "cooldown", "range", "effect", "energyCost", "isRanged", "projectileSpeed",
+                    "projectileSize" },
             new String[] { "Idle", "IdleUp", "IdleDown", "Attack", "Projectile" }),
 
     OBSTACLE("Obstacle", new String[] { "collisionDamage", "isDestructible", "health" },
@@ -82,6 +83,8 @@ public enum ElementType {
                 return false;
             case "projectileSpeed":
                 return 10.0f;
+            case "projectileSize":
+                return 1.0f;
             default:
                 return 0;
         }
@@ -126,6 +129,8 @@ public enum ElementType {
                 return "Ranged Weapon?";
             case "projectileSpeed":
                 return "Projectile Speed";
+            case "projectileSize":
+                return "Projectile Size";
             default:
                 return property;
         }

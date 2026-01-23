@@ -69,7 +69,13 @@ public class GameWorld {
         }
     }
 
+    // Listener for projectile hit visual effects
+    public interface ProjectileHitListener {
+        void onProjectileHit(float x, float y, String textureKey, int damage);
+    }
+
     private WorldListener listener;
+    private ProjectileHitListener projectileHitListener;
     private String currentLevelPath;
 
     public GameWorld(GameMap gameMap, String levelPath) {
@@ -223,6 +229,7 @@ public class GameWorld {
             int health = 3;
             float moveSpeed = 2.0f;
             int attackDamage = 1;
+            int defense = 0; // Shield amount from Element Manager
 
             try {
                 Object healthVal = element.getProperties().get("health");
@@ -236,12 +243,21 @@ public class GameWorld {
                 Object dmgVal = element.getProperties().get("attackDamage");
                 if (dmgVal instanceof Number)
                     attackDamage = ((Number) dmgVal).intValue();
+
+                // Read defense (shield) from Element Manager
+                Object defenseVal = element.getProperties().get("defense");
+                if (defenseVal instanceof Number)
+                    defense = ((Number) defenseVal).intValue();
             } catch (Exception e) {
                 // Use defaults
             }
 
+            // If defense > 0, give enemy a PHYSICAL shield
+            DamageType shieldType = defense > 0 ? DamageType.PHYSICAL : null;
+            int shieldAmount = defense;
+
             Enemy customEnemy = new Enemy(spawnX, spawnY, health,
-                    de.tum.cit.fop.maze.model.DamageType.PHYSICAL, null, 0);
+                    de.tum.cit.fop.maze.model.DamageType.PHYSICAL, shieldType, shieldAmount);
             customEnemy.setCustomElementId(element.getId());
 
             // Set Enemy Type if defined
@@ -262,6 +278,10 @@ public class GameWorld {
 
     public void setListener(WorldListener listener) {
         this.listener = listener;
+    }
+
+    public void setProjectileHitListener(ProjectileHitListener listener) {
+        this.projectileHitListener = listener;
     }
 
     public void update(float delta) {
@@ -1013,6 +1033,11 @@ public class GameWorld {
                         }
 
                         p.markHit();
+
+                        // Trigger particle effect for magic weapons
+                        if (projectileHitListener != null) {
+                            projectileHitListener.onProjectileHit(p.getX(), p.getY(), p.getTextureKey(), p.getDamage());
+                        }
                         break;
                     }
                 }
@@ -1226,11 +1251,16 @@ public class GameWorld {
 
         // Use weapon name (or ID) as texture key so GameScreen can look it up
         String textureKey = weapon.getName();
+        float projectileSize = 1.0f; // Default size
         // Check if customizable and get ID if exists
         de.tum.cit.fop.maze.custom.CustomElementDefinition def = de.tum.cit.fop.maze.custom.CustomElementManager
                 .getInstance().getElementByName(textureKey);
         if (def != null) {
             textureKey = def.getId();
+            projectileSize = def.getFloatProperty("projectileSize");
+            if (projectileSize <= 0) {
+                projectileSize = 1.0f; // Safety fallback
+            }
         }
 
         Projectile p = new Projectile(startX, startY, vx, vy,
@@ -1238,7 +1268,8 @@ public class GameWorld {
                 weapon.getDamageType(),
                 weapon.getEffect(),
                 true,
-                textureKey);
+                textureKey,
+                projectileSize);
 
         projectiles.add(p);
         AudioManager.getInstance().playSound("spell_shoot");
