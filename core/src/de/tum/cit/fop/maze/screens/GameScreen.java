@@ -394,12 +394,8 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
 
     @Override
     public void render(float delta) {
-        // Developer Console Toggle - handled in InputProcessor for '~'/'`', keeping
-        // F3/GRAVE here as backup/alternative
         // Developer Console Toggle - handled in InputProcessor for '~'/'`'
-        // (GameSettings.KEY_CONSOLE)
-        // F3/GRAVE here as backup/alternative -> Only enabling ALT (F3) in loop to
-        // avoid double-toggle with keyTyped
+        // F3 here as backup/alternative (aligned with GameScreen)
         if (Gdx.input.isKeyJustPressed(GameSettings.KEY_CONSOLE_ALT)) {
             toggleConsole();
         }
@@ -440,6 +436,23 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        if (!isPaused) {
+            updateGame(delta);
+        } else {
+            updateCamera(0); // Still update camera if needed (e.g. initial frame)
+        }
+
+        renderGame(delta);
+        renderHUD(delta);
+
+        if (isPaused) {
+            uiStage.act(delta);
+            uiStage.getViewport().apply();
+            uiStage.draw();
+        }
+    }
+
+    private void updateGame(float delta) {
         gameViewport.apply();
 
         // === 更新鼠标瞄准 (每帧更新, 无论是否暂停) ===
@@ -448,18 +461,14 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             crosshairRenderer.update(delta);
         }
 
-        if (!isPaused) {
-            // Apply time scale from developer console
-            float effectiveDelta = delta * developerConsole.getTimeScale();
-            gameWorld.update(effectiveDelta);
-            stateTime += effectiveDelta;
-        } else {
-            updateCamera(0); // Still update camera if needed (e.g. initial frame)
-        }
+        // Apply time scale from developer console
+        float effectiveDelta = delta * developerConsole.getTimeScale();
+        gameWorld.update(effectiveDelta);
+        stateTime += effectiveDelta;
+    }
 
-        Player player = gameWorld.getPlayer();
-        GameMap gameMap = gameWorld.getGameMap();
-
+    private void renderGame(float delta) {
+        gameViewport.apply();
         updateCamera(delta); // Camera follows player from World
 
         game.getSpriteBatch().setProjectionMatrix(camera.combined);
@@ -467,6 +476,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
 
         // 1. Render Map
         TextureRegion currentFloor = textureManager.floorRegion; // Default
+        GameMap gameMap = gameWorld.getGameMap();
         String theme = gameMap.getTheme();
 
         switch (theme) {
@@ -490,21 +500,20 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
                 break;
         }
 
-        // Apply Jungle Tint if needed - now leveraging the actual jungle texture,
-        // but we can still bump the atmosphere if we want.
-        // For now, let's keep it clean since we are generating a specific texture.
         game.getSpriteBatch().setColor(Color.WHITE);
 
         mazeRenderer.renderFloor(gameMap, camera, currentFloor);
         game.getSpriteBatch().setColor(Color.WHITE); // Reset
 
         game.getSpriteBatch().end();
+
         // === Render Dust Particles (Behind entities, on top of floor) ===
         dustParticles.update(delta);
+        Player player = gameWorld.getPlayer();
         if (player.isMoving() && !isPaused) {
             // Spawn dust occasionally (random chance per frame)
             if (Math.random() < 0.3f) {
-                String currentTheme = gameWorld.getGameMap().getTheme();
+                String currentTheme = gameMap.getTheme();
                 Color themeColor = getThemeColor(currentTheme);
                 dustParticles.spawn(player.getX(), player.getY(), themeColor);
             }
@@ -572,11 +581,11 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         }
 
         // 3. Render Enemies with Health Bars
-        // Note: Now using boar animations with directional support
         float renderRadius = de.tum.cit.fop.maze.config.GameConfig.ENTITY_RENDER_RADIUS;
         float renderRadiusSq = renderRadius * renderRadius;
-        float pX = gameWorld.getPlayer().getX();
-        float pY = gameWorld.getPlayer().getY();
+        float pX = player.getX();
+        float pY = player.getY();
+
         for (Enemy e : gameWorld.getEnemies()) {
             // 距离过滤：只渲染玩家渲染半径内的敌人
             float dx = e.getX() - pX;
@@ -784,12 +793,12 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         mazeRenderer.renderWalls(gameMap, camera, stateTime);
 
         // 6.9 UI Overlay Pass (Health Bars & Floating Texts - Always on top of Walls)
-        // 1. Health Bars
+        // 1. Health Bars (Above Enemies)
         for (Enemy e : gameWorld.getEnemies()) {
-            renderRadius = de.tum.cit.fop.maze.config.GameConfig.ENTITY_RENDER_RADIUS;
-            float dx = e.getX() - gameWorld.getPlayer().getX();
-            float dy = e.getY() - gameWorld.getPlayer().getY();
-            if (dx * dx + dy * dy > renderRadius * renderRadius)
+            // Distance Check inside loop for HUD too? Yes, consistent.
+            float dx = e.getX() - player.getX();
+            float dy = e.getY() - player.getY();
+            if (dx * dx + dy * dy > renderRadiusSq)
                 continue;
 
             if (!e.isDead() && e.getHealth() > 0) {
@@ -852,7 +861,9 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             com.badlogic.gdx.math.Vector2 mousePos = gameWorld.getMouseWorldPos();
             crosshairRenderer.render(camera, mousePos.x * UNIT_SCALE, mousePos.y * UNIT_SCALE);
         }
+    }
 
+    private void renderHUD(float delta) {
         hud.getStage().getViewport().apply();
         hud.update(delta);
         hud.render();
@@ -863,17 +874,10 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             AchievementUnlockInfo info = AchievementManager.getAchievementInfo(achievementName);
             hud.showAchievement(info);
             // Add gold reward to player
-            player.addCoins(info.getGoldReward());
+            gameWorld.getPlayer().addCoins(info.getGoldReward());
             GameLogger.info("GameScreen",
                     "Achievement popup: " + achievementName + " +" + info.getGoldReward() + " gold");
         }
-
-        if (isPaused) {
-            uiStage.act(delta);
-            uiStage.getViewport().apply();
-            uiStage.draw();
-        }
-    }
 
     private void renderPlayer(Player player) {
         TextureRegion playerFrame = null;
@@ -1445,13 +1449,14 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         // Auto-focus scroll on hover so user doesn't need to click
         final ScrollPane sp = scrollPane;
         scrollPane.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
-            @Override
-            public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer,
-                    Actor fromActor) {
-                uiStage.setScrollFocus(sp);
-            }
 
-            @Override
+    @Override
+    public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer,
+            Actor fromActor) {
+        uiStage.setScrollFocus(sp);
+    }
+
+    @Override
             public void exit(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer,
                     Actor toActor) {
                 // Keep focus for better UX
