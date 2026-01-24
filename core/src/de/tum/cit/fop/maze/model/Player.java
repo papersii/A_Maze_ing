@@ -802,6 +802,14 @@ public class Player extends GameObject {
     }
 
     /**
+     * Add velocity (for recoil effects, knockback, etc.)
+     */
+    public void addVelocity(float dvx, float dvy) {
+        this.velocityX += dvx;
+        this.velocityY += dvy;
+    }
+
+    /**
      * Apply acceleration towards target velocity.
      * This is the core physics method for smooth movement.
      * 

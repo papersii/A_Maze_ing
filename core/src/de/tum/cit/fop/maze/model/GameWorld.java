@@ -54,6 +54,11 @@ public class GameWorld {
     private Vector2 mouseWorldPos = new Vector2(); // 鼠标世界坐标
     private static final float UNIT_SCALE = 16f; // 世界坐标缩放系数
 
+    // === Fire Event (for particle effects) ===
+    private float lastFireX, lastFireY; // 上次开火位置
+    private float lastFireDirX, lastFireDirY; // 上次开火方向
+    private boolean fireEventTriggered = false; // 开火事件标志
+
     // === Achievement Tracking ===
     private boolean playerTookDamage = false; // For flawless victory
     private float levelStartTime = 0f; // For speedrun achievement
@@ -433,8 +438,8 @@ public class GameWorld {
             updateDirectionFromVelocity();
         }
 
-        // Attack
-        if (Gdx.input.isKeyJustPressed(GameSettings.KEY_ATTACK)) {
+        // Attack (按住攻击键时持续攻击，由武器冷却控制攻击频率)
+        if (Gdx.input.isKeyPressed(GameSettings.KEY_ATTACK)) {
             handleAttack();
         }
     }
@@ -603,23 +608,13 @@ public class GameWorld {
                         attackAngle = aimAngle;
                         coneHalfAngle = 30f;
                     } else {
-                        // 键盘模式: 使用 playerDirection, 90度锥形 (原始逻辑)
-                        switch (playerDirection) {
-                            case 0:
-                                attackAngle = 270f;
-                                break; // 下
-                            case 1:
-                                attackAngle = 90f;
-                                break; // 上
-                            case 2:
-                                attackAngle = 180f;
-                                break; // 左
-                            case 3:
-                            default:
-                                attackAngle = 0f;
-                                break; // 右
+                        // 键盘模式: 使用 aimDirection 向量计算8向攻击角度, 45度锥形
+                        // aimDirection 在 handleInput() 中根据键盘组合键更新
+                        attackAngle = MathUtils.atan2(aimDirection.y, aimDirection.x) * MathUtils.radDeg;
+                        if (attackAngle < 0) {
+                            attackAngle += 360;
                         }
-                        coneHalfAngle = 45f;
+                        coneHalfAngle = 45f; // 8向攻击，每个方向90度覆盖，半角45度
                     }
 
                     float angleDiff = enemyAngle - attackAngle;
@@ -940,7 +935,7 @@ public class GameWorld {
     }
 
     /**
-     * 获取瞄准角度 (度数)
+     * 获取瞄准角度 (度数) - 仅限鼠标模式
      * 
      * @return 0=右, 90=上, 180=左, 270=下
      */
@@ -949,10 +944,68 @@ public class GameWorld {
     }
 
     /**
+     * 获取当前攻击角度 (度数) - 根据模式自动选择
+     * 鼠标模式: 返回 aimAngle (鼠标方向)
+     * 键盘模式: 返回基于 aimDirection 向量的8向角度
+     * 
+     * @return 0=右, 45=右上, 90=上, 135=左上, 180=左, 225=左下, 270=下, 315=右下
+     */
+    public float getAttackAngle() {
+        if (GameSettings.isUseMouseAiming()) {
+            return aimAngle;
+        } else {
+            float angle = MathUtils.atan2(aimDirection.y, aimDirection.x) * MathUtils.radDeg;
+            if (angle < 0) {
+                angle += 360;
+            }
+            return angle;
+        }
+    }
+
+    /**
      * 获取鼠标世界坐标
      */
     public Vector2 getMouseWorldPos() {
         return mouseWorldPos;
+    }
+
+    /**
+     * 检查是否有开火事件需要处理（用于粒子效果）
+     */
+    public boolean consumeFireEvent() {
+        if (fireEventTriggered) {
+            fireEventTriggered = false;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 获取上次开火位置 X
+     */
+    public float getLastFireX() {
+        return lastFireX;
+    }
+
+    /**
+     * 获取上次开火位置 Y
+     */
+    public float getLastFireY() {
+        return lastFireY;
+    }
+
+    /**
+     * 获取上次开火方向 X
+     */
+    public float getLastFireDirX() {
+        return lastFireDirX;
+    }
+
+    /**
+     * 获取上次开火方向 Y
+     */
+    public float getLastFireDirY() {
+        return lastFireDirY;
     }
 
     /**
@@ -1372,6 +1425,23 @@ public class GameWorld {
 
         projectiles.add(p);
         AudioManager.getInstance().playSound("spell_shoot");
+
+        // === Fire Staff 后坐力效果 ===
+        // 对 Fire Staff 和其他法杖类武器应用后坐力
+        if (weapon.getName().contains("Staff") || weapon.getName().contains("staff")) {
+            float recoilStrength = 8.0f; // 后坐力强度 (增强)
+            // 向反方向施加速度脉冲
+            float recoilVx = -aimDirection.x * recoilStrength;
+            float recoilVy = -aimDirection.y * recoilStrength;
+            player.addVelocity(recoilVx, recoilVy);
+
+            // 记录开火事件，供粒子系统使用
+            lastFireX = startX;
+            lastFireY = startY;
+            lastFireDirX = aimDirection.x;
+            lastFireDirY = aimDirection.y;
+            fireEventTriggered = true;
+        }
     }
 
     private boolean customElementExists(String name) {

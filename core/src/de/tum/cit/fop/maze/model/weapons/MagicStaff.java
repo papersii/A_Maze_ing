@@ -8,9 +8,9 @@ import de.tum.cit.fop.maze.model.DamageType;
 public class MagicStaff extends Weapon {
 
     public MagicStaff(float x, float y) {
-        // High damage, medium range, slow cooldown, Burn effect
+        // High damage, medium range, fast cooldown for rapid fire, Burn effect
         // Fully initialized as Ranged: isRanged=true, speed 12
-        super(x, y, "Fire Staff", 2, 6.0f, 1.2f, WeaponEffect.BURN, DamageType.MAGICAL, true, 1.2f, 12f);
+        super(x, y, "Fire Staff", 2, 6.0f, 0.25f, WeaponEffect.BURN, DamageType.MAGICAL, true, 1.2f, 12f);
 
         // Override with custom values if available
         de.tum.cit.fop.maze.custom.CustomElementManager manager = de.tum.cit.fop.maze.custom.CustomElementManager

@@ -442,10 +442,12 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
 
         gameViewport.apply();
 
-        // === 更新鼠标瞄准 (每帧更新, 无论是否暂停) ===
-        gameWorld.updateMouseAim(camera);
-        if (crosshairRenderer != null) {
-            crosshairRenderer.update(delta);
+        // === 更新鼠标瞄准 (仅在鼠标模式开启时) ===
+        if (GameSettings.isUseMouseAiming()) {
+            gameWorld.updateMouseAim(camera);
+            if (crosshairRenderer != null) {
+                crosshairRenderer.update(delta);
+            }
         }
 
         if (!isPaused) {
@@ -453,6 +455,31 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             float effectiveDelta = delta * developerConsole.getTimeScale();
             gameWorld.update(effectiveDelta);
             stateTime += effectiveDelta;
+
+            // === 鼠标模式下按住左键连续攻击 ===
+            if (GameSettings.isUseMouseAiming() && !isConsoleOpen && !isPaused && !isInventoryOpen) {
+                if (Gdx.input.isButtonPressed(com.badlogic.gdx.Input.Buttons.LEFT)) {
+                    if (gameWorld.triggerAttack()) {
+                        if (crosshairRenderer != null) {
+                            crosshairRenderer.triggerAttackFeedback();
+                        }
+                    }
+                }
+            }
+
+            // === Fire Staff 开火粒子效果 ===
+            if (gameWorld.consumeFireEvent()) {
+                // 使用橙红色火焰粒子
+                Color fireColor = new Color(1.0f, 0.4f, 0.1f, 1.0f);
+                bloodParticles.spawn(
+                        gameWorld.getLastFireX(),
+                        gameWorld.getLastFireY(),
+                        5, // 中等粒子数量
+                        gameWorld.getLastFireDirX(),
+                        gameWorld.getLastFireDirY(),
+                        0.8f, // 扩散强度
+                        fireColor);
+            }
         } else {
             updateCamera(0); // Still update camera if needed (e.g. initial frame)
         }
@@ -717,16 +744,10 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
                     total = 0.2f;
                 float elapsed = total - player.getAttackAnimTimer();
                 float progress = elapsed / total;
-                // 根据设置选择使用鼠标角度还是键盘方向
-                if (GameSettings.isUseMouseAiming()) {
-                    attackRangeRenderer.render(camera, player.getX(), player.getY(),
-                            gameWorld.getAimAngle(), currentWeapon.getRange(),
-                            currentWeapon.isRanged(), progress);
-                } else {
-                    attackRangeRenderer.render(camera, player.getX(), player.getY(),
-                            gameWorld.getPlayerDirection(), currentWeapon.getRange(),
-                            currentWeapon.isRanged(), progress);
-                }
+                // 使用统一的 getAttackAngle() 方法，支持鼠标和8向键盘攻击
+                attackRangeRenderer.render(camera, player.getX(), player.getY(),
+                        gameWorld.getAttackAngle(), currentWeapon.getRange(),
+                        currentWeapon.isRanged(), progress);
             }
             game.getSpriteBatch().begin(); // 恢复 SpriteBatch
             game.getSpriteBatch().setProjectionMatrix(camera.combined);

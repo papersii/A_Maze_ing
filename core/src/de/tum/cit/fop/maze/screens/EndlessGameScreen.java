@@ -620,10 +620,12 @@ public class EndlessGameScreen implements Screen {
     private void updateGame(float delta) {
         stateTime += delta;
 
-        // === 更新鼠标瞄准 (每帧更新) ===
-        updateMouseAim();
-        if (crosshairRenderer != null) {
-            crosshairRenderer.update(delta);
+        // === 更新鼠标瞄准 (仅在鼠标模式开启时) ===
+        if (GameSettings.isUseMouseAiming()) {
+            updateMouseAim();
+            if (crosshairRenderer != null) {
+                crosshairRenderer.update(delta);
+            }
         }
 
         // 更新玩家定时器（攻击动画、受伤闪烁等）
