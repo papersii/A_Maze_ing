@@ -74,6 +74,7 @@ public class Enemy extends GameObject {
     private WeaponEffect currentEffect = WeaponEffect.NONE;
     private float effectTimer = 0f;
     private float dotTimer = 0f; // Damage Over Time timer
+    private float slowMultiplier = 1.0f; // 1.0 = normal speed, 0.5 = 50% speed
 
     // === Movement Physics (Inertia System) ===
     private float velocityX = 0f; // Current horizontal velocity
@@ -254,7 +255,11 @@ public class Enemy extends GameObject {
         this.currentEffect = effect;
         switch (effect) {
             case FREEZE:
-                this.effectTimer = 2.0f; // Freeze for 2 seconds
+                this.effectTimer = 3.0f; // Freeze for 3 seconds (Ice Bow)
+                break;
+            case SLOW:
+                this.effectTimer = 3.0f; // Slow for 3 seconds (Magic Wand)
+                this.slowMultiplier = 0.5f; // 50% speed reduction
                 break;
             case BURN:
                 this.effectTimer = 3.0f; // Burn for 3 seconds
@@ -269,6 +274,20 @@ public class Enemy extends GameObject {
 
     public WeaponEffect getCurrentEffect() {
         return currentEffect;
+    }
+
+    /**
+     * 获取冷冻/减速效果剩余时间（用于粒子效果渲染）
+     */
+    public float getEffectRemainingTime() {
+        return effectTimer;
+    }
+
+    /**
+     * 获取当前速度倍率（用于减速效果）
+     */
+    public float getSlowMultiplier() {
+        return (currentEffect == WeaponEffect.SLOW) ? slowMultiplier : 1.0f;
     }
 
     public int getHealth() {
@@ -488,6 +507,7 @@ public class Enemy extends GameObject {
             if (effectTimer <= 0) {
                 currentEffect = WeaponEffect.NONE;
                 dotTimer = 0f;
+                slowMultiplier = 1.0f; // Reset slow multiplier
             }
 
             // Check death from DOT
@@ -518,6 +538,10 @@ public class Enemy extends GameObject {
 
         // 2. Calculate target velocity based on AI state (Inertia System)
         float maxSpeed = (state == EnemyState.CHASE) ? GameSettings.enemyChaseSpeed : GameSettings.enemyPatrolSpeed;
+        // Apply slow effect multiplier
+        if (currentEffect == WeaponEffect.SLOW) {
+            maxSpeed *= slowMultiplier;
+        }
         float targetVx = 0, targetVy = 0;
 
         switch (state) {

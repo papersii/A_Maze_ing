@@ -83,7 +83,8 @@ public class GameWorld {
 
     // Listener for projectile hit visual effects
     public interface ProjectileHitListener {
-        void onProjectileHit(float x, float y, String textureKey, int damage);
+        void onProjectileHit(float x, float y, String textureKey, int damage,
+                de.tum.cit.fop.maze.model.weapons.WeaponEffect effect);
     }
 
     private WorldListener listener;
@@ -1188,7 +1189,8 @@ public class GameWorld {
 
                         // Trigger particle effect for magic weapons
                         if (projectileHitListener != null) {
-                            projectileHitListener.onProjectileHit(p.getX(), p.getY(), p.getTextureKey(), p.getDamage());
+                            projectileHitListener.onProjectileHit(p.getX(), p.getY(), p.getTextureKey(), p.getDamage(),
+                                    p.getEffect());
                         }
                         break;
                     }

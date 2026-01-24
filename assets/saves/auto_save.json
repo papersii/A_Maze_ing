@@ -1,17 +1,18 @@
 {
-"playerX": 64.44457,
-"playerY": 38.859524,
-"currentLevel": "maps/level-3.properties",
-"lives": 39,
+"playerX": 6.3224087,
+"playerY": 46.727173,
+"currentLevel": "maps/level-2.properties",
+"lives": 42,
 "hasKey": true,
-"skillPoints": 10,
-"maxHealthBonus": 31,
+"skillPoints": 125,
+"maxHealthBonus": 34,
+"damageBonus": 14,
 "cooldownReduction": 0.5,
 "speedBonus": 0.45000005,
 "inventoryWeaponTypes": [
 	"Sword",
 	"Bow",
 	"Wand",
-	"MagicStaff"
+	"Wand"
 ]
 }

@@ -632,7 +632,7 @@
 			},
 			"effect": {
 				"class": "java.lang.String",
-				"value": "NONE"
+				"value": "BURN"
 			},
 			"cooldown": {
 				"class": "java.lang.Float",
@@ -852,7 +852,7 @@
 			},
 			"effect": {
 				"class": "java.lang.String",
-				"value": "NONE"
+				"value": "SLOW"
 			},
 			"cooldown": {
 				"class": "java.lang.Float",
@@ -1045,7 +1045,7 @@
 			},
 			"effect": {
 				"class": "java.lang.String",
-				"value": "NONE"
+				"value": "FREEZE"
 			},
 			"cooldown": {
 				"class": "java.lang.Integer",

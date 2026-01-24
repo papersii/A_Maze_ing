@@ -7,5 +7,6 @@ public enum WeaponEffect {
     NONE,
     FREEZE, // Slows or stops enemy
     BURN, // Damage over time
-    POISON // Damage over time, maybe slower than burn
+    POISON, // Damage over time, maybe slower than burn
+    SLOW // Reduces enemy movement speed
 }

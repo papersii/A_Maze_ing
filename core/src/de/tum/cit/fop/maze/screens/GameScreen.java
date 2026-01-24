@@ -193,6 +193,24 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         this.gameWorld = new GameWorld(map, mapPath);
         this.gameWorld.setListener(this);
 
+        // === 注册投射物命中粒子效果监听器 ===
+        this.gameWorld.setProjectileHitListener((x, y, textureKey, damage, effect) -> {
+            // 基于效果类型生成不同颜色的粒子
+            if (effect == de.tum.cit.fop.maze.model.weapons.WeaponEffect.SLOW) {
+                // Magic Wand: 蓝色爆炸粒子
+                Color blueColor = new Color(0.3f, 0.5f, 1.0f, 1.0f);
+                bloodParticles.spawn(x, y, 8, 0, 0, 1.5f, blueColor);
+            } else if (effect == de.tum.cit.fop.maze.model.weapons.WeaponEffect.FREEZE) {
+                // Ice Bow: 冰蓝色爆炸粒子
+                Color iceColor = new Color(0.6f, 0.9f, 1.0f, 1.0f);
+                bloodParticles.spawn(x, y, 12, 0, 0, 2.0f, iceColor);
+            } else if (effect == de.tum.cit.fop.maze.model.weapons.WeaponEffect.BURN) {
+                // Fire Staff: 橙红色粒子
+                Color fireColor = new Color(1.0f, 0.4f, 0.1f, 1.0f);
+                bloodParticles.spawn(x, y, 5, 0, 0, 0.8f, fireColor);
+            }
+        });
+
         if (hud != null)
             hud.dispose();
 
