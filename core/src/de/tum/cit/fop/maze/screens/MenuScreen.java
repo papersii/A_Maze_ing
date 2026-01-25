@@ -178,9 +178,22 @@ public class MenuScreen implements Screen {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 GameLogger.info("MenuScreen", "Exit clicked");
+                saveCurrentProfile();
                 Gdx.app.exit();
             }
         });
+    }
+
+    /**
+     * Saves the current active profile's global progression (Coins, Achievements,
+     * Levels).
+     * Should be called before switching profiles or exiting.
+     */
+    private void saveCurrentProfile() {
+        String currentSave = game.getCurrentSaveFilePath();
+        if (currentSave != null && !currentSave.isEmpty()) {
+            SaveManager.saveGlobalProgression(currentSave);
+        }
     }
 
     /**
@@ -212,14 +225,25 @@ public class MenuScreen implements Screen {
                 loadBtn.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
+                        // Auto-save current profile before switching
+                        saveCurrentProfile();
+
                         // Pre-load state to sync global managers (Shop, etc)
                         de.tum.cit.fop.maze.model.GameState loaded = SaveManager.loadGame(file.name());
                         if (loaded != null) {
                             de.tum.cit.fop.maze.shop.ShopManager.importState(loaded.getCoins(),
                                     loaded.getPurchasedItemIds());
+                            // Sync Level Progress (Force set to what is in the save file)
+                            de.tum.cit.fop.maze.config.GameSettings.forceSetUnlockedLevel(loaded.getMaxUnlockedLevel());
+
+                            // Sync Achievements
+                            de.tum.cit.fop.maze.utils.AchievementManager.importData(loaded.getAchievementData());
+
                             game.setCurrentSaveFilePath(file.name());
-                            game.goToGame(file.name());
+
+                            // Instead of going to game, show feedback
                             win.remove();
+                            MenuScreen.this.showToast("Profile Loaded: " + file.nameWithoutExtension());
                         } else {
                             GameLogger.error("MenuScreen", "Failed to load save: " + file.name());
                         }
@@ -311,8 +335,12 @@ public class MenuScreen implements Screen {
     private void startNewGame(String saveName) {
         GameLogger.info("MenuScreen", "Starting new game: " + saveName);
 
-        // 1. Reset Global State (Shop)
+        // Auto-save current profile before switching
+        saveCurrentProfile();
+
+        // 1. Reset Global State (Shop & Achievements)
         de.tum.cit.fop.maze.shop.ShopManager.importState(0, new java.util.ArrayList<>());
+        de.tum.cit.fop.maze.utils.AchievementManager.resetAll();
 
         // 2. Create Initial GameState
         // Start at Level 1, default position (will be overwritten by map spawn), 3
@@ -325,6 +353,10 @@ public class MenuScreen implements Screen {
         initialState.setSkillPoints(0);
         initialState.setDamageBonus(0);
         initialState.setMaxHealthBonus(0);
+        initialState.setMaxUnlockedLevel(1);
+
+        // Reset Global GameSettings for New Game
+        de.tum.cit.fop.maze.config.GameSettings.forceSetUnlockedLevel(1);
 
         // 3. Save it
         SaveManager.saveGame(initialState, saveName);
@@ -419,5 +451,14 @@ public class MenuScreen implements Screen {
 
     @Override
     public void hide() {
+    }
+
+    private void showToast(String message) {
+        Dialog toast = new Dialog("", game.getSkin());
+        toast.text(message);
+        toast.button("OK");
+        toast.show(stage);
+        // Auto-hide after 2 seconds?
+        // Or just let user click OK.
     }
 }

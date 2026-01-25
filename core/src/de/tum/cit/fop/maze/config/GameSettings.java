@@ -276,6 +276,17 @@ public class GameSettings {
         }
     }
 
+    /**
+     * Force set the unlocked level. Used when starting a new game or loading a
+     * save.
+     */
+    public static void forceSetUnlockedLevel(int level) {
+        Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
+        prefs.putInteger(PREF_UNLOCKED_LEVEL, level);
+        prefs.flush();
+        System.out.println("Force Set Unlocked Level: " + level);
+    }
+
     // ==================== 旧方法 (保持兼容) ====================
 
     /**

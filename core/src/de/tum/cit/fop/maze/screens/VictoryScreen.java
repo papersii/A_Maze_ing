@@ -112,14 +112,50 @@ public class VictoryScreen implements Screen {
 
         // Calculate Next Level Logic
         final String nextMapPath = calculateNextLevel(lastMapPath);
-
-        // Unlock Logic
+        int nextLevelNum = 1;
         try {
             String clean = nextMapPath.replace("maps/level-", "").replace(".properties", "");
-            int nextLevelNum = Integer.parseInt(clean);
-            de.tum.cit.fop.maze.config.GameSettings.unlockLevel(nextLevelNum);
+            nextLevelNum = Integer.parseInt(clean);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        // Unlock Logic (Global Preferences)
+        de.tum.cit.fop.maze.config.GameSettings.unlockLevel(nextLevelNum);
+
+        // === Save to Current Slot (JSON) ===
+        // This ensures the specific save file tracks the progress
+        String currentSave = game.getCurrentSaveFilePath();
+        if (currentSave != null) {
+            de.tum.cit.fop.maze.model.GameState state = de.tum.cit.fop.maze.utils.SaveManager.loadGame(currentSave);
+            if (state == null) {
+                // Should not happen if started correctly, but fallback
+                state = new de.tum.cit.fop.maze.model.GameState();
+                state.setCurrentLevel(lastMapPath);
+            }
+
+            // 1. Update Map
+            // Only update current level if not already further?
+            // Usually "Current Level" in save means "Where to spawn".
+            // If we beat level 1, next spawn should be level 2.
+            state.setCurrentLevel(nextMapPath);
+
+            // 2. Update Unlocked Level
+            if (nextLevelNum > state.getMaxUnlockedLevel()) {
+                state.setMaxUnlockedLevel(nextLevelNum);
+            }
+
+            // 3. Update Money & Items (Sync from ShopManager which is the runtime
+            // authority)
+            state.setCoins(de.tum.cit.fop.maze.shop.ShopManager.getPlayerCoins());
+            state.setPurchasedItemIds(de.tum.cit.fop.maze.shop.ShopManager.getPurchasedItemIds());
+
+            // 4. Update Achievements
+            state.setAchievementData(de.tum.cit.fop.maze.utils.AchievementManager.exportData());
+
+            // 5. Save
+            de.tum.cit.fop.maze.utils.SaveManager.saveGame(state, currentSave);
+            Gdx.app.log("VictoryScreen", "Progress saved to: " + currentSave);
         }
 
         TextButton nextBtn = new TextButton("Next Region", game.getSkin());

@@ -65,6 +65,17 @@ public class GameState {
         this.hasKey = hasKey;
     }
 
+    // === Global Progression ===
+    private int maxUnlockedLevel = 1;
+
+    public int getMaxUnlockedLevel() {
+        return maxUnlockedLevel;
+    }
+
+    public void setMaxUnlockedLevel(int maxUnlockedLevel) {
+        this.maxUnlockedLevel = maxUnlockedLevel;
+    }
+
     // Skill System Fields
     private int skillPoints;
     private int maxHealthBonus;
@@ -166,5 +177,16 @@ public class GameState {
 
     public void setPurchasedItemIds(java.util.List<String> purchasedItemIds) {
         this.purchasedItemIds = purchasedItemIds;
+    }
+
+    // === Achievements Persistence ===
+    private java.util.Map<String, Object> achievementData;
+
+    public java.util.Map<String, Object> getAchievementData() {
+        return achievementData;
+    }
+
+    public void setAchievementData(java.util.Map<String, Object> achievementData) {
+        this.achievementData = achievementData;
     }
 }

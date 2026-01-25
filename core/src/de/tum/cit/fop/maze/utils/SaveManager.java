@@ -70,6 +70,39 @@ public class SaveManager {
     }
 
     /**
+     * Saves the current global progression (Coins, Achievements, Unlocked Levels)
+     * into the specified save file.
+     * 
+     * This is used when switching profiles or exiting, to ensure the active
+     * profile is up-to-date.
+     */
+    public static void saveGlobalProgression(String filename) {
+        if (filename == null || filename.isEmpty())
+            return;
+
+        // 1. Load existing state to preserve player position etc.
+        GameState state = loadGame(filename);
+        if (state == null) {
+            // If file doesn't exist, we probably shouldn't create a blank one
+            // blindly because we lack player position data.
+            // However, for a persistent profile system, maybe we should?
+            // Let's assume valid profiles exist.
+            Gdx.app.error("SaveManager", "Cannot sync progression: Save file not found: " + filename);
+            return;
+        }
+
+        // 2. Sync Global Data
+        state.setCoins(de.tum.cit.fop.maze.shop.ShopManager.getPlayerCoins());
+        state.setPurchasedItemIds(de.tum.cit.fop.maze.shop.ShopManager.getPurchasedItemIds());
+        state.setMaxUnlockedLevel(de.tum.cit.fop.maze.config.GameSettings.getUnlockedLevel());
+        state.setAchievementData(de.tum.cit.fop.maze.utils.AchievementManager.exportData());
+
+        // 3. Save back
+        saveGame(state, filename);
+        Gdx.app.log("SaveManager", "Global progression synced to: " + filename);
+    }
+
+    /**
      * 读取指定文件名的存档
      */
     public static GameState loadGame(String filename) {

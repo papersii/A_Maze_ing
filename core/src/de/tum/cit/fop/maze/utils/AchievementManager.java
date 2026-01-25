@@ -823,4 +823,45 @@ public class AchievementManager {
         }
         return result;
     }
+
+    // === Import/Export Logic for Save System ===
+
+    /**
+     * Export all achievement data (progress, unlocks, stats) to a Map.
+     */
+    public static Map<String, Object> exportData() {
+        Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
+        Map<String, Object> data = new HashMap<>();
+        data.putAll(prefs.get());
+        return data;
+    }
+
+    /**
+     * Import achievement data from a Map.
+     * Replaces current state.
+     */
+    public static void importData(Map<String, Object> data) {
+        Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
+        prefs.clear();
+        if (data != null) {
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
+                Object v = entry.getValue();
+                if (v instanceof String)
+                    prefs.putString(entry.getKey(), (String) v);
+                else if (v instanceof Integer)
+                    prefs.putInteger(entry.getKey(), (Integer) v);
+                else if (v instanceof Float)
+                    prefs.putFloat(entry.getKey(), (Float) v);
+                else if (v instanceof Boolean)
+                    prefs.putBoolean(entry.getKey(), (Boolean) v);
+                else if (v instanceof Long)
+                    prefs.putLong(entry.getKey(), (Long) v);
+                // Fallback catch-all
+                else
+                    prefs.putString(entry.getKey(), v.toString());
+            }
+        }
+        prefs.flush();
+        GameLogger.info("AchievementManager", "Imported achievement data.");
+    }
 }
