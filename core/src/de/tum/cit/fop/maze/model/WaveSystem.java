@@ -77,8 +77,9 @@ public class WaveSystem {
             }
         }
 
-        // 检查敌人刷新
-        if (survivalTime >= nextSpawnTime) {
+        // 检查敌人刷新（安全期内不刷新）
+        if (survivalTime >= EndlessModeConfig.SAFE_PERIOD_DURATION &&
+                survivalTime >= nextSpawnTime) {
             nextSpawnTime = survivalTime + getSpawnInterval();
 
             if (listener != null) {

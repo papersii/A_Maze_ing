@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
@@ -60,6 +59,7 @@ public class EndlessGameScreen implements Screen {
     private TextureManager textureManager;
     private MazeRenderer mazeRenderer;
     private FogRenderer fogRenderer;
+    private de.tum.cit.fop.maze.utils.PlayerRenderer playerRenderer;
 
     // === 地图系统 ===
     private ChunkManager chunkManager;
@@ -147,6 +147,8 @@ public class EndlessGameScreen implements Screen {
         textureManager = new TextureManager(game.getAtlas());
         mazeRenderer = new MazeRenderer(game.getSpriteBatch(), textureManager);
         fogRenderer = new FogRenderer(game.getSpriteBatch());
+        playerRenderer = new de.tum.cit.fop.maze.utils.PlayerRenderer(game.getSpriteBatch(), textureManager,
+                UNIT_SCALE);
         shapeRenderer = new com.badlogic.gdx.graphics.glutils.ShapeRenderer();
 
         initializeSystems();
@@ -1028,8 +1030,10 @@ public class EndlessGameScreen implements Screen {
         if (isWallAt((int) spawnX, (int) spawnY))
             return;
 
-        // 使用正确的构造函数：Enemy(x, y, health, attackType, shieldType, shieldAmount)
-        int baseHealth = 30 + (int) (waveSystem.getEnemyHealthMultiplier() * 20);
+        // 使用与关卡模式一致的血量（基础3HP），然后乘以波次倍率
+        int baseHealth = (int) (3 * waveSystem.getEnemyHealthMultiplier());
+        if (baseHealth < 1)
+            baseHealth = 1; // 最少1HP
         Enemy enemy = new Enemy(spawnX, spawnY, baseHealth, DamageType.PHYSICAL, null, 0);
 
         // 根据生成位置的主题分配敌人类型
@@ -1278,12 +1282,13 @@ public class EndlessGameScreen implements Screen {
         }
     }
 
-    // [Added Helper Method] Render a single enemy
+    // [Added Helper Method] Render a single enemy - 对齐关卡模式
     private void renderEnemy(Enemy e) {
-        float x = e.getX() * UNIT_SCALE;
-        float y = e.getY() * UNIT_SCALE;
-        float w = e.getWidth() * UNIT_SCALE;
-        float h = e.getHeight() * UNIT_SCALE;
+        // 使用固定尺寸，与关卡模式一致
+        float drawWidth = 16f;
+        float drawHeight = 16f;
+        float drawX = e.getX() * UNIT_SCALE - (drawWidth - UNIT_SCALE) / 2;
+        float drawY = e.getY() * UNIT_SCALE - (drawHeight - UNIT_SCALE) / 2;
 
         // 1. Custom Element Support
         com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> enemyAnim = null;
@@ -1308,8 +1313,7 @@ public class EndlessGameScreen implements Screen {
             game.getSpriteBatch().setShader(grayscaleShader);
         }
 
-        // 3. Color Tint for Status Effects (Hurt, Poison, Freeze, Burn)
-        com.badlogic.gdx.graphics.Color oldColor = game.getSpriteBatch().getColor();
+        // 状态着色（受伤、中毒、冰冻、燃烧）
         if (e.isHurt()) {
             game.getSpriteBatch().setColor(1, 0, 0, 1); // Red flash
         } else if (e.getCurrentEffect() == WeaponEffect.POISON) {
@@ -1320,48 +1324,47 @@ public class EndlessGameScreen implements Screen {
             game.getSpriteBatch().setColor(1, 0.5f, 0, 1); // Orange tint
         }
 
-        if (isCustom) {
-            game.getSpriteBatch().draw(enemyFrame, x, y, w, h);
+        // Flip if moving left (only for custom elements)
+        boolean flipX = isCustom && e.getVelocityX() < 0;
+
+        if (flipX) {
+            game.getSpriteBatch().draw(enemyFrame, drawX + drawWidth, drawY, -drawWidth, drawHeight);
         } else {
-            // Standard Enemies might need flipping/sizing adjustments?
-            game.getSpriteBatch().draw(enemyFrame, x - w / 2, y - h / 2, w * 2, h * 2);
+            game.getSpriteBatch().draw(enemyFrame, drawX, drawY, drawWidth, drawHeight);
         }
 
-        game.getSpriteBatch().setColor(oldColor);
+        // 重要：在恢复 shader 之前先恢复颜色
+        game.getSpriteBatch().setColor(Color.WHITE);
         game.getSpriteBatch().setShader(null);
-
     }
 
-    // [Helper] Render Health Bar
+    // [Helper] Render Health Bar - 对齐关卡模式，始终显示血条
     private void renderHealthBar(Enemy e, float x, float y, float w, float h) {
-        if (e.getHealth() < e.getMaxHealth()) {
-            float barWidth = w;
-            float barHeight = 4;
-            float barX = x + (isCustom(e) ? 0 : -w / 2);
-            float barY = y + h + 5;
+        // 使用固定尺寸，与关卡模式一致
+        float drawWidth = 16f;
+        float drawX = e.getX() * UNIT_SCALE - (drawWidth - UNIT_SCALE) / 2;
+        float drawY = e.getY() * UNIT_SCALE - (drawWidth - UNIT_SCALE) / 2;
 
-            game.getSpriteBatch().end();
-            shapeRenderer.setProjectionMatrix(camera.combined);
-            shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+        float barWidth = drawWidth;
+        float barHeight = 4;
+        float barX = drawX;
+        float barY = drawY + drawWidth + 2;
 
-            // Background
-            shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.RED);
-            shapeRenderer.rect(barX, barY, barWidth, barHeight);
+        game.getSpriteBatch().end();
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
 
-            // Health
-            float healthPercent = e.getHealth() / e.getMaxHealth();
-            shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.GREEN);
-            shapeRenderer.rect(barX, barY, barWidth * healthPercent, barHeight);
+        // Background
+        shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.RED);
+        shapeRenderer.rect(barX, barY, barWidth, barHeight);
 
-            shapeRenderer.end();
-            game.getSpriteBatch().begin();
-        }
-    }
+        // Health - 使用 float 除法确保正确的百分比
+        float healthPercent = (float) e.getHealth() / (float) e.getMaxHealth();
+        shapeRenderer.setColor(com.badlogic.gdx.graphics.Color.GREEN);
+        shapeRenderer.rect(barX, barY, barWidth * healthPercent, barHeight);
 
-    private boolean isCustom(Enemy e) {
-        return e.getCustomElementId() != null &&
-                de.tum.cit.fop.maze.custom.CustomElementManager.getInstance()
-                        .getAnimation(e.getCustomElementId(), "Move") != null;
+        shapeRenderer.end();
+        game.getSpriteBatch().begin();
     }
 
     private TextureRegion getFloorTextureForTheme(String theme) {
@@ -1382,11 +1385,8 @@ public class EndlessGameScreen implements Screen {
     }
 
     private void renderPlayer() {
-        TextureRegion playerFrame = null;
-        int dir = 0; // 默认向下
-        boolean flipX = false; // 用于水平翻转精灵
-
-        // 基于速度确定方向
+        // 基于速度确定方向 - 与关卡模式对齐
+        int dir = 0;
         if (Math.abs(player.getVelocityY()) > Math.abs(player.getVelocityX())) {
             dir = player.getVelocityY() > 0 ? 1 : 0;
         } else if (player.getVelocityX() != 0) {
@@ -1395,187 +1395,10 @@ public class EndlessGameScreen implements Screen {
 
         boolean isMoving = player.isMoving();
 
-        // === 尝试使用自定义玩家皮肤 ===
-        String playerSkinId = getActivePlayerSkinId();
-        boolean useCustomSkin = playerSkinId != null;
-
-        if (useCustomSkin) {
-            de.tum.cit.fop.maze.custom.CustomElementManager manager = de.tum.cit.fop.maze.custom.CustomElementManager
-                    .getInstance();
-
-            // === 优先检查死亡状态 (Death Animation) ===
-            if (player.isDead()) {
-                Animation<TextureRegion> deathAnim = manager.getAnimation(playerSkinId, "Death");
-                if (deathAnim != null) {
-                    playerFrame = deathAnim.getKeyFrame(player.getDeathProgress() * 0.5f, false);
-                }
-            } else if (player.isAttacking()) {
-                float total = player.getAttackAnimTotalDuration();
-                if (total <= 0)
-                    total = 0.2f;
-                float elapsed = total - player.getAttackAnimTimer();
-                float progress = (elapsed / total) * 0.2f;
-
-                // 尝试方向性攻击动画，回退到通用Attack
-                String attackAction = getDirectionalAction("Attack", dir);
-                Animation<TextureRegion> attackAnim = manager.getAnimation(playerSkinId, attackAction);
-                if (attackAnim == null && !attackAction.equals("Attack")) {
-                    attackAnim = manager.getAnimation(playerSkinId, "Attack");
-                }
-                if (attackAnim != null) {
-                    playerFrame = attackAnim.getKeyFrame(progress, false);
-                    flipX = (dir == 2); // 朝左时翻转
-                }
-            } else if (isMoving) {
-                // 尝试方向性移动动画，回退到通用Move
-                String moveAction = getDirectionalAction("Move", dir);
-                Animation<TextureRegion> moveAnim = manager.getAnimation(playerSkinId, moveAction);
-                if (moveAnim == null && !moveAction.equals("Move")) {
-                    moveAnim = manager.getAnimation(playerSkinId, "Move");
-                }
-                if (moveAnim != null) {
-                    playerFrame = moveAnim.getKeyFrame(stateTime, true);
-                    flipX = (dir == 2); // 朝左时翻转
-                }
-            } else {
-                // 尝试方向性待机动画，回退到通用Idle
-                String idleAction = getDirectionalAction("Idle", dir);
-                Animation<TextureRegion> idleAnim = manager.getAnimation(playerSkinId, idleAction);
-                if (idleAnim == null && !idleAction.equals("Idle")) {
-                    idleAnim = manager.getAnimation(playerSkinId, "Idle");
-                }
-                if (idleAnim != null) {
-                    playerFrame = idleAnim.getKeyFrame(stateTime, true);
-                    flipX = (dir == 2); // 朝左时翻转
-                }
-            }
-        }
-
-        // === 回退到默认动画 ===
-        if (playerFrame == null) {
-            if (player.isAttacking()) {
-                float progress = (player.getAttackAnimTotalDuration() - player.getAttackAnimTimer()) /
-                        player.getAttackAnimTotalDuration() * 0.2f;
-                switch (dir) {
-                    case 1:
-                        playerFrame = textureManager.playerAttackUp.getKeyFrame(progress, false);
-                        break;
-                    case 2:
-                        playerFrame = textureManager.playerAttackLeft.getKeyFrame(progress, false);
-                        break;
-                    case 3:
-                        playerFrame = textureManager.playerAttackRight.getKeyFrame(progress, false);
-                        break;
-                    default:
-                        playerFrame = textureManager.playerAttackDown.getKeyFrame(progress, false);
-                        break;
-                }
-            } else if (isMoving) {
-                switch (dir) {
-                    case 1:
-                        playerFrame = textureManager.playerUp.getKeyFrame(stateTime, true);
-                        break;
-                    case 2:
-                        playerFrame = textureManager.playerLeft.getKeyFrame(stateTime, true);
-                        break;
-                    case 3:
-                        playerFrame = textureManager.playerRight.getKeyFrame(stateTime, true);
-                        break;
-                    default:
-                        playerFrame = textureManager.playerDown.getKeyFrame(stateTime, true);
-                        break;
-                }
-            } else {
-                switch (dir) {
-                    case 1:
-                        playerFrame = textureManager.playerUpStand;
-                        break;
-                    case 2:
-                        playerFrame = textureManager.playerLeftStand;
-                        break;
-                    case 3:
-                        playerFrame = textureManager.playerRightStand;
-                        break;
-                    default:
-                        playerFrame = textureManager.playerDownStand;
-                        break;
-                }
-            }
-        }
-
-        Color oldC = game.getSpriteBatch().getColor().cpy();
-        if (player.isDead())
-            game.getSpriteBatch().setColor(0.5f, 0.5f, 0.5f, 1f);
-        else if (player.isHurt())
-            game.getSpriteBatch().setColor(1f, 0f, 0f, 1f);
-
-        float drawX = player.getX() * UNIT_SCALE;
-        float drawY = player.getY() * UNIT_SCALE;
-        float drawWidth = playerFrame.getRegionWidth();
-        float drawHeight = playerFrame.getRegionHeight();
-
-        // 自定义皮肤统一缩放到16像素
-        if (useCustomSkin && playerFrame != null) {
-            drawWidth = UNIT_SCALE;
-            drawHeight = UNIT_SCALE;
-        } else if (playerFrame.getRegionWidth() > 16) {
-            drawX -= (playerFrame.getRegionWidth() - 16) / 2f;
-        }
-
-        // 朝上或朝左时先渲染武器（在玩家身后）
-        if (!player.isDead() && (dir == 1 || dir == 2)) {
-            renderEquippedWeapon(player, dir);
-        }
-
-        if (player.isDead()) {
-            // 直接播放死亡动画，不旋转
-            game.getSpriteBatch().draw(playerFrame, drawX, drawY, drawWidth, drawHeight);
-        } else if (flipX) {
-            // 水平翻转绘制
-            game.getSpriteBatch().draw(playerFrame, drawX + drawWidth, drawY, -drawWidth, drawHeight);
-        } else {
-            game.getSpriteBatch().draw(playerFrame, drawX, drawY, drawWidth, drawHeight);
-        }
-        game.getSpriteBatch().setColor(oldC);
-
-        // === 渲染装备的武器 (队友功能) ===
-        if (!player.isDead() && dir != 1 && dir != 2) {
-            renderEquippedWeapon(player, dir);
-        }
-
-    }
-
-    /**
-     * 获取当前激活的玩家皮肤元素ID
-     * 
-     * @return 第一个PLAYER类型的自定义元素ID，如果没有则返回null
-     */
-    private String getActivePlayerSkinId() {
-        for (de.tum.cit.fop.maze.custom.CustomElementDefinition def : de.tum.cit.fop.maze.custom.CustomElementManager
-                .getInstance().getAllElements()) {
-            if (def.getType() == de.tum.cit.fop.maze.custom.ElementType.PLAYER) {
-                return def.getId();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 根据方向获取对应的动作名称
-     * 
-     * @param baseAction 基础动作名称 (Move, Idle, Attack)
-     * @param dir        方向 (0=下, 1=上, 2=左, 3=右)
-     * @return 方向性动作名称
-     */
-    private String getDirectionalAction(String baseAction, int dir) {
-        switch (dir) {
-            case 1: // 上
-                return baseAction + "Up";
-            case 0: // 下
-                return baseAction + "Down";
-            default: // 左右使用基础动作+翻转
-                return baseAction;
-        }
+        // 使用统一的 PlayerRenderer 工具类进行渲染
+        // 武器渲染回调确保武器在正确的层级（玩家前/后）渲染
+        playerRenderer.render(player, dir, stateTime, isMoving,
+                (p, d, t) -> renderEquippedWeapon(p, d));
     }
 
     /**
@@ -1784,22 +1607,55 @@ public class EndlessGameScreen implements Screen {
         GameLogger.info("EndlessGameScreen", "Game saved: " + state);
     }
 
-    // === 设置和加载对话框 ===
+    // === 设置界面截图背景 ===
+    private Texture settingsScreenshotTexture;
 
     private void showSettingsOverlay() {
-        if (settingsTable == null) {
-            settingsUI = new de.tum.cit.fop.maze.ui.SettingsUI(game, uiStage, () -> {
-                // On Back -> Hide settings, show pause menu
-                settingsTable.setVisible(false);
-                pauseTable.setVisible(true);
-            });
-            settingsTable = settingsUI.buildWithBackground();
-            settingsTable.setVisible(false);
-            settingsTable.setFillParent(true);
-            uiStage.addActor(settingsTable);
+        // 截取当前游戏画面作为设置界面背景
+        if (settingsScreenshotTexture != null) {
+            settingsScreenshotTexture.dispose();
         }
+        settingsScreenshotTexture = captureScreenshot();
+
+        // 每次重新创建设置界面以使用新截图
+        if (settingsTable != null) {
+            settingsTable.remove();
+            if (settingsUI != null) {
+                settingsUI.dispose();
+            }
+        }
+
+        settingsUI = new de.tum.cit.fop.maze.ui.SettingsUI(game, uiStage, () -> {
+            // On Back -> Hide settings, show pause menu
+            settingsTable.setVisible(false);
+            pauseTable.setVisible(true);
+        });
+        settingsTable = settingsUI.buildWithBackground(settingsScreenshotTexture);
         settingsTable.setVisible(true);
+        settingsTable.setFillParent(true);
+        uiStage.addActor(settingsTable);
         settingsTable.toFront();
+    }
+
+    /**
+     * 截取当前游戏画面
+     */
+    private Texture captureScreenshot() {
+        int width = Gdx.graphics.getWidth();
+        int height = Gdx.graphics.getHeight();
+
+        // 读取当前帧缓冲区的像素
+        byte[] pixels = com.badlogic.gdx.utils.ScreenUtils.getFrameBufferPixels(0, 0, width, height, true);
+
+        // 创建 Pixmap
+        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+        com.badlogic.gdx.utils.BufferUtils.copy(pixels, 0, pixmap.getPixels(), pixels.length);
+
+        // 创建纹理
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+
+        return texture;
     }
 
     private void showLoadDialog() {
@@ -2062,6 +1918,11 @@ public class EndlessGameScreen implements Screen {
             bloodParticles.dispose();
         if (dustParticles != null)
             dustParticles.dispose();
+        // 清理设置界面相关资源
+        if (settingsScreenshotTexture != null)
+            settingsScreenshotTexture.dispose();
+        if (settingsUI != null)
+            settingsUI.dispose();
     }
 
     private Color getThemeColor(String theme) {

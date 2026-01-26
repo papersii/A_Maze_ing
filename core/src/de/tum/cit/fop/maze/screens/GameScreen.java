@@ -62,6 +62,7 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
     private de.tum.cit.fop.maze.utils.AttackRangeRenderer attackRangeRenderer;
     private de.tum.cit.fop.maze.utils.FogRenderer fogRenderer;
     private de.tum.cit.fop.maze.utils.CrosshairRenderer crosshairRenderer;
+    private de.tum.cit.fop.maze.utils.PlayerRenderer playerRenderer;
     private BloodParticleSystem bloodParticles;
     private de.tum.cit.fop.maze.utils.DustParticleSystem dustParticles;
 
@@ -110,6 +111,8 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         mazeRenderer = new de.tum.cit.fop.maze.utils.MazeRenderer(game.getSpriteBatch(), textureManager);
         fogRenderer = new de.tum.cit.fop.maze.utils.FogRenderer(game.getSpriteBatch());
         attackRangeRenderer = new de.tum.cit.fop.maze.utils.AttackRangeRenderer();
+        playerRenderer = new de.tum.cit.fop.maze.utils.PlayerRenderer(game.getSpriteBatch(), textureManager,
+                UNIT_SCALE);
 
         this.currentLevelPath = "maps/level-1.properties";
         boolean isLoaded = false;
@@ -146,6 +149,8 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         this.mazeRenderer = new de.tum.cit.fop.maze.utils.MazeRenderer(game.getSpriteBatch(), textureManager);
         this.fogRenderer = new de.tum.cit.fop.maze.utils.FogRenderer(game.getSpriteBatch());
         this.attackRangeRenderer = new de.tum.cit.fop.maze.utils.AttackRangeRenderer();
+        this.playerRenderer = new de.tum.cit.fop.maze.utils.PlayerRenderer(game.getSpriteBatch(), textureManager,
+                UNIT_SCALE);
 
         initGameWorld(this.currentLevelPath);
 
@@ -946,199 +951,15 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
     }
 
     private void renderPlayer(Player player) {
-        TextureRegion playerFrame = null;
         int dir = gameWorld.getPlayerDirection();
-        boolean flipX = false; // 用于水平翻转精灵
-
         boolean isMoving = !isPaused && (Gdx.input.isKeyPressed(GameSettings.KEY_UP)
                 || Gdx.input.isKeyPressed(GameSettings.KEY_DOWN)
                 || Gdx.input.isKeyPressed(GameSettings.KEY_LEFT) || Gdx.input.isKeyPressed(GameSettings.KEY_RIGHT));
 
-        // === 尝试使用自定义玩家皮肤 ===
-        String playerSkinId = getActivePlayerSkinId();
-        boolean useCustomSkin = playerSkinId != null;
-
-        if (useCustomSkin) {
-            de.tum.cit.fop.maze.custom.CustomElementManager manager = de.tum.cit.fop.maze.custom.CustomElementManager
-                    .getInstance();
-
-            // === 优先检查死亡状态 ===
-            if (player.isDead()) {
-                Animation<TextureRegion> deathAnim = manager.getAnimation(playerSkinId, "Death");
-                if (deathAnim != null) {
-                    playerFrame = deathAnim.getKeyFrame(player.getDeathProgress() * 0.5f, false);
-                }
-            } else if (player.isAttacking()) {
-                float total = player.getAttackAnimTotalDuration();
-                if (total <= 0)
-                    total = 0.2f;
-                float elapsed = total - player.getAttackAnimTimer();
-                float progress = (elapsed / total) * 0.2f;
-
-                // 尝试方向性攻击动画，回退到通用Attack
-                String attackAction = getDirectionalAction("Attack", dir);
-                Animation<TextureRegion> attackAnim = manager.getAnimation(playerSkinId, attackAction);
-                if (attackAnim == null && !attackAction.equals("Attack")) {
-                    attackAnim = manager.getAnimation(playerSkinId, "Attack");
-                }
-                if (attackAnim != null) {
-                    playerFrame = attackAnim.getKeyFrame(progress, false);
-                    flipX = (dir == 2); // 朝左时翻转
-                }
-            } else if (isMoving) {
-                // 尝试方向性移动动画，回退到通用Move
-                String moveAction = getDirectionalAction("Move", dir);
-                Animation<TextureRegion> moveAnim = manager.getAnimation(playerSkinId, moveAction);
-                if (moveAnim == null && !moveAction.equals("Move")) {
-                    moveAnim = manager.getAnimation(playerSkinId, "Move");
-                }
-                if (moveAnim != null) {
-                    playerFrame = moveAnim.getKeyFrame(stateTime, true);
-                    flipX = (dir == 2); // 朝左时翻转
-                }
-            } else {
-                // 尝试方向性待机动画，回退到通用Idle
-                String idleAction = getDirectionalAction("Idle", dir);
-                Animation<TextureRegion> idleAnim = manager.getAnimation(playerSkinId, idleAction);
-                if (idleAnim == null && !idleAction.equals("Idle")) {
-                    idleAnim = manager.getAnimation(playerSkinId, "Idle");
-                }
-                if (idleAnim != null) {
-                    playerFrame = idleAnim.getKeyFrame(stateTime, true);
-                    flipX = (dir == 2); // 朝左时翻转
-                }
-            }
-        }
-
-        // === 回退到默认动画 ===
-        if (playerFrame == null) {
-            if (player.isAttacking()) {
-                float total = player.getAttackAnimTotalDuration();
-                if (total <= 0)
-                    total = 0.2f;
-                float elapsed = total - player.getAttackAnimTimer();
-                float progress = (elapsed / total) * 0.2f;
-
-                switch (dir) {
-                    case 1:
-                        playerFrame = textureManager.playerAttackUp.getKeyFrame(progress, false);
-                        break;
-                    case 2:
-                        playerFrame = textureManager.playerAttackLeft.getKeyFrame(progress, false);
-                        break;
-                    case 3:
-                        playerFrame = textureManager.playerAttackRight.getKeyFrame(progress, false);
-                        break;
-                    default:
-                        playerFrame = textureManager.playerAttackDown.getKeyFrame(progress, false);
-                        break;
-                }
-            } else if (isMoving) {
-                switch (dir) {
-                    case 1:
-                        playerFrame = textureManager.playerUp.getKeyFrame(stateTime, true);
-                        break;
-                    case 2:
-                        playerFrame = textureManager.playerLeft.getKeyFrame(stateTime, true);
-                        break;
-                    case 3:
-                        playerFrame = textureManager.playerRight.getKeyFrame(stateTime, true);
-                        break;
-                    default:
-                        playerFrame = textureManager.playerDown.getKeyFrame(stateTime, true);
-                        break;
-                }
-            } else {
-                switch (dir) {
-                    case 1:
-                        playerFrame = textureManager.playerUpStand;
-                        break;
-                    case 2:
-                        playerFrame = textureManager.playerLeftStand;
-                        break;
-                    case 3:
-                        playerFrame = textureManager.playerRightStand;
-                        break;
-                    default:
-                        playerFrame = textureManager.playerDownStand;
-                        break;
-                }
-            }
-        }
-
-        Color oldC = game.getSpriteBatch().getColor().cpy();
-        if (player.isDead())
-            game.getSpriteBatch().setColor(0.5f, 0.5f, 0.5f, 1f);
-        else if (player.isHurt())
-            game.getSpriteBatch().setColor(1f, 0f, 0f, 1f);
-
-        float drawX = player.getX() * UNIT_SCALE;
-        float drawY = player.getY() * UNIT_SCALE;
-        float drawWidth = playerFrame.getRegionWidth();
-        float drawHeight = playerFrame.getRegionHeight();
-
-        // 自定义皮肤统一缩放到16像素
-        if (useCustomSkin && playerFrame != null) {
-            drawWidth = UNIT_SCALE;
-            drawHeight = UNIT_SCALE;
-        } else if (playerFrame.getRegionWidth() > 16) {
-            drawX -= (playerFrame.getRegionWidth() - 16) / 2f;
-        }
-
-        // 朝上或朝左时先渲染武器（在玩家身后）
-        if (!player.isDead() && (dir == 1 || dir == 2)) {
-            renderEquippedWeapon(player, dir);
-        }
-
-        if (player.isDead()) {
-            // 直接播放死亡动画，不旋转
-            game.getSpriteBatch().draw(playerFrame, drawX, drawY, drawWidth, drawHeight);
-        } else if (flipX) {
-            // 水平翻转绘制
-            game.getSpriteBatch().draw(playerFrame, drawX + drawWidth, drawY, -drawWidth, drawHeight);
-        } else {
-            game.getSpriteBatch().draw(playerFrame, drawX, drawY, drawWidth, drawHeight);
-        }
-        game.getSpriteBatch().setColor(oldC);
-
-        // === 渲染装备的武器 (队友功能) ===
-        // 朝上或朝左时武器在玩家后面，其他方向武器在玩家前面
-        if (!player.isDead() && dir != 1 && dir != 2) {
-            renderEquippedWeapon(player, dir);
-        }
-    }
-
-    /**
-     * 获取当前激活的玩家皮肤元素ID
-     * 
-     * @return 第一个PLAYER类型的自定义元素ID，如果没有则返回null
-     */
-    private String getActivePlayerSkinId() {
-        for (de.tum.cit.fop.maze.custom.CustomElementDefinition def : de.tum.cit.fop.maze.custom.CustomElementManager
-                .getInstance().getAllElements()) {
-            if (def.getType() == de.tum.cit.fop.maze.custom.ElementType.PLAYER) {
-                return def.getId();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 根据方向获取对应的动作名称
-     * 
-     * @param baseAction 基础动作名称 (Move, Idle, Attack)
-     * @param dir        方向 (0=下, 1=上, 2=左, 3=右)
-     * @return 方向性动作名称
-     */
-    private String getDirectionalAction(String baseAction, int dir) {
-        switch (dir) {
-            case 1: // 上
-                return baseAction + "Up";
-            case 0: // 下
-                return baseAction + "Down";
-            default: // 左右使用基础动作+翻转
-                return baseAction;
-        }
+        // 使用统一的 PlayerRenderer 工具类进行渲染
+        // 武器渲染回调确保武器在正确的层级（玩家前/后）渲染
+        playerRenderer.render(player, dir, stateTime, isMoving,
+                (p, d, t) -> renderEquippedWeapon(p, d));
     }
 
     /**
@@ -1468,21 +1289,55 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
         pauseTable.add(btn).width(200).padBottom(20).row();
     }
 
+    // === 设置界面截图背景 ===
+    private Texture settingsScreenshotTexture;
+
     private void showSettingsOverlay() {
-        if (settingsTable == null) {
-            settingsUI = new de.tum.cit.fop.maze.ui.SettingsUI(game, uiStage, () -> {
-                // On Back -> Hide settings, show pause menu
-                settingsTable.setVisible(false);
-                pauseTable.setVisible(true);
-            });
-            settingsTable = settingsUI.buildWithBackground();
-            settingsTable.setVisible(false);
-            // Center it
-            settingsTable.setFillParent(true);
-            uiStage.addActor(settingsTable);
+        // 截取当前游戏画面作为设置界面背景
+        if (settingsScreenshotTexture != null) {
+            settingsScreenshotTexture.dispose();
         }
+        settingsScreenshotTexture = captureScreenshot();
+
+        // 每次重新创建设置界面以使用新截图
+        if (settingsTable != null) {
+            settingsTable.remove();
+            if (settingsUI != null) {
+                settingsUI.dispose();
+            }
+        }
+
+        settingsUI = new de.tum.cit.fop.maze.ui.SettingsUI(game, uiStage, () -> {
+            // On Back -> Hide settings, show pause menu
+            settingsTable.setVisible(false);
+            pauseTable.setVisible(true);
+        });
+        settingsTable = settingsUI.buildWithBackground(settingsScreenshotTexture);
         settingsTable.setVisible(true);
+        settingsTable.setFillParent(true);
+        uiStage.addActor(settingsTable);
         settingsTable.toFront();
+    }
+
+    /**
+     * 截取当前游戏画面
+     */
+    private Texture captureScreenshot() {
+        int width = Gdx.graphics.getWidth();
+        int height = Gdx.graphics.getHeight();
+
+        // 读取当前帧缓冲区的像素
+        byte[] pixels = com.badlogic.gdx.utils.ScreenUtils.getFrameBufferPixels(0, 0, width, height, true);
+
+        // 创建 Pixmap
+        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+        com.badlogic.gdx.utils.BufferUtils.copy(pixels, 0, pixmap.getPixels(), pixels.length);
+
+        // 创建纹理
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+
+        return texture;
     }
 
     // --- Popups (Keep logic in Screen for now) ---
@@ -1661,6 +1516,11 @@ public class GameScreen implements Screen, GameWorld.WorldListener {
             grayscaleShader.dispose();
         if (dustParticles != null)
             dustParticles.dispose();
+        // 清理设置界面相关资源
+        if (settingsScreenshotTexture != null)
+            settingsScreenshotTexture.dispose();
+        if (settingsUI != null)
+            settingsUI.dispose();
     }
 
     @Override

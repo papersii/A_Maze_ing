@@ -72,24 +72,40 @@ public class SettingsUI {
      * Uses the same background as SettingsScreen with dim effect.
      */
     public Table buildWithBackground() {
-        // Load background texture for in-game overlay
-        try {
-            backgroundTexture = new Texture(Gdx.files.internal("settings_bg.png"));
-        } catch (Exception e) {
-            backgroundTexture = null;
-        }
+        return buildWithBackground(null);
+    }
 
+    /**
+     * Build settings UI with screenshot background (for in-game settings overlay).
+     * Uses the provided screenshot texture as background with dim effect.
+     * 
+     * @param screenshotTexture 游戏暂停时的截图纹理，如果为null则使用默认背景
+     */
+    public Table buildWithBackground(Texture screenshotTexture) {
         contentTable = new Table();
 
-        // 设置带暗化的背景图片
-        if (backgroundTexture != null) {
-            // 创建暗化的背景
-            TextureRegionDrawable bgDrawable = new TextureRegionDrawable(new TextureRegion(backgroundTexture));
+        // 优先使用传入的截图作为背景
+        if (screenshotTexture != null) {
+            // 使用游戏暂停时的截图作为背景
+            TextureRegionDrawable bgDrawable = new TextureRegionDrawable(new TextureRegion(screenshotTexture));
             contentTable.setBackground(bgDrawable);
-            contentTable.setColor(0.4f, 0.4f, 0.4f, 1f); // Dim to match shop
+            contentTable.setColor(0.5f, 0.5f, 0.5f, 1f); // 轻微暗化以突出设置内容
         } else {
-            // Fallback to dark semi-transparent background
-            contentTable.setBackground(skin.newDrawable("white", 0.04f, 0.04f, 0.06f, 0.95f));
+            // Fallback: 加载固定背景图片
+            try {
+                backgroundTexture = new Texture(Gdx.files.internal("settings_bg.png"));
+            } catch (Exception e) {
+                backgroundTexture = null;
+            }
+
+            if (backgroundTexture != null) {
+                TextureRegionDrawable bgDrawable = new TextureRegionDrawable(new TextureRegion(backgroundTexture));
+                contentTable.setBackground(bgDrawable);
+                contentTable.setColor(0.4f, 0.4f, 0.4f, 1f);
+            } else {
+                // Fallback to dark semi-transparent background
+                contentTable.setBackground(skin.newDrawable("white", 0.04f, 0.04f, 0.06f, 0.95f));
+            }
         }
 
         contentTable.pad(50, 40, 20, 40); // 上50 左右40 下20

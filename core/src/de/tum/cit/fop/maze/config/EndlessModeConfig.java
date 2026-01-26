@@ -63,22 +63,22 @@ public final class EndlessModeConfig {
     /** RAGE等级名称 */
     public static final String[] RAGE_NAMES = { "Calm", "Alert", "Aggressive", "Furious", "Berserk" };
 
-    /** RAGE敌人速度加成 */
-    public static final float[] RAGE_SPEED_MULTIPLIERS = { 1.0f, 1.2f, 1.4f, 1.6f, 2.0f };
+    /** RAGE敌人速度加成 - 优化后降低最高速度 */
+    public static final float[] RAGE_SPEED_MULTIPLIERS = { 1.0f, 1.1f, 1.2f, 1.3f, 1.5f };
 
-    /** RAGE敌人伤害加成 */
-    public static final float[] RAGE_DAMAGE_MULTIPLIERS = { 1.0f, 1.0f, 1.0f, 1.5f, 2.0f };
+    /** RAGE敌人伤害加成 - 优化后降低最高伤害 */
+    public static final float[] RAGE_DAMAGE_MULTIPLIERS = { 1.0f, 1.0f, 1.0f, 1.2f, 1.5f };
 
     // ========== 波次系统配置 ==========
 
-    /** 波次时间阈值（秒） */
-    public static final int[] WAVE_TIME_THRESHOLDS = { 0, 60, 180, 300, 480, 720 };
+    /** 波次时间阈值（秒）- 优化后延长每波时长 */
+    public static final int[] WAVE_TIME_THRESHOLDS = { 0, 90, 240, 420, 600, 900 };
 
-    /** 敌人刷新间隔（秒） */
-    public static final float[] WAVE_SPAWN_INTERVALS = { 3f, 2f, 1.5f, 1f, 0.5f, 0.33f };
+    /** 敌人刷新间隔（秒）- 优化后缓和刷新速度 */
+    public static final float[] WAVE_SPAWN_INTERVALS = { 4f, 3f, 2.5f, 2f, 1.5f, 1f };
 
-    /** 敌人血量倍率 */
-    public static final float[] WAVE_HEALTH_MULTIPLIERS = { 1.0f, 1.2f, 1.5f, 2.0f, 2.5f, 3.0f };
+    /** 敌人血量倍率 - 优化后降低后期倍率 */
+    public static final float[] WAVE_HEALTH_MULTIPLIERS = { 1.0f, 1.1f, 1.25f, 1.5f, 1.75f, 2.0f };
 
     /** BOSS刷新间隔（秒） */
     public static final float BOSS_SPAWN_INTERVAL = 120f;
@@ -100,19 +100,27 @@ public final class EndlessModeConfig {
     /** 敌人休眠距离（格子） */
     public static final int ENEMY_DORMANT_DISTANCE = 50;
 
+    // ========== 安全期配置（新增）==========
+
+    /** 开局安全期时长（秒）- 无敌人刷新 */
+    public static final float SAFE_PERIOD_DURATION = 15f;
+
+    /** 初期敌人刷新距离（格子）- 比正常更远 */
+    public static final int INITIAL_SPAWN_DISTANCE = 30;
+
     // ========== 掉落配置 ==========
 
-    /** 生命药水掉落概率 */
-    public static final float HEALTH_POTION_DROP_RATE = 0.10f;
+    /** 生命药水掉落概率 - 优化后提升 */
+    public static final float HEALTH_POTION_DROP_RATE = 0.15f;
 
     /** 精英敌人武器升级掉落概率 */
     public static final float WEAPON_UPGRADE_DROP_RATE = 0.30f;
 
-    /** 护甲碎片刷新间隔（秒） */
-    public static final float ARMOR_SHARD_SPAWN_INTERVAL = 30f;
+    /** 护甲碎片刷新间隔（秒）- 优化后缩短 */
+    public static final float ARMOR_SHARD_SPAWN_INTERVAL = 20f;
 
-    /** COMBO延长剂掉落概率（在10+ COMBO时） */
-    public static final float COMBO_EXTENDER_DROP_RATE = 0.05f;
+    /** COMBO延长剂掉落概率（在10+ COMBO时）- 优化后提升 */
+    public static final float COMBO_EXTENDER_DROP_RATE = 0.08f;
 
     // ========== 得分配置 ==========
 

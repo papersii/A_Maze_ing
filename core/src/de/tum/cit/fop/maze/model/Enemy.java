@@ -365,6 +365,49 @@ public class Enemy extends GameObject {
         this.knockbackVy = dy * KNOCKBACK_STRENGTH * strengthMultiplier;
 
         this.stunTimer = 0.5f;
+
+        // 防止击退卡墙：如果当前位置已经在墙内，强制修正到安全位置
+        if (cm != null) {
+            ensureSafePosition(cm);
+        }
+    }
+
+    /**
+     * 确保敌人不在墙内。如果在墙内，尝试修正到最近的安全位置。
+     * 
+     * @param cm CollisionManager 用于检查墙壁
+     */
+    private void ensureSafePosition(CollisionManager cm) {
+        // 检查当前中心点是否在可行走区域
+        float centerX = this.x + 0.5f;
+        float centerY = this.y + 0.5f;
+
+        if (isWalkable(centerX, centerY, cm)) {
+            return; // 当前位置安全，无需修正
+        }
+
+        // 当前位置不安全，寻找最近的安全格子
+        float safeX = Math.round(this.x);
+        float safeY = Math.round(this.y);
+
+        // 尝试当前格子和四个相邻方向
+        float[][] offsets = { { 0, 0 }, { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
+                { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } };
+        for (float[] offset : offsets) {
+            float testX = safeX + offset[0];
+            float testY = safeY + offset[1];
+            if (isWalkable(testX + 0.5f, testY + 0.5f, cm)) {
+                this.x = testX;
+                this.y = testY;
+                // 停止击退速度，防止继续移动到墙内
+                this.knockbackVx = 0;
+                this.knockbackVy = 0;
+                GameLogger.debug("Enemy", "Position corrected from wall to (" + testX + ", " + testY + ")");
+                return;
+            }
+        }
+        // 如果所有方向都不安全，保持原位（极端情况）
+        GameLogger.warn("Enemy", "Could not find safe position for enemy at (" + this.x + ", " + this.y + ")");
     }
 
     /**
@@ -375,14 +418,43 @@ public class Enemy extends GameObject {
      * @param delta Frame delta time
      */
     public void updateTimers(float delta) {
-        // Knockback physics (allows "flying corpses")
+        // Knockback physics with simple boundary check
         if (Math.abs(knockbackVx) > 0.1f || Math.abs(knockbackVy) > 0.1f) {
             float moveX = knockbackVx * delta;
             float moveY = knockbackVy * delta;
 
-            // Simple position update (no collision for simplicity in Endless Mode)
-            this.x += moveX;
-            this.y += moveY;
+            // 计算新位置
+            float newX = this.x + moveX;
+            float newY = this.y + moveY;
+
+            // 简单边界检查：防止位置变成负数或超出合理范围
+            // 如果新位置在墙内（根据整数坐标检查地图边界），停止击退
+            boolean wallCollision = false;
+
+            // X轴移动检查
+            if (moveX != 0) {
+                // 检查目标位置是否在合理范围内且非负
+                if (newX < 1 || newX > 898) {
+                    knockbackVx = 0;
+                    wallCollision = true;
+                    newX = this.x;
+                }
+            }
+
+            // Y轴移动检查
+            if (moveY != 0) {
+                if (newY < 1 || newY > 898) {
+                    knockbackVy = 0;
+                    wallCollision = true;
+                    newY = this.y;
+                }
+            }
+
+            // 应用位置更新（如果没有碰撞）
+            if (!wallCollision) {
+                this.x = newX;
+                this.y = newY;
+            }
 
             // Friction
             knockbackVx -= knockbackVx * KNOCKBACK_FRICTION * delta;
@@ -551,23 +623,60 @@ public class Enemy extends GameObject {
                 targetVy = patrolDirY * maxSpeed;
                 break;
             case CHASE:
-                // Calculate chase direction with proximity slowdown
+                // Calculate chase direction with smart wall avoidance
                 float dx = player.getX() - this.x;
                 float dy = player.getY() - this.y;
                 float distance = (float) Math.sqrt(dx * dx + dy * dy);
 
                 if (distance > 0.1f) {
-                    // Normalize direction
-                    float dirX = dx / distance;
-                    float dirY = dy / distance;
+                    // 计算主方向和备选方向
+                    float primaryVx = 0, primaryVy = 0;
+                    float secondaryVx = 0, secondaryVy = 0;
 
-                    // Axis-aligned movement: prefer the axis with larger difference
+                    // 主方向：距离差大的轴
                     if (Math.abs(dx) > Math.abs(dy)) {
-                        targetVx = Math.signum(dx) * maxSpeed;
-                        targetVy = 0;
+                        primaryVx = Math.signum(dx) * maxSpeed;
+                        primaryVy = 0;
+                        // 备选方向：另一个轴
+                        secondaryVx = 0;
+                        secondaryVy = (dy != 0) ? Math.signum(dy) * maxSpeed : maxSpeed;
                     } else {
-                        targetVx = 0;
-                        targetVy = Math.signum(dy) * maxSpeed;
+                        primaryVx = 0;
+                        primaryVy = Math.signum(dy) * maxSpeed;
+                        // 备选方向：另一个轴
+                        secondaryVx = (dx != 0) ? Math.signum(dx) * maxSpeed : maxSpeed;
+                        secondaryVy = 0;
+                    }
+
+                    // 智能绕墙：检查主方向是否被墙挡住
+                    float checkDist = 0.6f; // 提前检查距离
+                    float checkX = this.x + 0.5f + (primaryVx != 0 ? Math.signum(primaryVx) * checkDist : 0);
+                    float checkY = this.y + 0.5f + (primaryVy != 0 ? Math.signum(primaryVy) * checkDist : 0);
+
+                    if (collisionManager != null && isWalkable(checkX, checkY, collisionManager)) {
+                        // 主方向可行
+                        targetVx = primaryVx;
+                        targetVy = primaryVy;
+                    } else {
+                        // 主方向被挡，尝试备选方向
+                        checkX = this.x + 0.5f + (secondaryVx != 0 ? Math.signum(secondaryVx) * checkDist : 0);
+                        checkY = this.y + 0.5f + (secondaryVy != 0 ? Math.signum(secondaryVy) * checkDist : 0);
+
+                        if (collisionManager != null && isWalkable(checkX, checkY, collisionManager)) {
+                            targetVx = secondaryVx;
+                            targetVy = secondaryVy;
+                        } else {
+                            // 两个方向都被挡，尝试反向绕路
+                            secondaryVx = -secondaryVx;
+                            secondaryVy = -secondaryVy;
+                            checkX = this.x + 0.5f + (secondaryVx != 0 ? Math.signum(secondaryVx) * checkDist : 0);
+                            checkY = this.y + 0.5f + (secondaryVy != 0 ? Math.signum(secondaryVy) * checkDist : 0);
+                            if (collisionManager != null && isWalkable(checkX, checkY, collisionManager)) {
+                                targetVx = secondaryVx;
+                                targetVy = secondaryVy;
+                            }
+                            // 如果全被挡，保持 targetVx/targetVy = 0，碰撞系统会处理
+                        }
                     }
 
                     // Distance-adaptive slowdown: prevent overshooting when close to player
