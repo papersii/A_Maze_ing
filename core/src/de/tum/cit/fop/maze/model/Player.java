@@ -890,6 +890,63 @@ public class Player extends GameObject {
     }
 
     /**
+     * 检查玩家是否已停止移动（速度接近零）
+     * Check if player has stopped moving (velocity near zero).
+     */
+    public boolean hasStopped() {
+        return Math.abs(velocityX) < 0.1f && Math.abs(velocityY) < 0.1f;
+    }
+
+    /**
+     * 当玩家停止移动时，平滑地将玩家对齐到最近的整数格位置。
+     * Smoothly snap player to the nearest grid position when stopped.
+     * This ensures the player always rests on a tile center, not between tiles.
+     * 
+     * @param delta          帧时间 (Frame delta time)
+     * @param canMoveChecker 碰撞检测回调 (Collision check callback: (newX, newY) ->
+     *                       canMove)
+     */
+    public void snapToGrid(float delta, java.util.function.BiFunction<Float, Float, Boolean> canMoveChecker) {
+        // 检查配置：如果禁用了整格停留功能，直接返回
+        if (!GameSettings.isGridSnappingEnabled()) {
+            return;
+        }
+
+        float snapSpeed = GameSettings.getGridSnapSpeed() * delta;
+
+        float targetX = Math.round(this.x);
+        float targetY = Math.round(this.y);
+
+        float dx = targetX - this.x;
+        float dy = targetY - this.y;
+
+        // 如果已经在整数格上，直接设置精确位置并返回
+        if (Math.abs(dx) < 0.01f && Math.abs(dy) < 0.01f) {
+            this.x = targetX;
+            this.y = targetY;
+            return;
+        }
+
+        // 计算平滑移动量
+        float moveX = Math.signum(dx) * Math.min(Math.abs(dx), snapSpeed);
+        float moveY = Math.signum(dy) * Math.min(Math.abs(dy), snapSpeed);
+
+        // 应用X轴对齐（带碰撞检测）
+        if (Math.abs(moveX) > 0.001f) {
+            if (canMoveChecker.apply(this.x + moveX, this.y)) {
+                this.x += moveX;
+            }
+        }
+
+        // 应用Y轴对齐（带碰撞检测）
+        if (Math.abs(moveY) > 0.001f) {
+            if (canMoveChecker.apply(this.x, this.y + moveY)) {
+                this.y += moveY;
+            }
+        }
+    }
+
+    /**
      * Get current speed magnitude (for animation speed, etc.)
      */
     public float getCurrentSpeedMagnitude() {

@@ -762,35 +762,8 @@ public class EndlessGameScreen implements Screen {
      * 当玩家停止移动时调用，确保玩家不会停在两个格子之间
      */
     private void snapPlayerToGrid(float delta) {
-        float snapSpeed = 10.0f * delta; // 对齐速度
-
-        float targetX = Math.round(player.getX());
-        float targetY = Math.round(player.getY());
-
-        float dx = targetX - player.getX();
-        float dy = targetY - player.getY();
-
-        // 如果已经在整数格上,不需要调整
-        if (Math.abs(dx) < 0.01f && Math.abs(dy) < 0.01f) {
-            player.setPosition(targetX, targetY);
-            return;
-        }
-
-        // 平滑移动到目标位置
-        float moveX = Math.signum(dx) * Math.min(Math.abs(dx), snapSpeed);
-        float moveY = Math.signum(dy) * Math.min(Math.abs(dy), snapSpeed);
-
-        // 检查碰撞后再移动
-        if (Math.abs(moveX) > 0.001f) {
-            if (canPlayerMoveTo(player.getX() + moveX, player.getY())) {
-                player.move(moveX, 0);
-            }
-        }
-        if (Math.abs(moveY) > 0.001f) {
-            if (canPlayerMoveTo(player.getX(), player.getY() + moveY)) {
-                player.move(0, moveY);
-            }
-        }
+        // 使用Player类中的统一实现，传入碰撞检测回调
+        player.snapToGrid(delta, this::canPlayerMoveTo);
     }
 
     private void performAttack() {

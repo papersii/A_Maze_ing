@@ -69,6 +69,12 @@ public class GameSettings {
     public static boolean useMouseAiming = false; // 默认关闭
     private static boolean userUseMouseAiming = false;
 
+    // === 整格停留设置 (Grid Snapping) ===
+    public static boolean gridSnappingEnabled = true; // 默认开启
+    public static float gridSnapSpeed = 10.0f; // 对齐速度
+    private static boolean userGridSnappingEnabled = true;
+    private static float userGridSnapSpeed = 10.0f;
+
     // Keys (Default WASD/ARROWS logic handled in game, but here is preferred
     // primary)
     // Actually typically we store int keycodes.
@@ -107,6 +113,8 @@ public class GameSettings {
         userFogEnabled = prefs.getBoolean("fogEnabled", false);
         userShowAttackRange = prefs.getBoolean("showAttackRange", true);
         userUseMouseAiming = prefs.getBoolean("useMouseAiming", false); // 默认关闭
+        userGridSnappingEnabled = prefs.getBoolean("gridSnappingEnabled", true); // 默认开启
+        userGridSnapSpeed = prefs.getFloat("gridSnapSpeed", 10.0f);
 
         KEY_UP = prefs.getInteger("key_up", com.badlogic.gdx.Input.Keys.UP);
         KEY_DOWN = prefs.getInteger("key_down", com.badlogic.gdx.Input.Keys.DOWN);
@@ -157,6 +165,8 @@ public class GameSettings {
         prefs.putBoolean("fogEnabled", userFogEnabled);
         prefs.putBoolean("showAttackRange", userShowAttackRange);
         prefs.putBoolean("useMouseAiming", userUseMouseAiming);
+        prefs.putBoolean("gridSnappingEnabled", userGridSnappingEnabled);
+        prefs.putFloat("gridSnapSpeed", userGridSnapSpeed);
         prefs.flush();
     }
 
@@ -196,6 +206,8 @@ public class GameSettings {
 
         showAttackRange = userShowAttackRange;
         useMouseAiming = userUseMouseAiming;
+        gridSnappingEnabled = userGridSnappingEnabled;
+        gridSnapSpeed = userGridSnapSpeed;
         cameraZoom = DEFAULT_CAMERA_ZOOM; // Force new default zoom (0.67 for 15x15 view)
     }
 
@@ -230,6 +242,25 @@ public class GameSettings {
 
     public static boolean isUseMouseAiming() {
         return useMouseAiming;
+    }
+
+    // ==================== 整格停留 (Grid Snapping) ====================
+    public static void setGridSnappingEnabled(boolean enabled) {
+        gridSnappingEnabled = enabled;
+        userGridSnappingEnabled = enabled;
+    }
+
+    public static boolean isGridSnappingEnabled() {
+        return gridSnappingEnabled;
+    }
+
+    public static void setGridSnapSpeed(float speed) {
+        gridSnapSpeed = speed;
+        userGridSnapSpeed = speed;
+    }
+
+    public static float getGridSnapSpeed() {
+        return gridSnapSpeed;
     }
 
     /**

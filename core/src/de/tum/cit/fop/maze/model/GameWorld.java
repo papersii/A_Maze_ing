@@ -497,8 +497,8 @@ public class GameWorld {
      * This ensures the player always rests on a tile center, not between tiles.
      */
     private void snapPlayerToGrid(float delta) {
-        // [User Request] Disable grid snapping for arbitrary positioning
-        return;
+        // 使用Player类中的统一实现，传入碰撞检测回调
+        player.snapToGrid(delta, this::canMoveToPosition);
     }
 
     /**
